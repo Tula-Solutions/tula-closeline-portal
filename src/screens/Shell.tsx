@@ -47,6 +47,9 @@ export function Shell() {
       <nav className='main-nav' aria-label='Main'>
         <Link to='/'>Home</Link>
         {can.viewMembers(session.organization.role) ? <Link to='/members'>Members</Link> : null}
+        {can.manageInvitations(session.organization.role) ? (
+          <Link to='/invitations'>Invitations</Link>
+        ) : null}
       </nav>
       <main id='main' tabIndex={-1}>
         <Outlet />
