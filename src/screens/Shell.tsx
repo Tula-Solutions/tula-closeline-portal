@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { Navigate, Outlet } from '@tanstack/react-router'
+import { Link, Navigate, Outlet } from '@tanstack/react-router'
 import { useApp, useSessionState } from '~/app-context'
+import { can } from '~/data/permissions'
 import type { Role } from '~/session/session'
 import { Logo } from '~/ui/Logo'
 
@@ -43,6 +44,10 @@ export function Shell() {
           Sign out
         </button>
       </header>
+      <nav className='main-nav' aria-label='Main'>
+        <Link to='/'>Home</Link>
+        {can.viewMembers(session.organization.role) ? <Link to='/members'>Members</Link> : null}
+      </nav>
       <main id='main' tabIndex={-1}>
         <Outlet />
       </main>

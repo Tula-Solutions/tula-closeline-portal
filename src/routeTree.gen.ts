@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
 
@@ -28,6 +29,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMembersRoute = AppMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AppRoute,
+} as any)
 const PublicSignInRoute = PublicSignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
@@ -41,11 +47,13 @@ const PublicSignUpRoute = PublicSignUpRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/members': typeof AppMembersRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
+  '/members': typeof AppMembersRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
 }
@@ -53,19 +61,21 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
+  '/_app/members': typeof AppMembersRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
   '/_app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sign-in' | '/sign-up'
+  fullPaths: '/' | '/members' | '/sign-in' | '/sign-up'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sign-in' | '/sign-up'
+  to: '/' | '/members' | '/sign-in' | '/sign-up'
   id:
     | '__root__'
     | '/_app'
     | '/_public'
+    | '/_app/members'
     | '/_public/sign-in'
     | '/_public/sign-up'
     | '/_app/'
@@ -99,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/members': {
+      id: '/_app/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof AppMembersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_public/sign-in': {
       id: '/_public/sign-in'
       path: '/sign-in'
@@ -117,10 +134,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppMembersRoute: typeof AppMembersRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppMembersRoute: AppMembersRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
