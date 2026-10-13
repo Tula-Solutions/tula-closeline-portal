@@ -32,20 +32,36 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
 - `src/main.tsx` boots: parse env, start reporting, build the app, take the Invitation from the URL.
 - `src/app.ts` is the one composition root (HTTP clients, session, query cache, reporter). Screens
   get it from `useApp()`; tests build it with a `fetch` double (`src/testing/`).
-- `src/api/`: `http.ts` (timeout on every call, jittered retry for GETs only, `ApiError`),
-  `errors.ts`, `auth.ts` / `core.ts` (typed routes), `messages.ts` (an error code to plain words),
-  `auth.gen.ts` (generated).
-- `src/session/session.ts` holds the tokens; `src/report/` is the only door to Sentry.
+- `src/api/`: `http.ts` (same-origin paths only, timeout on every call, jittered retry for GETs
+  only, `ApiError`), `errors.ts`, `auth.ts` / `core.ts` (typed routes), `messages.ts` (an error
+  code to plain words), `service-routes.ts` (the path-prefix table and the dev proxy), `auth.gen.ts`
+  (generated).
+- `src/session/session.ts` holds the access token and restores the session; `src/screens/SessionGate.tsx`
+  is the pending / could-not-reach screen; `src/report/` is the only door to Sentry.
 - `src/screens/` has the screens and their tests; `src/ui/` the small shared form pieces.
 - The portal imports only `tula-closeline-contract`, never server code (ADR 0006). The UI branches
   on an error's `area.reason` code, never its status.
 
 ## Rules specific to this repo
 
-- Tokens live in memory only: never `localStorage`, `sessionStorage`, a cookie or a URL. A page
-  reload ends the session (the auth service has no cookie delivery; see the report on ticket 1.17).
+- Browser sessions follow ADR 0012. Every call is a same-origin path (`/v1/...`) with
+  `credentials: 'same-origin'`; no service URL is a setting, in code or in the bundle, and there is no
+  CORS. Every call to auth sends `x-tula-client: browser`, so auth keeps the refresh token in an
+  `HttpOnly` cookie and never in a body. **The refresh token does not exist in portal code.**
+- The access token lives in memory only (the session closure): never `localStorage`,
+  `sessionStorage`, IndexedDB, a cookie, a URL or anything serialised. `no-token-storage.test.ts`
+  fails the build if source uses those or names a refresh token.
+- On load, `main.tsx` calls `session.restore()` before the first render: `restoring` shows a pending
+  screen (no sign-in flash), 401 is signed out, no answer or 5xx is `unreachable` with a retry.
+  Every refresh (load, an expiring token, a 401) shares one in-flight promise. A 401 from core gets
+  one refresh and one retry; a second 401 ends the session locally.
+- Sign-out calls auth, then clears memory whatever the answer, and tells other tabs over a
+  `BroadcastChannel` (`signed_in` / `signed_out` only, never a token).
+- The path-to-service table is `src/api/service-routes.ts`. The dev server proxies those prefixes,
+  unchanged, to `AUTH_PROXY_TARGET` / `CORE_PROXY_TARGET`; `/internal` is never routed. A new route
+  in auth or core needs its prefix there (a test fails until it has one).
 - The Invitation token is never logged, reported or kept in the address bar.
-- Never log or report a token, code, password or email address. Report only unexpected errors
+- Never log, report or show a token, cookie value, code, password or email address. Report only unexpected errors
   (5xx, crashes); never validation, 401, 403, 404, 409 or 429. Sentry 11 has no `sendDefaultPii`:
   `dataCollection` is all off.
 - Every label and message uses `GLOSSARY.md` words (Organization, Rep, Invitation, Owner, Admin).
