@@ -1,11 +1,15 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { z } from 'zod'
 import { AppRoot } from '~/AppRoot'
 import { createApp } from '~/app'
 import { EnvError, parseEnv } from '~/env'
 import { startReporting } from '~/report/reporter'
 import { createAppRouter } from '~/router'
 import '~/styles.css'
+
+// The Content-Security-Policy forbids eval, so Zod must not try to compile its validators.
+z.config({ jitless: true })
 
 const root = document.getElementById('root')
 if (!root) {
