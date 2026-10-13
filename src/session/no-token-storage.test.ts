@@ -28,6 +28,10 @@ const files = sources(SRC).map((path) => ({
   text: code(readFileSync(path, 'utf8')),
 }))
 
+// These scans are a tripwire, not a proof. They read source text, so they catch the obvious
+// regression (a storage call, a console line or a report that names a token) and nothing cleverer:
+// an aliased `const s = window['local' + 'Storage']` would pass. Review and the behaviour tests in
+// session.test.ts carry the real guarantee.
 describe('the tokens live in memory only', () => {
   test('there is source to scan', () => {
     expect(files.length).toBeGreaterThan(20)
@@ -65,5 +69,29 @@ describe('the tokens live in memory only', () => {
     const session = files.find((file) => file.path === 'session/session.ts')?.text ?? ''
     expect(session).not.toMatch(/JSON\.stringify|structuredClone/)
     expect(session).not.toMatch(/postMessage\([^)]*(accessToken|tokens)/)
+  })
+
+  test('no source writes to the console', () => {
+    const used = files.filter((file) => /\bconsole\s*\./.test(file.text)).map((file) => file.path)
+    expect(used).toEqual([])
+  })
+
+  test('the HTTP client and the session never hand a token to the reporter', () => {
+    for (const path of ['api/http.ts', 'session/session.ts']) {
+      const text = files.find((file) => file.path === path)?.text ?? ''
+      expect([path, /~\/report\//.test(text)]).toEqual([path, false])
+      expect([path, /\b(report|reporter|capture)\w*\s*[.(][^;\n]*[tT]oken/.test(text)]).toEqual([
+        path,
+        false,
+      ])
+    }
+  })
+
+  test('the one report the session triggers carries status and code only', () => {
+    const app = files.find((file) => file.path === 'app.ts')?.text ?? ''
+    const call = app.match(/reporter\.report\(new Error\(([^)]*)\)\)/)?.[1] ?? ''
+    expect(call).toContain('error.status')
+    expect(call).toContain('error.code')
+    expect(call).not.toMatch(/[tT]oken|message/)
   })
 })

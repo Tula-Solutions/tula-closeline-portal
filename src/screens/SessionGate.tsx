@@ -6,7 +6,8 @@ import { Logo } from '~/ui/Logo'
 /**
  * Holds the screens back until the refresh made on load has answered, so a signed-in person never
  * sees a sign-in screen flash. While it is in flight there is a pending screen; if auth could not
- * be reached there is a message with a retry (that is not "signed out").
+ * be reached there is a message with a retry (that is not "signed out"); if auth refused the
+ * request outright there is a message with no retry.
  */
 export function SessionGate(props: { readonly children: ReactNode }) {
   const app = useApp()
@@ -16,6 +17,17 @@ export function SessionGate(props: { readonly children: ReactNode }) {
       <main className='page-centered' id='main' aria-busy='true'>
         <Logo />
         <p role='status'>Restoring your session…</p>
+      </main>
+    )
+  }
+  if (session.status === 'misconfigured') {
+    // Auth refused the request for a reason a retry cannot change, such as an address it does not allow.
+    return (
+      <main className='page-centered' id='main'>
+        <Logo />
+        <Banner kind='error'>
+          This portal is not set up correctly for this address. Contact support.
+        </Banner>
       </main>
     )
   }

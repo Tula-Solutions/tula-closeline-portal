@@ -43,13 +43,29 @@ export function createApp(init: AppInit): App {
   }
   // Every path is same-origin (the host or the dev server routes it to a service), so there is no
   // service URL here and no CORS.
-  const authHttp = createHttpClient({ ...shared, headers: CLIENT_TYPE_HEADER })
+  // The server's clock, from the `Date` of the latest auth response, so an access token's lifetime
+  // does not depend on the browser's clock being right.
+  const clock = init.now ?? (() => performance.now())
+  let serverDate: { readonly at: number; readonly ms: number } | undefined
+  const authHttp = createHttpClient({
+    ...shared,
+    headers: CLIENT_TYPE_HEADER,
+    onResponse(response) {
+      const ms = Date.parse(response.headers.get('date') ?? '')
+      serverDate = Number.isNaN(ms) ? undefined : { at: clock(), ms }
+    },
+  })
   const auth = createAuthApi(authHttp)
   const session = createSession({
     refresh: () => auth.refresh(),
     revoke: () => auth.signOut(),
     ...(init.channel ? { channel: init.channel } : {}),
     ...(init.now ? { now: init.now } : {}),
+    serverNow: () =>
+      serverDate === undefined ? undefined : serverDate.ms + (clock() - serverDate.at),
+    // Status and code only: the error carries nothing else, and 4xx is otherwise never reported.
+    onRefused: (error) =>
+      init.reporter.report(new Error(`Session restore refused: ${error.status} ${error.code}`)),
   })
   const coreHttp = createHttpClient({ ...shared, authorizer: session })
   const queryClient = new QueryClient({

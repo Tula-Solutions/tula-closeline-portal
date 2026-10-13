@@ -12,6 +12,8 @@ function setup(
     refresh?: () => Promise<SessionTokens>
     revoke?: () => Promise<void>
     channel?: SessionChannel
+    serverNow?: () => number | undefined
+    minRefreshGapMs?: number
   } = {}
 ) {
   let now = T0
@@ -19,7 +21,10 @@ function setup(
   const revoked: number[] = []
   const session = createSession({
     now: () => now,
+    wallNow: () => now,
     skewMs: 15_000,
+    ...(options.serverNow ? { serverNow: options.serverNow } : {}),
+    ...(options.minRefreshGapMs === undefined ? {} : { minRefreshGapMs: options.minRefreshGapMs }),
     ...(options.channel ? { channel: options.channel } : {}),
     refresh: async () => {
       refreshed.push(now)
@@ -547,5 +552,256 @@ describe('signing out and the other tabs', () => {
     b.session.dispose()
     await a.session.signOut()
     expect(b.session.getSnapshot().status).toBe('signed_in')
+  })
+})
+
+describe('a refresh in flight when the session is cleared (F1)', () => {
+  test('a stale refresh is never reused: the tab ends in a settled state, not "restoring"', async () => {
+    const bus = tabBus()
+    const gate = deferred<SessionTokens>()
+    let calls = 0
+    const a = setup({
+      channel: bus.join(),
+      refresh: () => {
+        calls += 1
+        return calls === 1
+          ? gate.promise
+          : Promise.resolve(tokens({ now: T0, accessToken: 'fresh' }))
+      },
+    })
+    const other = bus.join()
+    a.session.start(tokens({ now: T0 }))
+    const stale = a.session.refresh('access-1')
+    await a.session.signOut()
+    // Another tab signs in while the old refresh is still waiting.
+    other.post({ type: 'signed_in' })
+    await Promise.resolve()
+    gate.resolve(tokens({ now: T0, accessToken: 'stale' }))
+    await stale
+    for (let turn = 0; turn < 5; turn += 1) {
+      await Promise.resolve()
+    }
+    expect(a.session.getSnapshot().status).not.toBe('restoring')
+    expect(a.session.getSnapshot().status).toBe('signed_in')
+    expect(await a.session.accessToken()).toBe('fresh')
+  })
+
+  test('restore always ends settled, even when the refresh it waited on was dropped', async () => {
+    const gate = deferred<SessionTokens>()
+    const { session } = setup({ refresh: () => gate.promise })
+    const restored = session.restore()
+    session.start(tokens({ now: T0, accessToken: 'signed-in-meanwhile' }))
+    await session.signOut()
+    gate.resolve(tokens({ now: T0 }))
+    await restored
+    expect(['signed_in', 'signed_out', 'unreachable']).toContain(session.getSnapshot().status)
+  })
+})
+
+describe('an on-load refresh answered with a 4xx (F3)', () => {
+  test.each([
+    [403, 'auth.forbidden'],
+    [400, 'request.invalid'],
+    [404, 'flow.not_found'],
+  ])('%d is misconfigured, with no retry state', async (status, code) => {
+    const refused: unknown[] = []
+    const { session } = setup({
+      refresh: async () => {
+        throw new ApiError({ code, status })
+      },
+    })
+    const reported = createSessionWithRefusal(refused)
+    await reported.restore()
+    expect(reported.getSnapshot()).toEqual({ status: 'misconfigured' })
+    expect(refused).toHaveLength(1)
+    expect(session.getSnapshot().status).toBe('signed_out')
+  })
+
+  test.each([429, 408, 500, 503, 0])(
+    '%d stays unreachable, which can be retried',
+    async (status) => {
+      const refused: unknown[] = []
+      const reported = createSessionWithRefusal(refused, status)
+      await reported.restore()
+      expect(reported.getSnapshot()).toEqual({ status: 'unreachable' })
+      expect(refused).toEqual([])
+    }
+  )
+
+  test('a 403 on a later refresh of a held session does not end it or report', async () => {
+    const refused: unknown[] = []
+    const reported = createSessionWithRefusal(refused, 403)
+    reported.start(tokens({ now: T0, ttlMs: 1000 }))
+    await expect(reported.accessToken()).rejects.toBeInstanceOf(ApiError)
+    expect(reported.getSnapshot().status).toBe('signed_in')
+    expect(refused).toEqual([])
+  })
+})
+
+function createSessionWithRefusal(refused: unknown[], status = 403) {
+  return createSession({
+    now: () => T0,
+    wallNow: () => T0,
+    refresh: async () => {
+      throw new ApiError({ code: 'auth.forbidden', status })
+    },
+    revoke: async () => {},
+    onRefused: (error) => refused.push(error),
+  })
+}
+
+describe('a refresh that returns another Organization (F4)', () => {
+  test('ends the old session first: subscribers see signed_out, and the epoch changes', async () => {
+    const { session, advance } = setup({
+      refresh: async () => tokens({ now: T0 + 50_000, organization: { id: 'org_2', role: 'rep' } }),
+    })
+    session.start(tokens({ now: T0, organization: { id: 'org_1', role: 'owner' } }))
+    const epoch = session.epoch()
+    const states: string[] = []
+    session.subscribe(() => states.push(session.getSnapshot().status))
+    advance(50_000)
+    await session.accessToken()
+    expect(states).toEqual(['signed_out', 'signed_in'])
+    expect(session.epoch()).not.toBe(epoch)
+  })
+
+  test('the same Organization keeps the epoch and does not blink signed_out', async () => {
+    const { session, advance } = setup()
+    session.start(tokens({ now: T0 }))
+    const epoch = session.epoch()
+    const states: string[] = []
+    session.subscribe(() => states.push(session.getSnapshot().status))
+    advance(50_000)
+    await session.accessToken()
+    expect(states).toEqual([])
+    expect(session.epoch()).toBe(epoch)
+  })
+})
+
+describe('token expiry against the browser clock (F5)', () => {
+  test('a token already inside the skew and five sequential calls send at most one proactive refresh', async () => {
+    const { session, refreshed } = setup({
+      refresh: async () => tokens({ now: T0, ttlMs: 5_000, accessToken: 'short' }),
+    })
+    session.start(tokens({ now: T0, ttlMs: 5_000 }))
+    for (let call = 0; call < 5; call += 1) {
+      await session.accessToken()
+    }
+    expect(refreshed).toHaveLength(1)
+  })
+
+  test('an unparseable expiry cannot make every call refresh', async () => {
+    const { session, refreshed } = setup({
+      refresh: async () => tokens({ now: T0, accessTokenExpiresAt: 'not a date' }),
+    })
+    session.start(tokens({ now: T0, accessTokenExpiresAt: 'not a date' }))
+    for (let call = 0; call < 5; call += 1) {
+      await session.accessToken()
+    }
+    expect(refreshed.length).toBeLessThanOrEqual(1)
+  })
+
+  test('after the minimum spacing, an expiring token is refreshed again', async () => {
+    const { session, refreshed, advance } = setup({
+      refresh: async () => tokens({ now: T0, ttlMs: 5_000 }),
+      minRefreshGapMs: 10_000,
+    })
+    session.start(tokens({ now: T0, ttlMs: 5_000 }))
+    await session.accessToken()
+    await session.accessToken()
+    expect(refreshed).toHaveLength(1)
+    advance(10_000)
+    await session.accessToken()
+    expect(refreshed).toHaveLength(2)
+  })
+
+  test('lifetime comes from the server clock: a browser clock an hour fast does not expire a fresh token', async () => {
+    const refreshed: number[] = []
+    const session = createSession({
+      now: () => 0,
+      wallNow: () => T0 + 3_600_000,
+      serverNow: () => T0,
+      skewMs: 15_000,
+      refresh: async () => {
+        refreshed.push(0)
+        return tokens({ now: T0 })
+      },
+      revoke: async () => {},
+    })
+    session.start(tokens({ now: T0, ttlMs: 60_000 }))
+    expect(await session.accessToken()).toBe('access-1')
+    expect(refreshed).toEqual([])
+  })
+
+  test('with no server time the browser clock at arrival is used', async () => {
+    const refreshed: number[] = []
+    const session = createSession({
+      now: () => 0,
+      wallNow: () => T0 + 3_600_000,
+      skewMs: 15_000,
+      refresh: async () => {
+        refreshed.push(0)
+        return tokens({ now: T0 + 3_600_000 })
+      },
+      revoke: async () => {},
+    })
+    session.start(tokens({ now: T0, ttlMs: 60_000 }))
+    await session.accessToken()
+    expect(refreshed).toHaveLength(1)
+  })
+
+  test('lifetime is measured on the monotonic clock: moving the wall clock changes nothing', async () => {
+    let wall = T0
+    let mono = 0
+    const refreshed: number[] = []
+    const session = createSession({
+      now: () => mono,
+      wallNow: () => wall,
+      serverNow: () => T0,
+      skewMs: 15_000,
+      refresh: async () => {
+        refreshed.push(mono)
+        return tokens({ now: T0, ttlMs: 60_000, accessToken: 'next' })
+      },
+      revoke: async () => {},
+    })
+    session.start(tokens({ now: T0, ttlMs: 60_000 }))
+    wall += 7 * 24 * 3_600_000
+    expect(await session.accessToken()).toBe('access-1')
+    mono += 50_000
+    expect(await session.accessToken()).toBe('next')
+    expect(refreshed).toEqual([50_000])
+  })
+})
+
+describe('signing out when the state is not signed in (F6)', () => {
+  test.each(['unreachable', 'restoring'] as const)(
+    'calls auth to end the cookie while %s',
+    async (state) => {
+      const gate = deferred<SessionTokens>()
+      const { session, revoked } = setup({
+        refresh: () =>
+          state === 'restoring'
+            ? gate.promise
+            : Promise.reject(new ApiError({ code: 'server.unavailable', status: 503 })),
+      })
+      const restored = session.restore()
+      if (state === 'unreachable') {
+        await restored
+      }
+      expect(session.getSnapshot().status).toBe(state)
+      await session.signOut()
+      expect(revoked).toHaveLength(1)
+      expect(session.getSnapshot()).toEqual({ status: 'signed_out', ended: false })
+      gate.resolve(tokens({ now: T0 }))
+      await restored
+      expect(session.getSnapshot().status).toBe('signed_out')
+    }
+  )
+
+  test('does nothing when already signed out', async () => {
+    const { session, revoked } = setup()
+    await session.signOut()
+    expect(revoked).toEqual([])
   })
 })

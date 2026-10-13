@@ -8,11 +8,14 @@ export type Role = SessionTokens['organization']['role']
 /**
  * What the UI may know about the session. The access token is never part of it.
  * `restoring` is the pending state while the refresh made on load is in flight; `unreachable` means
- * that refresh could not reach the service (or got a 5xx), which is not the same as signed out.
+ * that refresh could not reach the service (or got a 5xx or 429), which is not the same as signed
+ * out and can be retried; `misconfigured` means auth refused it with another 4xx (a 403 from its
+ * Origin check, say), which no retry can fix.
  */
 export type SessionSnapshot =
   | { readonly status: 'restoring' }
   | { readonly status: 'unreachable' }
+  | { readonly status: 'misconfigured' }
   | { readonly status: 'signed_out'; readonly ended: boolean }
   | {
       readonly status: 'signed_in'
@@ -39,9 +42,18 @@ export type SessionDeps = {
   /** Ends the session on the server, which also clears the cookie. */
   readonly revoke: () => Promise<void>
   readonly channel?: SessionChannel
+  /** A monotonic clock in milliseconds (default `performance.now`); deadlines and refresh spacing use it. */
   readonly now?: () => number
+  /** The wall clock (default `Date.now`); used only to read an expiry when the server's time is unknown. */
+  readonly wallNow?: () => number
+  /** The server's current time from the latest auth response's `Date` header, when known. */
+  readonly serverNow?: () => number | undefined
   /** Renew when the access token has less than this long left. */
   readonly skewMs?: number
+  /** The least time between two proactive refreshes, so a skewed clock cannot make every call refresh. */
+  readonly minRefreshGapMs?: number
+  /** Called once with an on-load refresh that auth refused with a 4xx a retry cannot fix. */
+  readonly onRefused?: (error: ApiError) => void
 }
 
 /** The in-memory session: the one holder of the access token, and the HTTP client's Authorizer. */
@@ -60,16 +72,30 @@ export type Session = Authorizer & {
   dispose(): void
 }
 
-type Held = { readonly tokens: SessionTokens; readonly expiresAt: number }
+/** The tokens and the monotonic-clock time at which the access token expires. */
+type Held = { readonly tokens: SessionTokens; readonly deadline: number }
+
+const FALLBACK_LIFETIME_MS = 60_000
 
 const SIGNED_OUT: SessionSnapshot = { status: 'signed_out', ended: false }
 const ENDED: SessionSnapshot = { status: 'signed_out', ended: true }
 const RESTORING: SessionSnapshot = { status: 'restoring' }
 const UNREACHABLE: SessionSnapshot = { status: 'unreachable' }
+const MISCONFIGURED: SessionSnapshot = { status: 'misconfigured' }
 
 /** True when auth refused the refresh cookie for good (401), as opposed to being unreachable or failing. */
 function isRefusal(error: unknown): boolean {
   return error instanceof ApiError && error.status === 401
+}
+
+/** True for a 4xx a retry cannot fix: not a refusal (401), not busy (429), not a timeout (408). */
+function isConfigurationFault(error: unknown): error is ApiError {
+  return (
+    error instanceof ApiError &&
+    error.status >= 400 &&
+    error.status < 500 &&
+    ![401, 408, 429].includes(error.status)
+  )
 }
 
 const CHANNEL_NAME = 'closeline-session'
@@ -102,14 +128,19 @@ export function createBroadcastSessionChannel(): SessionChannel | null {
  * the load, an expiring token or a 401, shares one in-flight promise, so one tab never sends two.
  */
 export function createSession(deps: SessionDeps): Session {
-  const now = deps.now ?? Date.now
+  const now = deps.now ?? (() => performance.now())
+  const wallNow = deps.wallNow ?? Date.now
   const skewMs = deps.skewMs ?? 15_000
+  const minGapMs = deps.minRefreshGapMs ?? 10_000
   const listeners = new Set<() => void>()
   let held: Held | null = null
   let snapshot: SessionSnapshot = SIGNED_OUT
   let inFlight: Promise<void> | null = null
   let signingOut: Promise<void> | null = null
   let epoch = 0
+  // Bumped whenever the session is cleared, so a refresh started before never touches what follows.
+  let generation = 0
+  let lastRefreshAt = Number.NEGATIVE_INFINITY
 
   const publish = (next: SessionSnapshot) => {
     snapshot = next
@@ -119,8 +150,13 @@ export function createSession(deps: SessionDeps): Session {
   }
 
   const hold = (tokens: SessionTokens) => {
-    const expiresAt = Date.parse(tokens.accessTokenExpiresAt)
-    held = { tokens, expiresAt: Number.isNaN(expiresAt) ? 0 : expiresAt }
+    // Lifetime = expiry minus the server's clock (else the browser's, at arrival); the deadline is
+    // then kept on the monotonic clock, so neither a skewed nor a changed wall clock moves it.
+    const lifetime = Date.parse(tokens.accessTokenExpiresAt) - (deps.serverNow?.() ?? wallNow())
+    held = {
+      tokens,
+      deadline: now() + (Number.isFinite(lifetime) ? Math.max(lifetime, 0) : FALLBACK_LIFETIME_MS),
+    }
     const previous = snapshot
     if (
       previous.status !== 'signed_in' ||
@@ -136,6 +172,8 @@ export function createSession(deps: SessionDeps): Session {
 
   const clear = (ended: boolean) => {
     epoch += 1
+    generation += 1
+    inFlight = null
     held = null
     publish(ended ? ENDED : SIGNED_OUT)
   }
@@ -146,12 +184,18 @@ export function createSession(deps: SessionDeps): Session {
       return inFlight
     }
     const startedIn = epoch
+    const startedGeneration = generation
     const hadSession = held !== null
+    lastRefreshAt = now()
     const run = (async () => {
       try {
         const next = await deps.refresh()
         if (epoch !== startedIn) {
           return
+        }
+        if (held !== null && held.tokens.organization.id !== next.organization.id) {
+          // Another Organization: the old one's data must go before the new one is shown.
+          clear(false)
         }
         if (held === null) {
           epoch += 1
@@ -163,7 +207,9 @@ export function createSession(deps: SessionDeps): Session {
         }
         throw error
       } finally {
-        inFlight = null
+        if (generation === startedGeneration) {
+          inFlight = null
+        }
       }
     })()
     inFlight = run
@@ -179,10 +225,19 @@ export function createSession(deps: SessionDeps): Session {
     }
     try {
       await refreshShared()
+      // Every way out of `restoring` publishes; this catches a result that was dropped.
+      if (snapshot.status === 'restoring') {
+        publish(SIGNED_OUT)
+      }
     } catch (error) {
       // A 401 already published signed_out; anything else leaves the person's state unknown.
       if (snapshot.status === 'restoring' && !isRefusal(error)) {
-        publish(UNREACHABLE)
+        if (isConfigurationFault(error)) {
+          publish(MISCONFIGURED)
+          deps.onRefused?.(error)
+        } else {
+          publish(UNREACHABLE)
+        }
       }
     }
   }
@@ -232,7 +287,11 @@ export function createSession(deps: SessionDeps): Session {
       if (held === null) {
         return null
       }
-      if (held.expiresAt - now() <= skewMs) {
+      // A proactive refresh, at most one per `minGapMs`; a 401 from a service refreshes regardless.
+      if (
+        held.deadline - now() <= skewMs &&
+        (inFlight !== null || now() - lastRefreshAt >= minGapMs)
+      ) {
         await refreshShared()
       }
       return held?.tokens.accessToken ?? null
@@ -249,7 +308,7 @@ export function createSession(deps: SessionDeps): Session {
       const startedIn = epoch
       const run = (async () => {
         try {
-          if (held !== null) {
+          if (snapshot.status !== 'signed_out') {
             try {
               await deps.revoke()
             } catch {

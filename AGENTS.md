@@ -52,9 +52,12 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
   `sessionStorage`, IndexedDB, a cookie, a URL or anything serialised. `no-token-storage.test.ts`
   fails the build if source uses those or names a refresh token.
 - On load, `main.tsx` calls `session.restore()` before the first render: `restoring` shows a pending
-  screen (no sign-in flash), 401 is signed out, no answer or 5xx is `unreachable` with a retry.
+  screen (no sign-in flash), 401 is signed out, no answer, 429 or 5xx is `unreachable` with a retry, and any other 4xx (a 403 from auth's Origin
+  check) is `misconfigured`: its own screen, no retry, one report (status and code).
   Every refresh (load, an expiring token, a 401) shares one in-flight promise. A 401 from core gets
-  one refresh and one retry; a second 401 ends the session locally.
+  one refresh and one retry; a second 401 ends the session locally. Expiry is the token's
+  lifetime against the server's `Date`, kept as a monotonic deadline, with a minimum gap between
+  proactive refreshes.
 - Sign-out calls auth, then clears memory whatever the answer, and tells other tabs over a
   `BroadcastChannel` (`signed_in` / `signed_out` only, never a token).
 - The path-to-service table is `src/api/service-routes.ts`. The dev server proxies those prefixes,

@@ -28,6 +28,8 @@ export type HttpConfig = {
   readonly sleep?: (milliseconds: number) => Promise<void>
   readonly authorizer?: Authorizer
   readonly headers?: Readonly<Record<string, string>>
+  /** Called with each response as it arrives, before it is read (the session learns the server's clock from it). */
+  readonly onResponse?: (response: Response) => void
 }
 
 /** One call. `auth` sends the access token; reads (GET) may be retried, everything else is sent once. */
@@ -114,6 +116,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
         referrerPolicy: 'no-referrer',
         signal: controller.signal,
       })
+      config.onResponse?.(response)
       if (!response.ok) {
         throw await parseErrorResponse(response)
       }
