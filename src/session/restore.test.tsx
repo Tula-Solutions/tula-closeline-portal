@@ -113,7 +113,7 @@ describe('restoring the session on load', () => {
     })
     const message = await screen.findByRole('alert')
     expect(message.textContent).toContain(
-      'This portal is not set up correctly for this address. Contact support.'
+      'This portal is not set up correctly for this address. Reload the page; if this stays, contact support.'
     )
     expect(screen.queryByRole('button')).toBeNull()
     expect(screen.queryByRole('heading', { name: 'Sign in' })).toBeNull()

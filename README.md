@@ -102,6 +102,9 @@ refreshes once to restore the session; sign-out ends it in every tab. See `AGENT
 - Core serves no list of a Team's members, so the Team panel adds or removes a member chosen from
   the Organization's members.
 
+- After a laptop sleep the monotonic clock may not advance, so the first call can go out with an
+  expired token; a 401 then costs one refresh and one retry. One wasted request, by design.
+
 ## Invitations
 
 An Invitation email must link to `/sign-up#invitation=<token>`. The portal reads the fragment, keeps

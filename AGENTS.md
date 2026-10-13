@@ -65,7 +65,8 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
   in auth or core needs its prefix there (a test fails until it has one).
 - The Invitation token is never logged, reported or kept in the address bar.
 - Never log, report or show a token, cookie value, code, password or email address. Report only unexpected errors
-  (5xx, crashes); never validation, 401, 403, 404, 409 or 429. Sentry 11 has no `sendDefaultPii`:
+  (5xx, crashes); never validation, 401, 403, 404, 409 or 429. The one exception is the 403 from auth's Origin check on
+  load (`misconfigured`): it is a deployment mistake, so it is reported once with its status and code. Sentry 11 has no `sendDefaultPii`:
   `dataCollection` is all off.
 - Every label and message uses `GLOSSARY.md` words (Organization, Rep, Invitation, Owner, Admin).
   Messages say what happened and what to do, and never reveal whether an address is registered
