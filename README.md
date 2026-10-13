@@ -74,9 +74,15 @@ each service by path and unchanged (no prefix added or stripped). There is no CO
 OpenAPI document, with the auth commit it came from in `openapi/auth.commit`. Never edit either by
 hand.
 
+`openapi/core.openapi.json` (with `openapi/core.commit`) is core's document, vendored the same way but only
+for its paths: the routing-table test reads it, so a new core route fails `bun run verify` until its
+prefix is in `src/api/service-routes.ts`. Refresh it from core's `develop`, not a working tree.
+
 ```bash
 bun run generate:api -- --from ../tula-closeline-auth --ref origin/develop   # refresh copy, hash and types
 bun run generate:api                                                          # types from the committed copy
+bun run generate:api -- --core-from ../tula-closeline-core --core-ref origin/develop   # refresh core's copy
+bun run generate:api -- --check --core-from ../tula-closeline-core --core-ref origin/develop   # drift against core
 ```
 
 `verify` fails when the generated types are stale. `src/routeTree.gen.ts` (TanStack Router) is

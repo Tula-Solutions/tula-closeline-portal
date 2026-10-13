@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { existsSync, readFileSync } from 'node:fs'
 import authSpec from '../../openapi/auth.openapi.json'
+import coreSpec from '../../openapi/core.openapi.json'
 import {
   devProxy,
   NOT_ROUTED_FROM_BROWSER,
@@ -9,24 +9,8 @@ import {
   serviceFor,
 } from './service-routes'
 
-/** Core's paths as `tula-closeline-core/openapi.json` lists them (recorded here; a sibling clone, when present, is checked against it below). */
-const CORE_PATHS = [
-  '/healthz',
-  '/readyz',
-  '/internal/organizations',
-  '/internal/organizations/{organizationId}/abandon',
-  '/internal/invitations/accept',
-  '/internal/membership',
-  '/v1/organization',
-  '/v1/members',
-  '/v1/members/{membershipId}',
-  '/v1/invitations',
-  '/v1/invitations/{invitationId}',
-  '/v1/teams',
-  '/v1/teams/{teamId}',
-  '/v1/teams/{teamId}/members',
-  '/v1/teams/{teamId}/members/{membershipId}',
-]
+/** Core's paths, from the vendored copy of its OpenAPI document (`bun run generate:api -- --core-from ...`). */
+const CORE_PATHS = Object.keys(coreSpec.paths)
 const AUTH_PATHS = Object.keys(authSpec.paths)
 
 /** A concrete request path for an OpenAPI path template. */
@@ -112,17 +96,6 @@ describe('the routing table', () => {
     expect(serviceFor('/v1/client/sessions/sign-out')).toBe('auth')
     expect('/v1/client/sessions/refresh'.startsWith('/v1/client/sessions/')).toBe(true)
   })
-
-  const coreClone = new URL('../../../tula-closeline-core/openapi.json', import.meta.url)
-  test.skipIf(!existsSync(coreClone))(
-    'matches the core clone beside this one, when there is one',
-    () => {
-      // /internal paths are never routed, so only the others must match what the table was written for.
-      const outside = (path: string) => !path.startsWith('/internal')
-      const paths = Object.keys(JSON.parse(readFileSync(coreClone, 'utf8')).paths).filter(outside)
-      expect(paths.sort()).toEqual(CORE_PATHS.filter(outside).sort())
-    }
-  )
 })
 
 describe('the dev proxy', () => {
