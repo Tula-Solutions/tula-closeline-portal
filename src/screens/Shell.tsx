@@ -52,6 +52,7 @@ export function Shell() {
           <Link to='/invitations'>Invitations</Link>
         ) : null}
         <Link to='/teams'>Teams</Link>
+        <Link to='/playbook'>Playbook</Link>
       </nav>
       <main id='main' tabIndex={-1}>
         {/* Keyed by Organization: another Organization starts every screen fresh, with no state of the last. */}

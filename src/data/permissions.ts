@@ -26,6 +26,8 @@ export const can = {
   manageInvitations: (role: Role) => roleAtLeast(role, 'admin'),
   /** Owner and Admin create, rename and delete Teams and change who is in them. */
   manageTeams: (role: Role) => roleAtLeast(role, 'admin'),
+  /** Owner and Admin upload, delete and restore Playbook documents; every role reads them. */
+  managePlaybook: (role: Role) => roleAtLeast(role, 'admin'),
 }
 
 /** The roles an Invitation may offer: an Owner offers Admin, Manager or Rep; an Admin Manager or Rep. */

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import authSpec from '../../openapi/auth.openapi.json'
 import coreSpec from '../../openapi/core.openapi.json'
+import playbookSpec from '../../openapi/playbook.openapi.json'
 import {
   devProxy,
   NOT_ROUTED_FROM_BROWSER,
@@ -12,6 +13,7 @@ import {
 /** Core's paths, from the vendored copy of its OpenAPI document (`bun run generate:api -- --core-from ...`). */
 const CORE_PATHS = Object.keys(coreSpec.paths)
 const AUTH_PATHS = Object.keys(authSpec.paths)
+const PLAYBOOK_PATHS = Object.keys(playbookSpec.paths)
 
 /** A concrete request path for an OpenAPI path template. */
 const concrete = (path: string) => path.replace(/\{[^}]+\}/g, 'x1')
@@ -24,6 +26,7 @@ describe('the routing table', () => {
       '/v1/members -> core',
       '/v1/invitations -> core',
       '/v1/teams -> core',
+      '/v1/playbook -> playbook',
     ])
     expect(new Set(SERVICE_ROUTES.map((route) => route.prefix)).size).toBe(SERVICE_ROUTES.length)
   })
@@ -42,8 +45,16 @@ describe('the routing table', () => {
     expect(serviceFor(concrete(path as string))).toBe('core')
   })
 
-  test('every path of both services is routed to exactly one service, or listed as not routed', () => {
-    const everything = [...AUTH_PATHS, ...CORE_PATHS].filter(
+  test.each(
+    PLAYBOOK_PATHS.filter((path) => !NOT_ROUTED_FROM_BROWSER.includes(path))
+      .filter((path) => !path.startsWith('/internal'))
+      .map((path) => [path])
+  )('playbook path %s maps to playbook', (path) => {
+    expect(serviceFor(concrete(path as string))).toBe('playbook')
+  })
+
+  test('every path of the three services is routed to exactly one service, or listed as not routed', () => {
+    const everything = [...AUTH_PATHS, ...CORE_PATHS, ...PLAYBOOK_PATHS].filter(
       (path) => !path.startsWith('/internal')
     )
     for (const path of everything) {
@@ -58,8 +69,9 @@ describe('the routing table', () => {
     }
   })
 
-  test('the only paths both services serve are the health probes, which are not routed', () => {
+  test('the only paths the services share are the health probes, which are not routed', () => {
     const shared = AUTH_PATHS.filter((path) => CORE_PATHS.includes(path)).sort()
+    expect(PLAYBOOK_PATHS.filter((path) => shared.includes(path)).sort()).toEqual(shared)
     expect(shared).toEqual(['/healthz', '/readyz'])
     for (const path of shared) {
       expect(serviceFor(path)).toBeNull()
@@ -85,10 +97,12 @@ describe('the routing table', () => {
     ['/v1/client', 'auth'],
     ['/v1/client/sessions/refresh', 'auth'],
     ['/v1/teams/t1/members', 'core'],
+    ['/v1/playbook/documents', 'playbook'],
+    ['/v1/playbooks', null],
     ['/', null],
     ['/sign-in', null],
   ])('%s is matched on a path-segment boundary: %s', (path, service) => {
-    expect(serviceFor(path)).toBe(service as 'auth' | 'core' | null)
+    expect(serviceFor(path)).toBe(service as 'auth' | 'core' | 'playbook' | null)
   })
 
   test("the refresh cookie's Path is under the auth prefix, so the browser's request reaches auth unchanged", () => {
@@ -99,7 +113,11 @@ describe('the routing table', () => {
 })
 
 describe('the dev proxy', () => {
-  const proxy = devProxy({ auth: 'http://127.0.0.1:3001', core: 'http://127.0.0.1:3002' })
+  const proxy = devProxy({
+    auth: 'http://127.0.0.1:3001',
+    core: 'http://127.0.0.1:3002',
+    playbook: 'http://127.0.0.1:3003',
+  })
   const matching = (path: string) =>
     Object.entries(proxy).filter(([pattern]) => new RegExp(pattern).test(path))
 
@@ -111,7 +129,7 @@ describe('the dev proxy', () => {
   })
 
   test('sends each path to the service the table names, and nothing to /internal', () => {
-    for (const path of [...AUTH_PATHS, ...CORE_PATHS]) {
+    for (const path of [...AUTH_PATHS, ...CORE_PATHS, ...PLAYBOOK_PATHS]) {
       const hits = matching(concrete(path))
       const service = serviceFor(concrete(path))
       if (service === null) {
@@ -119,7 +137,13 @@ describe('the dev proxy', () => {
       } else {
         expect([path, hits.map(([, entry]) => entry.target)]).toEqual([
           path,
-          [service === 'auth' ? 'http://127.0.0.1:3001' : 'http://127.0.0.1:3002'],
+          [
+            {
+              auth: 'http://127.0.0.1:3001',
+              core: 'http://127.0.0.1:3002',
+              playbook: 'http://127.0.0.1:3003',
+            }[service],
+          ],
         ])
       }
     }
@@ -156,17 +180,23 @@ describe('the proxy targets (server-side dev settings)', () => {
     expect(parseProxyTargets({})).toEqual({
       auth: 'http://127.0.0.1:3001',
       core: 'http://127.0.0.1:3002',
+      playbook: 'http://127.0.0.1:3003',
     })
   })
 
-  test('read AUTH_PROXY_TARGET and CORE_PROXY_TARGET, never a VITE_ variable', () => {
+  test('read AUTH_PROXY_TARGET, CORE_PROXY_TARGET and PLAYBOOK_PROXY_TARGET, never a VITE_ variable', () => {
     expect(
       parseProxyTargets({
         AUTH_PROXY_TARGET: 'http://localhost:4001/',
         CORE_PROXY_TARGET: 'https://core.dev.example',
+        PLAYBOOK_PROXY_TARGET: 'http://localhost:4003',
         VITE_AUTH_BASE_URL: 'http://ignored.example',
       })
-    ).toEqual({ auth: 'http://localhost:4001', core: 'https://core.dev.example' })
+    ).toEqual({
+      auth: 'http://localhost:4001',
+      core: 'https://core.dev.example',
+      playbook: 'http://localhost:4003',
+    })
   })
 
   test.each([

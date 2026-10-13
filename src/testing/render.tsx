@@ -1,6 +1,7 @@
 import { createMemoryHistory } from '@tanstack/react-router'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { StrictMode } from 'react'
 import { AppRoot } from '~/AppRoot'
 import type { SessionTokens } from '~/api/auth'
 import { createApp } from '~/app'
@@ -64,6 +65,10 @@ export function renderPortal(
     /** Restore the session by refreshing on load, as `main.tsx` does. */
     restore?: boolean
     channel?: SessionChannel
+    /** Replaces the app's wait (a poll delay, a `Retry-After` wait); instant when omitted. */
+    sleep?: (milliseconds: number) => Promise<void>
+    /** Render inside `<StrictMode>`, as `main.tsx` does, so effects run, clean up and run again. */
+    strict?: boolean
   } = {}
 ) {
   window.history.replaceState(null, '', options.url ?? '/sign-in')
@@ -73,7 +78,7 @@ export function renderPortal(
     env: TEST_ENV,
     reporter: createReporter((error) => reports.push(error)),
     fetch: double.fetch,
-    sleep: async () => {},
+    sleep: options.sleep ?? (async () => {}),
     random: () => 0,
     ...(options.channel ? { channel: options.channel } : {}),
   })
@@ -88,7 +93,8 @@ export function renderPortal(
     initialEntries: [window.location.pathname + window.location.search],
   })
   const router = createAppRouter(app, history)
-  render(<AppRoot app={app} router={router} />)
+  const root = <AppRoot app={app} router={router} />
+  render(options.strict ? <StrictMode>{root}</StrictMode> : root)
   return { app, router, calls: double.calls, reports, user: userEvent.setup() }
 }
 

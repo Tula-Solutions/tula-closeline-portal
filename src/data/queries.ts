@@ -1,5 +1,7 @@
 import { type InfiniteData, useInfiniteQuery } from '@tanstack/react-query'
 import type {
+  DocumentState,
+  ListDocumentsResponse,
   ListInvitationsResponse,
   ListMembersResponse,
   ListTeamsResponse,
@@ -13,6 +15,8 @@ export const KEYS = {
   members: (organizationId: string) => [organizationId, 'members'] as const,
   invitations: (organizationId: string) => [organizationId, 'invitations'] as const,
   teams: (organizationId: string) => [organizationId, 'teams'] as const,
+  /** Every list of documents of the Organization, whatever its state filter: invalidate this to refresh them all. */
+  documents: (organizationId: string) => [organizationId, 'documents'] as const,
 }
 
 /** Refetches one list of the Organization the session is in now; resolves when the fresh data is in. */
@@ -124,4 +128,25 @@ export function useTeams() {
     enabled: organizationId !== '',
   })
   return pagedState(query)
+}
+
+/** The Playbook documents in one state (or, with none, every document that is not deleted), a page at a time. */
+export function useDocuments(state: DocumentState | undefined) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListDocumentsResponse,
+    Error,
+    InfiniteData<ListDocumentsResponse, string | undefined>,
+    readonly [string, string, string],
+    string | undefined
+  >({
+    queryKey: [...KEYS.documents(organizationId), state ?? 'current'],
+    queryFn: ({ pageParam, signal }) =>
+      app.playbook.listDocuments({ cursor: pageParam, state, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  return { ...pagedState(query), refetch: () => query.refetch() }
 }

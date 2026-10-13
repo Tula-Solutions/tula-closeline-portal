@@ -1,5 +1,5 @@
 /** An id in the contract's shape: a prefix and 32 hex digits, made from a number. */
-export function hexId(prefix: 'mem' | 'inv' | 'team' | 'usr', n: number): string {
+export function hexId(prefix: 'mem' | 'inv' | 'team' | 'usr' | 'doc', n: number): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`
 }
 
@@ -45,6 +45,37 @@ export function teamBody(n: number, name = `Team ${n}`) {
     name,
     createdAt: '2026-10-01T00:00:00Z',
     updatedAt: '2026-10-01T00:00:00Z',
+  }
+}
+
+/** A Playbook document as the playbook service returns it: a ready PDF unless overridden. */
+export function documentBody(
+  n: number,
+  overrides: Partial<{
+    fileName: string
+    mediaType: string
+    sizeBytes: number
+    pageCount: number | null
+    state: string
+    failureReason: string | null
+    deletedAt: string | null
+    purgeAt: string | null
+  }> = {}
+) {
+  return {
+    id: hexId('doc', n),
+    fileName: `Document ${n}.pdf`,
+    mediaType: 'application/pdf',
+    sizeBytes: 2048,
+    pageCount: 12,
+    state: 'ready',
+    failureReason: null,
+    deletedAt: null,
+    purgeAt: null,
+    uploadedByUserId: hexId('usr', 1),
+    createdAt: '2026-10-13T09:30:00Z',
+    updatedAt: '2026-10-13T09:31:00Z',
+    ...overrides,
   }
 }
 
