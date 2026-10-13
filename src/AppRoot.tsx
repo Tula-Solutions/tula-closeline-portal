@@ -1,0 +1,22 @@
+import { QueryClientProvider } from '@tanstack/react-query'
+import { RouterProvider } from '@tanstack/react-router'
+import type { App } from '~/app'
+import { AppContext } from '~/app-context'
+import { ErrorBoundary } from '~/ErrorBoundary'
+import type { createAppRouter } from '~/router'
+
+/** The providers around the router; the whole UI renders inside it. */
+export function AppRoot(props: {
+  readonly app: App
+  readonly router: ReturnType<typeof createAppRouter>
+}) {
+  return (
+    <AppContext.Provider value={props.app}>
+      <QueryClientProvider client={props.app.queryClient}>
+        <ErrorBoundary>
+          <RouterProvider router={props.router} />
+        </ErrorBoundary>
+      </QueryClientProvider>
+    </AppContext.Provider>
+  )
+}

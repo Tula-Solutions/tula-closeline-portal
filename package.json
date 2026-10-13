@@ -7,14 +7,46 @@
   "packageManager": "bun@1.4.2",
   "scripts": {
     "prepare": "husky || true",
-    "check": "biome check --no-errors-on-unmatched .",
-    "typecheck": "echo 'nothing to typecheck yet'",
+    "dev": "bunx --bun vite",
+    "build": "bunx --bun vite build",
+    "build:verify": "VITE_ENVIRONMENT=local VITE_AUTH_BASE_URL=http://localhost:3001 VITE_CORE_BASE_URL=http://localhost:3002 bunx --bun vite build --outDir out/verify",
+    "check": "biome check src scripts test vite.config.ts",
+    "routes:generate": "tsr generate",
+    "generate:api": "bun scripts/generate-api.ts",
+    "generate:check": "bun scripts/generate-api.ts --check && tsr generate && git diff --exit-code -- src/routeTree.gen.ts",
+    "typecheck": "tsr generate && tsc --noEmit",
+    "test": "bun test src",
+    "test:coverage": "bun test src --coverage",
     "shared:check": "bash .claude/hooks/shared-check.sh",
-    "verify": "bun run check && bun run shared:check",
-    "verify:changed": "bun run verify"
+    "verify": "bun run check && bun run typecheck && bun run test:coverage && bun run generate:check && bun run build:verify && bun run shared:check",
+    "verify:changed": "biome check --changed --no-errors-on-unmatched src scripts test vite.config.ts && bun run typecheck && bun run test"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
-    "husky": "^9.1.7"
+    "@happy-dom/global-registrator": "^20.14.6",
+    "@tanstack/router-cli": "^1.167.40",
+    "@tanstack/router-plugin": "^1.168.42",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@typescript/typescript6": "^6.0.2",
+    "@vitejs/plugin-react": "^6.1.2",
+    "bun-types": "^1.4.3",
+    "happy-dom": "^20.14.6",
+    "husky": "^9.1.7",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
+  },
+  "dependencies": {
+    "@sentry/browser": "^11.6.0",
+    "@tanstack/react-query": "^5.104.1",
+    "@tanstack/react-router": "^1.170.41",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tula-closeline-contract": "git+ssh://git@github.com/Tula-Solutions/tula-closeline-contract.git#v0.4.0",
+    "zod": "^4.6.5"
   }
 }
