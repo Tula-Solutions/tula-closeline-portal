@@ -1,6 +1,7 @@
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
+import { devProxy, parseProxyTargets } from './src/api/service-routes.ts'
 import { buildCsp, buildHeaders } from './src/csp.ts'
 import { parseEnv } from './src/env.ts'
 
@@ -33,6 +34,16 @@ function securityHeaders(raw: Record<string, string | undefined>): Plugin {
 
 export default defineConfig(({ command, mode }) => {
   const raw = { ...loadEnv(mode, process.cwd(), 'VITE_'), ...process.env }
+  // Dev server settings (no VITE_ prefix, so they never reach the bundle): where auth and core listen.
+  const proxy =
+    command === 'build'
+      ? undefined
+      : devProxy(
+          parseProxyTargets({
+            ...loadEnv(mode, process.cwd(), ['AUTH_PROXY_', 'CORE_PROXY_']),
+            ...process.env,
+          })
+        )
   return {
     plugins: [
       tanstackRouter({ target: 'react', autoCodeSplitting: true }),
@@ -40,6 +51,9 @@ export default defineConfig(({ command, mode }) => {
       ...(command === 'build' ? [securityHeaders(raw)] : []),
     ],
     resolve: { alias: { '~': new URL('./src', import.meta.url).pathname } },
+    // Same origin: no CORS headers, from this server or the services.
+    server: { proxy, cors: false },
+    preview: { proxy },
     build: { chunkSizeWarningLimit: 600, outDir: 'out', sourcemap: 'hidden', assetsInlineLimit: 0 },
   }
 })
