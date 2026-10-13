@@ -1,5 +1,5 @@
 import { createMemoryHistory } from '@tanstack/react-router'
-import { render } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AppRoot } from '~/AppRoot'
 import type { SessionTokens } from '~/api/auth'
@@ -90,4 +90,17 @@ export function renderPortal(
   const router = createAppRouter(app, history)
   render(<AppRoot app={app} router={router} />)
   return { app, router, calls: double.calls, reports, user: userEvent.setup() }
+}
+
+/**
+ * Waits until no element shows `text`. It throws a plain error while the text is there, because a
+ * failed `expect(element).toBeNull()` formats the whole happy-dom element, which takes seconds on
+ * each early poll and can push a test past its timeout.
+ */
+export function waitUntilGone(text: string): Promise<void> {
+  return waitFor(() => {
+    if (screen.queryByText(text) !== null) {
+      throw new Error(`"${text}" is still on the screen`)
+    }
+  })
 }

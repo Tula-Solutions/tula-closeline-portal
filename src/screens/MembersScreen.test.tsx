@@ -3,7 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { CORE_ERRORS } from 'tula-closeline-contract'
 import { hexId, memberBody, page } from '~/testing/core-bodies'
 import { failure, json, route, tokens } from '~/testing/fixtures'
-import { renderPortal } from '~/testing/render'
+import { renderPortal, waitUntilGone } from '~/testing/render'
 
 const MEMBERS = '/v1/members'
 
@@ -278,7 +278,7 @@ describe('members: changing a role and removing', () => {
 
     await portal.user.click(screen.getByRole('button', { name: 'Remove Rita Rep' }))
     await portal.user.click(screen.getByRole('button', { name: 'Remove member' }))
-    await waitFor(() => expect(screen.queryByText('Rita Rep')).toBeNull())
+    await waitUntilGone('Rita Rep')
     expect(portal.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1)
     expect(screen.getByRole('status').textContent).toBe('Member removed.')
     expect(document.activeElement === screen.getByRole('heading', { name: 'Members' })).toBe(true)

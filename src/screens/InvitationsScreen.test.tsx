@@ -3,7 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { CORE_ERRORS, ERRORS } from 'tula-closeline-contract'
 import { hexId, invitationBody, page } from '~/testing/core-bodies'
 import { failure, json, route, tokens } from '~/testing/fixtures'
-import { renderPortal } from '~/testing/render'
+import { renderPortal, waitUntilGone } from '~/testing/render'
 
 const INVITATIONS = '/v1/invitations'
 
@@ -348,7 +348,7 @@ describe('Invitations: revoking', () => {
     )
     expect(document.activeElement === screen.getByRole('button', { name: 'Cancel' })).toBe(true)
     await portal.user.click(screen.getByRole('button', { name: 'Revoke Invitation' }))
-    await waitFor(() => expect(screen.queryByText('invitee1@northline.app')).toBeNull())
+    await waitUntilGone('invitee1@northline.app')
     expect(screen.getByRole('status').textContent).toBe('Invitation revoked.')
     expect(portal.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1)
   })

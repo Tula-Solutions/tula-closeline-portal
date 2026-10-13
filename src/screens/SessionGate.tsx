@@ -26,7 +26,8 @@ export function SessionGate(props: { readonly children: ReactNode }) {
       <main className='page-centered' id='main'>
         <Logo />
         <Banner kind='error'>
-          This portal is not set up correctly for this address. Contact support.
+          This portal is not set up correctly for this address. Reload the page; if this stays,
+          contact support.
         </Banner>
       </main>
     )
