@@ -657,3 +657,38 @@ describe('bearer calls', () => {
     })
   })
 })
+
+describe('uploads and per-call options', () => {
+  test('a FormData body is sent as it is, with no JSON content type, and the status reaches parse', async () => {
+    const form = new FormData()
+    form.set('file', new File(['hello'], 'notes.txt', { type: 'text/plain' }))
+    const { http, calls } = client([route('POST', '/up', () => json(201, { ok: true }))])
+    const seen = await http.request({
+      method: 'POST',
+      path: '/up',
+      body: form,
+      parse: (_json, status) => status,
+    })
+    expect(seen).toBe(201)
+    expect(calls[0]?.init.body).toBe(form)
+    expect(calls[0]?.headers.get('content-type')).toBeNull()
+  })
+
+  test('a call can ask for a longer timeout than the default', async () => {
+    let signal: AbortSignal | undefined
+    const http = createHttpClient({
+      timeoutMs: 5,
+      retries: 0,
+      fetch: (_url, init) =>
+        new Promise((resolve, reject) => {
+          signal = init.signal ?? undefined
+          init.signal?.addEventListener('abort', () => reject(new DOMException('x', 'AbortError')))
+          setTimeout(() => resolve(json(200, { done: true })), 40)
+        }),
+    })
+    expect(await http.request({ path: '/slow', timeoutMs: 5_000 })).toEqual({ done: true })
+    expect(signal?.aborted).toBe(false)
+    const error = await failureOf(http.request({ path: '/slow' }))
+    expect(error.code).toBe(CLIENT_ERRORS.timeout)
+  })
+})

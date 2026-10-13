@@ -37,12 +37,15 @@ export type RequestOptions<T> = {
   readonly method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   readonly path: string
   readonly query?: Readonly<Record<string, string | number | undefined>>
+  /** A JSON value, or a `FormData` (an upload), which is sent as it is with the browser's own multipart type. */
   readonly body?: unknown
+  /** This call's timeout, for one that legitimately takes longer than the client's default (an upload). */
+  readonly timeoutMs?: number
   readonly headers?: Readonly<Record<string, string>>
   readonly auth?: boolean
   readonly signal?: AbortSignal
-  /** Checks and narrows the JSON answer; a throw becomes `client.bad_response`. */
-  readonly parse?: (json: unknown) => T
+  /** Checks and narrows the JSON answer (and sees the status, for a route with two success codes); a throw becomes `client.bad_response`. */
+  readonly parse?: (json: unknown, status: number) => T
 }
 
 /** A thin typed client over fetch. */
@@ -84,7 +87,8 @@ export function createHttpClient(config: HttpConfig): HttpClient {
       ...config.headers,
       ...options.headers,
     }
-    if (options.body !== undefined) {
+    const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData
+    if (options.body !== undefined && !isForm) {
       headers['content-type'] = 'application/json'
     }
     if (token !== null) {
@@ -96,7 +100,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
     const timer = setTimeout(() => {
       timedOut = true
       controller.abort()
-    }, timeoutMs)
+    }, options.timeoutMs ?? timeoutMs)
     const abortFromCaller = () => controller.abort()
     if (options.signal?.aborted) {
       controller.abort()
@@ -107,7 +111,9 @@ export function createHttpClient(config: HttpConfig): HttpClient {
       const response = await send(url, {
         method: options.method ?? 'GET',
         headers,
-        ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
+        ...(options.body === undefined
+          ? {}
+          : { body: isForm ? (options.body as FormData) : JSON.stringify(options.body) }),
         // The refresh cookie rides along on this origin only; never `include`.
         credentials: 'same-origin',
         // A redirect would resend the body (a refresh token, a password) to wherever it points.
@@ -125,7 +131,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
       }
       const json: unknown = await response.json()
       try {
-        return options.parse ? options.parse(json) : (json as T)
+        return options.parse ? options.parse(json, response.status) : (json as T)
       } catch {
         throw clientError(CLIENT_ERRORS.badResponse, response.status)
       }

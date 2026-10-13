@@ -3,6 +3,7 @@ import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
 import { type CoreApi, createCoreApi } from '~/api/core'
 import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
+import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
 import type { Env } from '~/env'
 import { createInvitationHolder, type InvitationHolder } from '~/invitation'
 import type { Reporter } from '~/report/reporter'
@@ -13,6 +14,9 @@ export type App = {
   readonly env: Env
   readonly auth: AuthApi
   readonly core: CoreApi
+  readonly playbook: PlaybookApi
+  /** Waits `milliseconds` (the injected `sleep` in tests): the document poll and a `Retry-After` wait use it. */
+  readonly sleep: (milliseconds: number) => Promise<void>
   readonly session: Session
   readonly reporter: Reporter
   readonly queryClient: QueryClient
@@ -40,7 +44,7 @@ export type AppInit = {
   readonly invitation?: InvitationHolder
 }
 
-/** Builds the app: HTTP clients for auth and core, the session, the query cache and the reporter. */
+/** Builds the app: HTTP clients for auth, core and playbook, the session, the query cache and the reporter. */
 export function createApp(init: AppInit): App {
   const shared = {
     ...(init.fetch ? { fetch: init.fetch } : {}),
@@ -75,6 +79,9 @@ export function createApp(init: AppInit): App {
       init.reporter.report(new Error(`Session restore refused: ${error.status} ${error.code}`)),
   })
   const coreHttp = createHttpClient({ ...shared, authorizer: session })
+  const sleep =
+    init.sleep ??
+    ((milliseconds: number) => new Promise<void>((done) => setTimeout(done, milliseconds)))
   const queryClient = new QueryClient({
     queryCache: new QueryCache({ onError: (error) => init.reporter.report(error) }),
     mutationCache: new MutationCache({ onError: (error) => init.reporter.report(error) }),
@@ -104,6 +111,8 @@ export function createApp(init: AppInit): App {
     env: init.env,
     auth,
     core: createCoreApi(coreHttp),
+    playbook: createPlaybookApi(coreHttp),
+    sleep,
     session,
     reporter: init.reporter,
     queryClient,

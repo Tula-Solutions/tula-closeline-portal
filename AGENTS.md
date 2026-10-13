@@ -34,7 +34,7 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
 - `src/app.ts` is the one composition root (HTTP clients, session, query cache, reporter). Screens
   get it from `useApp()`; tests build it with a `fetch` double (`src/testing/`).
 - `src/api/`: `http.ts` (same-origin paths only, timeout on every call, jittered retry for GETs
-  only, `ApiError`), `errors.ts`, `auth.ts` / `core.ts` (typed routes), `messages.ts` (an error
+  only, `ApiError`), `errors.ts`, `auth.ts` / `core.ts` / `playbook.ts` (typed routes), `messages.ts` (an error
   code to plain words), `service-routes.ts` (the path-prefix table and the dev proxy), `auth.gen.ts`
   (generated).
 - `src/session/session.ts` holds the access token and restores the session; `src/screens/SessionGate.tsx`
@@ -65,8 +65,12 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
 - Sign-out calls auth, then clears memory whatever the answer, and tells other tabs over a
   `BroadcastChannel` (`signed_in` / `signed_out` only, never a token).
 - The path-to-service table is `src/api/service-routes.ts`. The dev server proxies those prefixes,
-  unchanged, to `AUTH_PROXY_TARGET` / `CORE_PROXY_TARGET`; `/internal` is never routed. A new route
-  in auth or core needs its prefix there (a test fails until it has one).
+  unchanged, to `AUTH_PROXY_TARGET` / `CORE_PROXY_TARGET` / `PLAYBOOK_PROXY_TARGET`; `/internal` is never routed. A new route
+  in auth, core or playbook (`/v1/playbook`) needs its prefix there (a test fails until it has one).
+- Playbook documents (`src/screens/DocumentsScreen.tsx`): file names are untrusted and shown as text
+  only (`Untrusted`, `plain` for labels), never as a link or markup. Upload limits come from the
+  contract's constants and `checkUploadFile`, never typed numbers. The follow-up poll waits through
+  `app.sleep` (so tests control it), is bounded, and stops when hidden, left or nothing is pending.
 - The Invitation token is never logged, reported or kept in the address bar.
 - Never log, report or show a token, cookie value, code, password or email address. Report only unexpected errors
   (5xx, crashes); never validation, 401, 403, 404, 409 or 429. The one exception is the 403 from auth's Origin check on

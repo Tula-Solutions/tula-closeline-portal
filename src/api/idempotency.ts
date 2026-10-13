@@ -36,6 +36,9 @@ export const fingerprint = {
   invitation: (email: string, role: string) => JSON.stringify(['invitation', email, role]),
   /** Creating a Team called `name`. */
   team: (name: string) => JSON.stringify(['team', name]),
+  /** Uploading a file with this name, size and last-modified time (the same file chosen again is the same intent). */
+  document: (name: string, size: number, modified: number) =>
+    JSON.stringify(['document', name, size, modified]),
   /** Adding `membershipId` to the Team `teamId`. */
   teamMember: (teamId: string, membershipId: string) =>
     JSON.stringify(['team-member', teamId, membershipId]),

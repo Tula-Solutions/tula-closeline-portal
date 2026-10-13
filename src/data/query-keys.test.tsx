@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { screen } from '@testing-library/react'
-import { memberBody, page, teamBody } from '~/testing/core-bodies'
+import { documentBody, memberBody, page, teamBody } from '~/testing/core-bodies'
 import { json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
 
@@ -19,6 +19,7 @@ describe('what the query cache holds', () => {
     ['/members', 'Maya Chen'],
     ['/teams', 'Northern'],
     ['/invitations', 'Invitations'],
+    ['/playbook', 'Document 1.pdf'],
   ])('%s: every cached query is Organization-keyed', async (url, text) => {
     const portal = renderPortal({
       url,
@@ -27,6 +28,7 @@ describe('what the query cache holds', () => {
         route('GET', '/v1/members', json(200, page([memberBody(1, { name: 'Maya Chen' })]))),
         route('GET', '/v1/teams', json(200, page([teamBody(1, 'Northern')]))),
         route('GET', '/v1/invitations', json(200, page([]))),
+        route('GET', '/v1/playbook/documents', json(200, page([documentBody(1)]))),
       ],
     })
     await screen.findAllByText(text)

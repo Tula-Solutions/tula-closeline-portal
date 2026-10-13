@@ -14,6 +14,7 @@ import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppInvitationsRouteImport } from './routes/_app/invitations'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
+import { Route as AppPlaybookRouteImport } from './routes/_app/playbook'
 import { Route as AppTeamsRouteImport } from './routes/_app/teams'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
@@ -41,6 +42,11 @@ const AppMembersRoute = AppMembersRouteImport.update({
   path: '/members',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPlaybookRoute = AppPlaybookRouteImport.update({
+  id: '/playbook',
+  path: '/playbook',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTeamsRoute = AppTeamsRouteImport.update({
   id: '/teams',
   path: '/teams',
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/invitations': typeof AppInvitationsRoute
   '/members': typeof AppMembersRoute
+  '/playbook': typeof AppPlaybookRoute
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/invitations': typeof AppInvitationsRoute
   '/members': typeof AppMembersRoute
+  '/playbook': typeof AppPlaybookRoute
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_app/invitations': typeof AppInvitationsRoute
   '/_app/members': typeof AppMembersRoute
+  '/_app/playbook': typeof AppPlaybookRoute
   '/_app/teams': typeof AppTeamsRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
@@ -87,15 +96,29 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/invitations' | '/members' | '/teams' | '/sign-in' | '/sign-up'
+    | '/'
+    | '/invitations'
+    | '/members'
+    | '/playbook'
+    | '/teams'
+    | '/sign-in'
+    | '/sign-up'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/invitations' | '/members' | '/teams' | '/sign-in' | '/sign-up'
+  to:
+    | '/'
+    | '/invitations'
+    | '/members'
+    | '/playbook'
+    | '/teams'
+    | '/sign-in'
+    | '/sign-up'
   id:
     | '__root__'
     | '/_app'
     | '/_public'
     | '/_app/invitations'
     | '/_app/members'
+    | '/_app/playbook'
     | '/_app/teams'
     | '/_public/sign-in'
     | '/_public/sign-up'
@@ -144,6 +167,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMembersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/playbook': {
+      id: '/_app/playbook'
+      path: '/playbook'
+      fullPath: '/playbook'
+      preLoaderRoute: typeof AppPlaybookRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/teams': {
       id: '/_app/teams'
       path: '/teams'
@@ -171,6 +201,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppInvitationsRoute: typeof AppInvitationsRoute
   AppMembersRoute: typeof AppMembersRoute
+  AppPlaybookRoute: typeof AppPlaybookRoute
   AppTeamsRoute: typeof AppTeamsRoute
   AppIndexRoute: typeof AppIndexRoute
 }
@@ -178,6 +209,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppInvitationsRoute: AppInvitationsRoute,
   AppMembersRoute: AppMembersRoute,
+  AppPlaybookRoute: AppPlaybookRoute,
   AppTeamsRoute: AppTeamsRoute,
   AppIndexRoute: AppIndexRoute,
 }

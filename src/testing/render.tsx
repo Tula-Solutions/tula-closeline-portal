@@ -64,6 +64,8 @@ export function renderPortal(
     /** Restore the session by refreshing on load, as `main.tsx` does. */
     restore?: boolean
     channel?: SessionChannel
+    /** Replaces the app's wait (a poll delay, a `Retry-After` wait); instant when omitted. */
+    sleep?: (milliseconds: number) => Promise<void>
   } = {}
 ) {
   window.history.replaceState(null, '', options.url ?? '/sign-in')
@@ -73,7 +75,7 @@ export function renderPortal(
     env: TEST_ENV,
     reporter: createReporter((error) => reports.push(error)),
     fetch: double.fetch,
-    sleep: async () => {},
+    sleep: options.sleep ?? (async () => {}),
     random: () => 0,
     ...(options.channel ? { channel: options.channel } : {}),
   })
