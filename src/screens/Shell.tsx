@@ -50,6 +50,7 @@ export function Shell() {
         {can.manageInvitations(session.organization.role) ? (
           <Link to='/invitations'>Invitations</Link>
         ) : null}
+        <Link to='/teams'>Teams</Link>
       </nav>
       <main id='main' tabIndex={-1}>
         <Outlet />
