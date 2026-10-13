@@ -1,19 +1,18 @@
 import { describe, expect, test } from 'bun:test'
 import { Glob } from 'bun'
-import { AUTH_ERRORS, ERRORS } from 'tula-closeline-contract'
+import { AUTH_ERRORS, CORE_ERRORS, ERRORS, SIGNUP_ERRORS } from 'tula-closeline-contract'
 import { HANDLED_CODES } from '~/api/messages'
 
+/** The first segment of every code in the contract's maps, so the list cannot drift from them. */
 const AREAS = [
-  'auth',
-  'email',
-  'password',
-  'verification',
-  'flow',
-  'session',
-  'signup',
-  'mail',
-  'membership',
-  'organization',
+  ...new Set(
+    [
+      ...Object.keys(AUTH_ERRORS),
+      ...Object.keys(ERRORS),
+      ...Object.keys(CORE_ERRORS),
+      ...Object.keys(SIGNUP_ERRORS),
+    ].map((code) => code.slice(0, code.indexOf('.')))
+  ),
 ]
 const CODE_LITERAL = new RegExp(`(['"\`])((?:${AREAS.join('|')})\\.[a-z_]+)\\1`, 'g')
 const FROM_A_MAP = /\b(?:AUTH_|CORE_|SIGNUP_)?ERRORS\[\s*$/
@@ -39,13 +38,15 @@ describe('the detector', () => {
     ["const a = OTHER['auth.token_expired']", ['auth.token_expired']],
     ["const a = 'client.timeout'", []],
     ["const a = 'a.password.too_short'", []],
+    ["const a = 'rate.limited'", ['rate.limited']],
+    ["const a = 'team.invented_reason'", ['team.invented_reason']],
   ] as const)('%s', (source, expected) => {
     expect(strayCodes(source)).toEqual([...expected])
   })
 })
 
 describe('the portal source', () => {
-  test('takes every auth error code from a contract map, never a string literal', async () => {
+  test('takes every error code from a contract map, never a quoted string literal (concatenated or interpolated strings are not scanned)', async () => {
     const files = [...new Glob('src/**/*.{ts,tsx}').scanSync('.')].filter(
       (path) => !/\.(test|gen)\.tsx?$/.test(path)
     )

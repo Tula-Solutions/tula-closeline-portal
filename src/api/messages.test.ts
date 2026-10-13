@@ -20,6 +20,15 @@ describe('present', () => {
     }
   })
 
+  test.each(['__proto__', 'constructor', 'toString', 'hasOwnProperty', 'valueOf'])(
+    'the server-supplied code %s gets the generic words and does not throw',
+    (code) => {
+      expect(present(new ApiError({ code, status: 400 }), 'sign-in')).toEqual({
+        message: GENERIC_MESSAGE,
+      })
+    }
+  )
+
   test('an error that is not an ApiError gets the generic words', () => {
     expect(present(new TypeError('x'), 'sign-in').message).toBe(GENERIC_MESSAGE)
   })
