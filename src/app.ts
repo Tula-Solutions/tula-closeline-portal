@@ -27,6 +27,8 @@ export type AppInit = {
   readonly random?: () => number
   readonly now?: () => number
   readonly timeoutMs?: number
+  /** The holder that already took the Invitation from the address; a new one when omitted. */
+  readonly invitation?: InvitationHolder
 }
 
 /** Builds the app: HTTP clients for auth and core, the session, the query cache and the reporter. */
@@ -74,6 +76,6 @@ export function createApp(init: AppInit): App {
     session,
     reporter: init.reporter,
     queryClient,
-    invitation: createInvitationHolder(),
+    invitation: init.invitation ?? createInvitationHolder(),
   }
 }

@@ -2,9 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { z } from 'zod'
 import { AppRoot } from '~/AppRoot'
-import { createApp } from '~/app'
-import { EnvError, parseEnv } from '~/env'
-import { startReporting } from '~/report/reporter'
+import { boot } from '~/boot'
+import { EnvError } from '~/env'
 import { createAppRouter } from '~/router'
 import '~/styles.css'
 
@@ -17,11 +16,8 @@ if (!root) {
 }
 
 try {
-  const env = parseEnv(import.meta.env)
-  const reporter = startReporting(env)
-  const app = createApp({ env, reporter })
-  // Take any Invitation token out of the address bar before the router reads the address.
-  app.invitation.captureFromLocation(window.location, window.history)
+  // Takes any Invitation token out of the address bar first, before anything can fail or report.
+  const app = boot({ raw: import.meta.env, location: window.location, history: window.history })
   createRoot(root).render(
     <StrictMode>
       <AppRoot app={app} router={createAppRouter(app)} />
