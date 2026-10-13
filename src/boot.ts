@@ -2,6 +2,7 @@ import { type App, type AppInit, createApp as realCreateApp } from '~/app'
 import { type Env, parseEnv } from '~/env'
 import { createInvitationHolder } from '~/invitation'
 import { type Reporter, startReporting as realStartReporting } from '~/report/reporter'
+import type { SessionChannel } from '~/session/session'
 
 /** What `boot` reads and may be given instead in tests. */
 export type BootDeps = {
@@ -11,6 +12,8 @@ export type BootDeps = {
   readonly history: Pick<History, 'replaceState' | 'state'>
   readonly startReporting?: (env: Env) => Reporter
   readonly createApp?: (init: AppInit) => App
+  /** The line to the other tabs. */
+  readonly channel?: SessionChannel | null
 }
 
 /**
@@ -25,5 +28,10 @@ export function boot(deps: BootDeps): App {
   const reporter = (deps.startReporting ?? realStartReporting)(env)
   // The reporter strips the token by exact value from anything it sends.
   invitation.revealTo((token) => reporter.redact(token))
-  return (deps.createApp ?? realCreateApp)({ env, reporter, invitation })
+  return (deps.createApp ?? realCreateApp)({
+    env,
+    reporter,
+    invitation,
+    ...(deps.channel ? { channel: deps.channel } : {}),
+  })
 }

@@ -8,8 +8,6 @@ const TOKEN = 'Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5'
 
 const RAW = {
   VITE_ENVIRONMENT: 'local',
-  VITE_AUTH_BASE_URL: 'http://localhost:3001',
-  VITE_CORE_BASE_URL: 'http://localhost:3002',
 }
 
 function visit() {

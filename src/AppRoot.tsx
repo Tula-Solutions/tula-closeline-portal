@@ -4,6 +4,7 @@ import type { App } from '~/app'
 import { AppContext } from '~/app-context'
 import { ErrorBoundary } from '~/ErrorBoundary'
 import type { createAppRouter } from '~/router'
+import { SessionGate } from '~/screens/SessionGate'
 
 /** The providers around the router; the whole UI renders inside it. */
 export function AppRoot(props: {
@@ -14,7 +15,9 @@ export function AppRoot(props: {
     <AppContext.Provider value={props.app}>
       <QueryClientProvider client={props.app.queryClient}>
         <ErrorBoundary>
-          <RouterProvider router={props.router} />
+          <SessionGate>
+            <RouterProvider router={props.router} />
+          </SessionGate>
         </ErrorBoundary>
       </QueryClientProvider>
     </AppContext.Provider>

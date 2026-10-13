@@ -7,7 +7,7 @@ export type CoreApi = {
   getOrganization(signal?: AbortSignal): Promise<Organization>
 }
 
-/** Builds the core routes over an HTTP client whose base URL is the core service and which sends the access token. */
+/** Builds the core routes over an HTTP client for same-origin paths, which sends the access token. */
 export function createCoreApi(http: HttpClient): CoreApi {
   return {
     getOrganization: (signal) =>

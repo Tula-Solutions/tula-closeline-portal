@@ -6,6 +6,12 @@
  *   bun run generate:api -- --from ../tula-closeline-auth [--ref origin/develop]
  *                                                              first refresh the copy and the commit
  *                                                              hash from the auth checkout, then rewrite
+ *   bun run generate:api -- --core-from ../tula-closeline-core [--core-ref origin/develop]
+ *                                                              the same for core's OpenAPI document; only its
+ *                                                              paths are used (the routing table's test), so no
+ *                                                              types are generated from it
+ *   --check also fails if the committed core copy is not a valid document with a commit hash, and with
+ *   --from / --core-from it fails if the committed copy differs from that ref of the checkout.
  */
 import { spawnSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -31,6 +37,8 @@ const ROOT = new URL('../', import.meta.url)
 const SPEC = new URL('openapi/auth.openapi.json', ROOT)
 const COMMIT = new URL('openapi/auth.commit', ROOT)
 const OUTPUT = new URL('src/api/auth.gen.ts', ROOT)
+const CORE_SPEC = new URL('openapi/core.openapi.json', ROOT)
+const CORE_COMMIT = new URL('openapi/core.commit', ROOT)
 
 function git(directory: string, args: readonly string[]): string {
   const result = spawnSync('git', ['-C', directory, ...args], { encoding: 'utf8' })
@@ -45,13 +53,42 @@ function option(name: string): string | undefined {
   return index === -1 ? undefined : process.argv[index + 1]
 }
 
+const checking = process.argv.includes('--check')
+const failures: string[] = []
+
+/** Refreshes (or, with --check, compares) one vendored copy and its commit hash from a checkout. */
+function vendor(directory: string, ref: string, spec: URL, commit: URL, name: string): void {
+  const text = git(directory, ['show', `${ref}:openapi.json`])
+  JSON.parse(text)
+  const hash = `${git(directory, ['rev-parse', ref]).trim()}\n`
+  if (checking) {
+    if (readFileSync(spec, 'utf8') !== text || readFileSync(commit, 'utf8') !== hash) {
+      failures.push(
+        `openapi/${name}.openapi.json differs from ${ref} of ${directory}: run \`bun run generate:api\` with the matching flag and commit the result.`
+      )
+    }
+    return
+  }
+  writeFileSync(spec, text)
+  writeFileSync(commit, hash)
+}
+
 const from = option('--from')
 if (from !== undefined) {
-  const ref = option('--ref') ?? 'HEAD'
-  const spec = git(from, ['show', `${ref}:openapi.json`])
-  JSON.parse(spec)
-  writeFileSync(SPEC, spec)
-  writeFileSync(COMMIT, `${git(from, ['rev-parse', ref]).trim()}\n`)
+  vendor(from, option('--ref') ?? 'HEAD', SPEC, COMMIT, 'auth')
+}
+const coreFrom = option('--core-from')
+if (coreFrom !== undefined) {
+  vendor(coreFrom, option('--core-ref') ?? 'HEAD', CORE_SPEC, CORE_COMMIT, 'core')
+}
+if (checking) {
+  const core = JSON.parse(readFileSync(CORE_SPEC, 'utf8')) as { paths?: Record<string, unknown> }
+  if (
+    core.paths === undefined ||
+    !/^[0-9a-f]{40}$/.test(readFileSync(CORE_COMMIT, 'utf8').trim())
+  ) {
+    failures.push('openapi/core.openapi.json or openapi/core.commit is missing or malformed.')
+  }
 }
 
 const commit = readFileSync(COMMIT, 'utf8').trim()
@@ -65,9 +102,12 @@ const banner = [
 ].join('\n')
 const output = `${banner}${types}`
 
-if (process.argv.includes('--check')) {
+if (checking) {
   if (readFileSync(OUTPUT, 'utf8') !== output) {
-    console.error('src/api/auth.gen.ts is stale: run `bun run generate:api` and commit the result.')
+    failures.push('src/api/auth.gen.ts is stale: run `bun run generate:api` and commit the result.')
+  }
+  if (failures.length > 0) {
+    console.error(failures.join('\n'))
     process.exit(1)
   }
 } else {

@@ -2,7 +2,8 @@ import { type Env, originOf } from './env.ts'
 
 /** Builds the Content-Security-Policy for the static build; `meta` drops the directives a `<meta>` tag ignores. */
 export function buildCsp(env: Env, options: { readonly meta: boolean }): string {
-  const connect = ["'self'", originOf(env.authBaseUrl), originOf(env.coreBaseUrl)]
+  // Auth and core are reached through this origin, so 'self' covers them.
+  const connect = ["'self'"]
   if (env.sentryDsn !== undefined) {
     connect.push(originOf(env.sentryDsn))
   }

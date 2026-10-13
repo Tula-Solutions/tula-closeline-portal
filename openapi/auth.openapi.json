@@ -97,6 +97,63 @@
           "organization"
         ]
       },
+      "BrowserFlowResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["sign_in", "sign_up"]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "step": {
+            "$ref": "#/components/schemas/FlowStep"
+          },
+          "attemptSecret": {
+            "type": "string",
+            "description": "Returned once, when the attempt starts."
+          },
+          "session": {
+            "$ref": "#/components/schemas/BrowserSessionTokens"
+          }
+        },
+        "required": ["id", "kind", "expiresAt", "step"]
+      },
+      "BrowserSessionTokens": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "accessTokenExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "organization": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string",
+                "enum": ["owner", "admin", "manager", "rep"]
+              }
+            },
+            "required": ["id", "role"]
+          }
+        },
+        "required": ["sessionId", "accessToken", "accessTokenExpiresAt", "organization"],
+        "additionalProperties": false
+      },
       "SignUpRequest": {
         "type": "object",
         "properties": {
@@ -306,10 +363,63 @@
               }
             }
           },
-          "500": {
-            "description": "Something went wrong on our side.",
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`server.internal`: Something went wrong on our side.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -381,10 +491,63 @@
               }
             }
           },
-          "500": {
-            "description": "Something went wrong on our side.",
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`server.internal`: Something went wrong on our side.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -506,10 +669,63 @@
               }
             }
           },
-          "500": {
-            "description": "Something went wrong on our side.",
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`server.internal`: Something went wrong on our side.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -551,11 +767,11 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["web", "ios", "android", "server"],
-              "description": "The kind of client; defaults to web."
+              "enum": ["web", "ios", "android", "server", "browser"],
+              "description": "The kind of client; defaults to web. `browser` gets the refresh token in a `Set-Cookie` header instead of the body (see the `BrowserFlowResponse` shape)."
             },
             "required": false,
-            "description": "The kind of client; defaults to web.",
+            "description": "The kind of client; defaults to web. `browser` gets the refresh token in a `Set-Cookie` header instead of the body (see the `BrowserFlowResponse` shape).",
             "name": "x-tula-client",
             "in": "header"
           }
@@ -572,19 +788,46 @@
         },
         "responses": {
           "200": {
-            "description": "The attempt and its next step; tokens once it is complete.",
+            "description": "The attempt and its next step; tokens once it is complete. Two shapes, by client type: `FlowResponse` (every client type but `browser`: `session.refreshToken` is in the body) and `BrowserFlowResponse` (client type `browser`: no refresh token in the body; it is set in the `Set-Cookie` header of the response that completes the attempt).",
+            "headers": {
+              "set-cookie": {
+                "schema": {
+                  "type": "string",
+                  "description": "Client type `browser`, on the response that completes the attempt only: the refresh cookie `__Secure-tula_refresh` (`tula_refresh` in local development with `SESSION_COOKIE_INSECURE`), `Path=/v1/client/sessions/; Max-Age=<remaining session lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`."
+                },
+                "required": false,
+                "description": "Client type `browser`, on the response that completes the attempt only: the refresh cookie `__Secure-tula_refresh` (`tula_refresh` in local development with `SESSION_COOKIE_INSECURE`), `Path=/v1/client/sessions/; Max-Age=<remaining session lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`."
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FlowResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FlowResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BrowserFlowResponse"
+                    }
+                  ]
                 }
               }
             }
           },
           "400": {
-            "description": "The request is malformed.",
+            "description": "`request.invalid`: The request is not valid.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.invalid": {
+                    "value": {
+                      "error": {
+                        "code": "request.invalid",
+                        "message": "The request is not valid."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -614,10 +857,20 @@
               }
             }
           },
-          "404": {
-            "description": "The attempt does not exist, has ended, or the secret is wrong.",
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -647,10 +900,20 @@
               }
             }
           },
-          "409": {
-            "description": "The attempt is not on this step.",
+          "415": {
+            "description": "`request.unsupported_media_type`: The request content type is not supported.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.unsupported_media_type": {
+                    "value": {
+                      "error": {
+                        "code": "request.unsupported_media_type",
+                        "message": "The request content type is not supported."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -681,9 +944,59 @@
             }
           },
           "422": {
-            "description": "The input is refused: address, password, code or invitation.",
+            "description": "`email.invalid`: Enter a valid email address.\n`password.breached`: The password appeared in a data breach. Choose a different one.\n`password.common`: The password is too common.\n`password.contains_user_info`: The password contains your name or email.\n`password.too_long`: The password is too long.\n`password.too_short`: The password is too short.",
             "content": {
               "application/json": {
+                "examples": {
+                  "email.invalid": {
+                    "value": {
+                      "error": {
+                        "code": "email.invalid",
+                        "message": "Enter a valid email address."
+                      }
+                    }
+                  },
+                  "password.breached": {
+                    "value": {
+                      "error": {
+                        "code": "password.breached",
+                        "message": "The password appeared in a data breach. Choose a different one."
+                      }
+                    }
+                  },
+                  "password.common": {
+                    "value": {
+                      "error": {
+                        "code": "password.common",
+                        "message": "The password is too common."
+                      }
+                    }
+                  },
+                  "password.contains_user_info": {
+                    "value": {
+                      "error": {
+                        "code": "password.contains_user_info",
+                        "message": "The password contains your name or email."
+                      }
+                    }
+                  },
+                  "password.too_long": {
+                    "value": {
+                      "error": {
+                        "code": "password.too_long",
+                        "message": "The password is too long."
+                      }
+                    }
+                  },
+                  "password.too_short": {
+                    "value": {
+                      "error": {
+                        "code": "password.too_short",
+                        "message": "The password is too short."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -714,9 +1027,19 @@
             }
           },
           "429": {
-            "description": "Too many tries; see `details.retryAfter` (seconds).",
+            "description": "`verification.too_many_attempts`: Too many wrong codes. Ask for a new one.",
             "content": {
               "application/json": {
+                "examples": {
+                  "verification.too_many_attempts": {
+                    "value": {
+                      "error": {
+                        "code": "verification.too_many_attempts",
+                        "message": "Too many wrong codes. Ask for a new one."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -747,9 +1070,19 @@
             }
           },
           "500": {
-            "description": "Something went wrong on our side.",
+            "description": "`server.internal`: Something went wrong on our side.",
             "content": {
               "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -780,9 +1113,27 @@
             }
           },
           "503": {
-            "description": "The Organization membership or mail service is unavailable.",
+            "description": "`mail.unavailable`: The email could not be sent right now. Try again.\n`server.unavailable`: The service is temporarily unavailable.",
             "content": {
               "application/json": {
+                "examples": {
+                  "mail.unavailable": {
+                    "value": {
+                      "error": {
+                        "code": "mail.unavailable",
+                        "message": "The email could not be sent right now. Try again."
+                      }
+                    }
+                  },
+                  "server.unavailable": {
+                    "value": {
+                      "error": {
+                        "code": "server.unavailable",
+                        "message": "The service is temporarily unavailable."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -843,7 +1194,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["web", "ios", "android", "server"]
+              "enum": ["web", "ios", "android", "server", "browser"]
             },
             "required": false,
             "name": "x-tula-client",
@@ -862,19 +1213,46 @@
         },
         "responses": {
           "200": {
-            "description": "The attempt and its next step; tokens once it is complete.",
+            "description": "The attempt and its next step; tokens once it is complete. Two shapes, by client type: `FlowResponse` (every client type but `browser`: `session.refreshToken` is in the body) and `BrowserFlowResponse` (client type `browser`: no refresh token in the body; it is set in the `Set-Cookie` header of the response that completes the attempt).",
+            "headers": {
+              "set-cookie": {
+                "schema": {
+                  "type": "string",
+                  "description": "Client type `browser`, on the response that completes the attempt only: the refresh cookie `__Secure-tula_refresh` (`tula_refresh` in local development with `SESSION_COOKIE_INSECURE`), `Path=/v1/client/sessions/; Max-Age=<remaining session lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`."
+                },
+                "required": false,
+                "description": "Client type `browser`, on the response that completes the attempt only: the refresh cookie `__Secure-tula_refresh` (`tula_refresh` in local development with `SESSION_COOKIE_INSECURE`), `Path=/v1/client/sessions/; Max-Age=<remaining session lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`."
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FlowResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FlowResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BrowserFlowResponse"
+                    }
+                  ]
                 }
               }
             }
           },
           "400": {
-            "description": "The request is malformed.",
+            "description": "`request.invalid`: The request is not valid.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.invalid": {
+                    "value": {
+                      "error": {
+                        "code": "request.invalid",
+                        "message": "The request is not valid."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -905,9 +1283,19 @@
             }
           },
           "404": {
-            "description": "The attempt does not exist, has ended, or the secret is wrong.",
+            "description": "`flow.not_found`: This sign-in or sign-up was not found or has ended.",
             "content": {
               "application/json": {
+                "examples": {
+                  "flow.not_found": {
+                    "value": {
+                      "error": {
+                        "code": "flow.not_found",
+                        "message": "This sign-in or sign-up was not found or has ended."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -938,9 +1326,105 @@
             }
           },
           "409": {
-            "description": "The attempt is not on this step.",
+            "description": "`flow.invalid_step`: This step is not available now. Start again.",
             "content": {
               "application/json": {
+                "examples": {
+                  "flow.invalid_step": {
+                    "value": {
+                      "error": {
+                        "code": "flow.invalid_step",
+                        "message": "This step is not available now. Start again."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`request.unsupported_media_type`: The request content type is not supported.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "request.unsupported_media_type": {
+                    "value": {
+                      "error": {
+                        "code": "request.unsupported_media_type",
+                        "message": "The request content type is not supported."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -971,9 +1455,43 @@
             }
           },
           "422": {
-            "description": "The input is refused: address, password, code or invitation.",
+            "description": "`signup.invitation_invalid`: The invitation is not valid.\n`signup.organization_name_invalid`: Enter a valid Organization name.\n`verification.expired`: The code has expired. Ask for a new one.\n`verification.invalid_code`: The code is not right.",
             "content": {
               "application/json": {
+                "examples": {
+                  "signup.invitation_invalid": {
+                    "value": {
+                      "error": {
+                        "code": "signup.invitation_invalid",
+                        "message": "The invitation is not valid."
+                      }
+                    }
+                  },
+                  "signup.organization_name_invalid": {
+                    "value": {
+                      "error": {
+                        "code": "signup.organization_name_invalid",
+                        "message": "Enter a valid Organization name."
+                      }
+                    }
+                  },
+                  "verification.expired": {
+                    "value": {
+                      "error": {
+                        "code": "verification.expired",
+                        "message": "The code has expired. Ask for a new one."
+                      }
+                    }
+                  },
+                  "verification.invalid_code": {
+                    "value": {
+                      "error": {
+                        "code": "verification.invalid_code",
+                        "message": "The code is not right."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1004,9 +1522,19 @@
             }
           },
           "429": {
-            "description": "Too many tries; see `details.retryAfter` (seconds).",
+            "description": "`verification.too_many_attempts`: Too many wrong codes. Ask for a new one.",
             "content": {
               "application/json": {
+                "examples": {
+                  "verification.too_many_attempts": {
+                    "value": {
+                      "error": {
+                        "code": "verification.too_many_attempts",
+                        "message": "Too many wrong codes. Ask for a new one."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1037,9 +1565,19 @@
             }
           },
           "500": {
-            "description": "Something went wrong on our side.",
+            "description": "`server.internal`: Something went wrong on our side.",
             "content": {
               "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1070,9 +1608,19 @@
             }
           },
           "503": {
-            "description": "The Organization membership or mail service is unavailable.",
+            "description": "`membership.unavailable`: Organization membership is unavailable right now. Try again shortly.",
             "content": {
               "application/json": {
+                "examples": {
+                  "membership.unavailable": {
+                    "value": {
+                      "error": {
+                        "code": "membership.unavailable",
+                        "message": "Organization membership is unavailable right now. Try again shortly."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1132,7 +1680,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["web", "ios", "android", "server"]
+              "enum": ["web", "ios", "android", "server", "browser"]
             },
             "required": false,
             "name": "x-tula-client",
@@ -1141,19 +1689,46 @@
         ],
         "responses": {
           "200": {
-            "description": "The attempt and its next step; tokens once it is complete.",
+            "description": "The attempt and its next step; tokens once it is complete. Two shapes, by client type: `FlowResponse` (every client type but `browser`: `session.refreshToken` is in the body) and `BrowserFlowResponse` (client type `browser`: no refresh token in the body; it is set in the `Set-Cookie` header of the response that completes the attempt).",
+            "headers": {
+              "set-cookie": {
+                "schema": {
+                  "type": "string",
+                  "description": "Client type `browser`, on the response that completes the attempt only: the refresh cookie `__Secure-tula_refresh` (`tula_refresh` in local development with `SESSION_COOKIE_INSECURE`), `Path=/v1/client/sessions/; Max-Age=<remaining session lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`."
+                },
+                "required": false,
+                "description": "Client type `browser`, on the response that completes the attempt only: the refresh cookie `__Secure-tula_refresh` (`tula_refresh` in local development with `SESSION_COOKIE_INSECURE`), `Path=/v1/client/sessions/; Max-Age=<remaining session lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`."
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FlowResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FlowResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BrowserFlowResponse"
+                    }
+                  ]
                 }
               }
             }
           },
           "400": {
-            "description": "The request is malformed.",
+            "description": "`request.invalid`: The request is not valid.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.invalid": {
+                    "value": {
+                      "error": {
+                        "code": "request.invalid",
+                        "message": "The request is not valid."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1184,9 +1759,19 @@
             }
           },
           "404": {
-            "description": "The attempt does not exist, has ended, or the secret is wrong.",
+            "description": "`flow.not_found`: This sign-in or sign-up was not found or has ended.",
             "content": {
               "application/json": {
+                "examples": {
+                  "flow.not_found": {
+                    "value": {
+                      "error": {
+                        "code": "flow.not_found",
+                        "message": "This sign-in or sign-up was not found or has ended."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1217,9 +1802,19 @@
             }
           },
           "409": {
-            "description": "The attempt is not on this step.",
+            "description": "`flow.invalid_step`: This step is not available now. Start again.",
             "content": {
               "application/json": {
+                "examples": {
+                  "flow.invalid_step": {
+                    "value": {
+                      "error": {
+                        "code": "flow.invalid_step",
+                        "message": "This step is not available now. Start again."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1249,10 +1844,20 @@
               }
             }
           },
-          "422": {
-            "description": "The input is refused: address, password, code or invitation.",
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1283,9 +1888,19 @@
             }
           },
           "429": {
-            "description": "Too many tries; see `details.retryAfter` (seconds).",
+            "description": "`verification.too_many_attempts`: Too many wrong codes. Ask for a new one.",
             "content": {
               "application/json": {
+                "examples": {
+                  "verification.too_many_attempts": {
+                    "value": {
+                      "error": {
+                        "code": "verification.too_many_attempts",
+                        "message": "Too many wrong codes. Ask for a new one."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1316,9 +1931,19 @@
             }
           },
           "500": {
-            "description": "Something went wrong on our side.",
+            "description": "`server.internal`: Something went wrong on our side.",
             "content": {
               "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1349,9 +1974,19 @@
             }
           },
           "503": {
-            "description": "The Organization membership or mail service is unavailable.",
+            "description": "`mail.unavailable`: The email could not be sent right now. Try again.",
             "content": {
               "application/json": {
+                "examples": {
+                  "mail.unavailable": {
+                    "value": {
+                      "error": {
+                        "code": "mail.unavailable",
+                        "message": "The email could not be sent right now. Try again."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1393,11 +2028,11 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["web", "ios", "android", "server"],
-              "description": "The kind of client; defaults to web."
+              "enum": ["web", "ios", "android", "server", "browser"],
+              "description": "The kind of client; defaults to web. `browser` gets the refresh token in a `Set-Cookie` header instead of the body (see the `BrowserFlowResponse` shape)."
             },
             "required": false,
-            "description": "The kind of client; defaults to web.",
+            "description": "The kind of client; defaults to web. `browser` gets the refresh token in a `Set-Cookie` header instead of the body (see the `BrowserFlowResponse` shape).",
             "name": "x-tula-client",
             "in": "header"
           }
@@ -1414,19 +2049,46 @@
         },
         "responses": {
           "200": {
-            "description": "The attempt and its next step; tokens once it is complete.",
+            "description": "The attempt and its next step; tokens once it is complete. Two shapes, by client type: `FlowResponse` (every client type but `browser`: `session.refreshToken` is in the body) and `BrowserFlowResponse` (client type `browser`: no refresh token in the body; it is set in the `Set-Cookie` header of the response that completes the attempt).",
+            "headers": {
+              "set-cookie": {
+                "schema": {
+                  "type": "string",
+                  "description": "Client type `browser`, on the response that completes the attempt only: the refresh cookie `__Secure-tula_refresh` (`tula_refresh` in local development with `SESSION_COOKIE_INSECURE`), `Path=/v1/client/sessions/; Max-Age=<remaining session lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`."
+                },
+                "required": false,
+                "description": "Client type `browser`, on the response that completes the attempt only: the refresh cookie `__Secure-tula_refresh` (`tula_refresh` in local development with `SESSION_COOKIE_INSECURE`), `Path=/v1/client/sessions/; Max-Age=<remaining session lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`."
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FlowResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FlowResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BrowserFlowResponse"
+                    }
+                  ]
                 }
               }
             }
           },
           "400": {
-            "description": "The request is malformed.",
+            "description": "`request.invalid`: The request is not valid.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.invalid": {
+                    "value": {
+                      "error": {
+                        "code": "request.invalid",
+                        "message": "The request is not valid."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1456,10 +2118,20 @@
               }
             }
           },
-          "404": {
-            "description": "The attempt does not exist, has ended, or the secret is wrong.",
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1489,76 +2161,20 @@
               }
             }
           },
-          "409": {
-            "description": "The attempt is not on this step.",
+          "415": {
+            "description": "`request.unsupported_media_type`: The request content type is not supported.",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string",
-                          "maxLength": 100,
-                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
-                        },
-                        "message": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 2000
-                        },
-                        "details": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        }
-                      },
-                      "required": ["code", "message"]
+                "examples": {
+                  "request.unsupported_media_type": {
+                    "value": {
+                      "error": {
+                        "code": "request.unsupported_media_type",
+                        "message": "The request content type is not supported."
+                      }
                     }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "The input is refused: address, password, code or invitation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string",
-                          "maxLength": 100,
-                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
-                        },
-                        "message": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 2000
-                        },
-                        "details": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        }
-                      },
-                      "required": ["code", "message"]
-                    }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too many tries; see `details.retryAfter` (seconds).",
-            "content": {
-              "application/json": {
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1589,42 +2205,19 @@
             }
           },
           "500": {
-            "description": "Something went wrong on our side.",
+            "description": "`server.internal`: Something went wrong on our side.",
             "content": {
               "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "object",
-                      "properties": {
-                        "code": {
-                          "type": "string",
-                          "maxLength": 100,
-                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
-                        },
-                        "message": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 2000
-                        },
-                        "details": {
-                          "type": "object",
-                          "additionalProperties": {}
-                        }
-                      },
-                      "required": ["code", "message"]
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
                     }
-                  },
-                  "required": ["error"]
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "The Organization membership or mail service is unavailable.",
-            "content": {
-              "application/json": {
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1661,7 +2254,7 @@
       "post": {
         "tags": ["sign-in"],
         "summary": "Submit the password",
-        "description": "Completes the sign-in with tokens. An account with no Organization is refused with `auth.no_organization` and gets no session.",
+        "description": "Completes the sign-in with tokens. An account with no Organization is refused with `auth.no_organization`, and one whose Organization was deleted with `organization.deleted`; neither gets a session. If the core service cannot answer, the answer is 503 `membership.unavailable` with `Retry-After`: nothing is counted against the account and the same attempt can be submitted again.",
         "parameters": [
           {
             "schema": {
@@ -1685,7 +2278,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": ["web", "ios", "android", "server"]
+              "enum": ["web", "ios", "android", "server", "browser"]
             },
             "required": false,
             "name": "x-tula-client",
@@ -1704,19 +2297,46 @@
         },
         "responses": {
           "200": {
-            "description": "The attempt and its next step; tokens once it is complete.",
+            "description": "The attempt and its next step; tokens once it is complete. Two shapes, by client type: `FlowResponse` (every client type but `browser`: `session.refreshToken` is in the body) and `BrowserFlowResponse` (client type `browser`: no refresh token in the body; it is set in the `Set-Cookie` header of the response that completes the attempt).",
+            "headers": {
+              "set-cookie": {
+                "schema": {
+                  "type": "string",
+                  "description": "Client type `browser`, on the response that completes the attempt only: the refresh cookie `__Secure-tula_refresh` (`tula_refresh` in local development with `SESSION_COOKIE_INSECURE`), `Path=/v1/client/sessions/; Max-Age=<remaining session lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`."
+                },
+                "required": false,
+                "description": "Client type `browser`, on the response that completes the attempt only: the refresh cookie `__Secure-tula_refresh` (`tula_refresh` in local development with `SESSION_COOKIE_INSECURE`), `Path=/v1/client/sessions/; Max-Age=<remaining session lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`."
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FlowResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/FlowResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BrowserFlowResponse"
+                    }
+                  ]
                 }
               }
             }
           },
           "400": {
-            "description": "The request is malformed.",
+            "description": "`request.invalid`: The request is not valid.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.invalid": {
+                    "value": {
+                      "error": {
+                        "code": "request.invalid",
+                        "message": "The request is not valid."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1747,9 +2367,19 @@
             }
           },
           "401": {
-            "description": "The address or password is not right (the same answer for both).",
+            "description": "`auth.invalid_credentials`: The email address or password is not right.",
             "content": {
               "application/json": {
+                "examples": {
+                  "auth.invalid_credentials": {
+                    "value": {
+                      "error": {
+                        "code": "auth.invalid_credentials",
+                        "message": "The email address or password is not right."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1780,9 +2410,27 @@
             }
           },
           "403": {
-            "description": "The account is banned or has no Organization.",
+            "description": "`auth.no_organization`: You do not belong to an Organization, so you cannot sign in.\n`auth.user_banned`: This account cannot sign in.",
             "content": {
               "application/json": {
+                "examples": {
+                  "auth.no_organization": {
+                    "value": {
+                      "error": {
+                        "code": "auth.no_organization",
+                        "message": "You do not belong to an Organization, so you cannot sign in."
+                      }
+                    }
+                  },
+                  "auth.user_banned": {
+                    "value": {
+                      "error": {
+                        "code": "auth.user_banned",
+                        "message": "This account cannot sign in."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1813,9 +2461,19 @@
             }
           },
           "404": {
-            "description": "The attempt does not exist, has ended, or the secret is wrong.",
+            "description": "`flow.not_found`: This sign-in or sign-up was not found or has ended.",
             "content": {
               "application/json": {
+                "examples": {
+                  "flow.not_found": {
+                    "value": {
+                      "error": {
+                        "code": "flow.not_found",
+                        "message": "This sign-in or sign-up was not found or has ended."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1846,9 +2504,19 @@
             }
           },
           "409": {
-            "description": "The attempt is not on this step.",
+            "description": "`flow.invalid_step`: This step is not available now. Start again.",
             "content": {
               "application/json": {
+                "examples": {
+                  "flow.invalid_step": {
+                    "value": {
+                      "error": {
+                        "code": "flow.invalid_step",
+                        "message": "This step is not available now. Start again."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1878,10 +2546,106 @@
               }
             }
           },
-          "422": {
-            "description": "The input is refused: address, password, code or invitation.",
+          "410": {
+            "description": "`organization.deleted`: This Organization has been deleted.",
             "content": {
               "application/json": {
+                "examples": {
+                  "organization.deleted": {
+                    "value": {
+                      "error": {
+                        "code": "organization.deleted",
+                        "message": "This Organization has been deleted."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`request.unsupported_media_type`: The request content type is not supported.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "request.unsupported_media_type": {
+                    "value": {
+                      "error": {
+                        "code": "request.unsupported_media_type",
+                        "message": "The request content type is not supported."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1912,9 +2676,19 @@
             }
           },
           "429": {
-            "description": "Too many tries; see `details.retryAfter` (seconds).",
+            "description": "`rate.limited`: Too many requests. Try again later.",
             "content": {
               "application/json": {
+                "examples": {
+                  "rate.limited": {
+                    "value": {
+                      "error": {
+                        "code": "rate.limited",
+                        "message": "Too many requests. Try again later."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1945,9 +2719,19 @@
             }
           },
           "500": {
-            "description": "Something went wrong on our side.",
+            "description": "`server.internal`: Something went wrong on our side.",
             "content": {
               "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -1978,9 +2762,27 @@
             }
           },
           "503": {
-            "description": "The Organization membership or mail service is unavailable.",
+            "description": "`membership.unavailable`: Organization membership is unavailable right now. Try again shortly.\n`server.unavailable`: The service is temporarily unavailable.",
             "content": {
               "application/json": {
+                "examples": {
+                  "membership.unavailable": {
+                    "value": {
+                      "error": {
+                        "code": "membership.unavailable",
+                        "message": "Organization membership is unavailable right now. Try again shortly."
+                      }
+                    }
+                  },
+                  "server.unavailable": {
+                    "value": {
+                      "error": {
+                        "code": "server.unavailable",
+                        "message": "The service is temporarily unavailable."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -2028,10 +2830,63 @@
               }
             }
           },
-          "500": {
-            "description": "Something went wrong on our side.",
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`server.internal`: Something went wrong on our side.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -2068,7 +2923,49 @@
       "post": {
         "tags": ["sessions"],
         "summary": "Refresh a session",
-        "description": "Trades a refresh token for new tokens. Each refresh token works once; presenting a spent one after a short grace period ends the whole session (`session.reuse_detected`).",
+        "description": "Trades a refresh token for new tokens. Each refresh token works once; presenting a spent one after a short grace period ends the whole session (`session.reuse_detected`). If the core service cannot answer, the answer is 503 `membership.unavailable` with `Retry-After` and the refresh token is not spent: send the same one again. A user whose Organization was deleted gets `organization.deleted` and the session ends. Client type `browser` (`x-tula-client: browser`) sends no body: the refresh token is read from the cookie only (a body or header token is ignored, a missing cookie is `session.invalid_token`), `Origin` is checked first (`auth.forbidden`), and the new refresh token is set in the cookie and omitted from the body.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Client type. `browser` reads the refresh token from the cookie only, ignores the body, and requires `Origin`; every other value reads it from the body."
+            },
+            "required": false,
+            "description": "Client type. `browser` reads the refresh token from the cookie only, ignores the body, and requires `Origin`; every other value reads it from the body.",
+            "name": "x-tula-client",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Client type `browser`: required, and exactly one of `SESSION_ALLOWED_ORIGINS`, else `auth.forbidden`."
+            },
+            "required": false,
+            "description": "Client type `browser`: required, and exactly one of `SESSION_ALLOWED_ORIGINS`, else `auth.forbidden`.",
+            "name": "origin",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Client type `browser`: when present it must be `same-origin`."
+            },
+            "required": false,
+            "description": "Client type `browser`: when present it must be `same-origin`.",
+            "name": "sec-fetch-site",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Client type `browser`: the refresh token, set by the sign-in, sign-up and refresh responses (`tula_refresh`, unprefixed and without `Secure`, when `SESSION_COOKIE_INSECURE=true` in local development)."
+            },
+            "required": false,
+            "description": "Client type `browser`: the refresh token, set by the sign-in, sign-up and refresh responses (`tula_refresh`, unprefixed and without `Secure`, when `SESSION_COOKIE_INSECURE=true` in local development).",
+            "name": "__Secure-tula_refresh",
+            "in": "cookie"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2081,19 +2978,123 @@
         },
         "responses": {
           "200": {
-            "description": "New tokens.",
+            "description": "New tokens, in one of two shapes by client type: `SessionTokens` (every type but `browser`, refresh token in the body) or `BrowserSessionTokens` (`browser`, refresh token in the `Set-Cookie` header).",
+            "headers": {
+              "set-cookie": {
+                "schema": {
+                  "type": "string",
+                  "description": "Client type `browser`: `__Secure-tula_refresh=<token>; Path=/v1/client/sessions/; Max-Age=<remaining absolute lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`. Sign-out sends the same name, path and attributes with an empty value and `Max-Age=0`."
+                },
+                "required": false,
+                "description": "Client type `browser`: `__Secure-tula_refresh=<token>; Path=/v1/client/sessions/; Max-Age=<remaining absolute lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`. Sign-out sends the same name, path and attributes with an empty value and `Max-Age=0`."
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionTokens"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/SessionTokens"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BrowserSessionTokens"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`request.invalid`: The request is not valid.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "request.invalid": {
+                    "value": {
+                      "error": {
+                        "code": "request.invalid",
+                        "message": "The request is not valid."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
                 }
               }
             }
           },
           "401": {
-            "description": "The refresh token is invalid, the session ended, or it was reused.",
+            "description": "`session.expired`: This session has expired. Sign in again.\n`session.invalid_token`: The refresh token is not valid.\n`session.reuse_detected`: A refresh token was used twice, so the session was ended. Sign in again.\n`session.revoked`: This session has ended.",
+            "headers": {
+              "set-cookie": {
+                "schema": {
+                  "type": "string",
+                  "description": "Client type `browser`, when the code means the token can never work again (`session.*`, `auth.user_banned`, `organization.deleted`): the cookie cleared (`Max-Age=0`). Never on `auth.forbidden` or `membership.unavailable`."
+                },
+                "required": false,
+                "description": "Client type `browser`, when the code means the token can never work again (`session.*`, `auth.user_banned`, `organization.deleted`): the cookie cleared (`Max-Age=0`). Never on `auth.forbidden` or `membership.unavailable`."
+              }
+            },
             "content": {
               "application/json": {
+                "examples": {
+                  "session.expired": {
+                    "value": {
+                      "error": {
+                        "code": "session.expired",
+                        "message": "This session has expired. Sign in again."
+                      }
+                    }
+                  },
+                  "session.invalid_token": {
+                    "value": {
+                      "error": {
+                        "code": "session.invalid_token",
+                        "message": "The refresh token is not valid."
+                      }
+                    }
+                  },
+                  "session.reuse_detected": {
+                    "value": {
+                      "error": {
+                        "code": "session.reuse_detected",
+                        "message": "A refresh token was used twice, so the session was ended. Sign in again."
+                      }
+                    }
+                  },
+                  "session.revoked": {
+                    "value": {
+                      "error": {
+                        "code": "session.revoked",
+                        "message": "This session has ended."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -2124,9 +3125,184 @@
             }
           },
           "403": {
-            "description": "The account is banned or has no Organization.",
+            "description": "`auth.forbidden`: You are not allowed to do this.\n`auth.no_organization`: You do not belong to an Organization, so you cannot sign in.\n`auth.user_banned`: This account cannot sign in.",
+            "headers": {
+              "set-cookie": {
+                "schema": {
+                  "type": "string",
+                  "description": "Client type `browser`, when the code means the token can never work again (`session.*`, `auth.user_banned`, `organization.deleted`): the cookie cleared (`Max-Age=0`). Never on `auth.forbidden` or `membership.unavailable`."
+                },
+                "required": false,
+                "description": "Client type `browser`, when the code means the token can never work again (`session.*`, `auth.user_banned`, `organization.deleted`): the cookie cleared (`Max-Age=0`). Never on `auth.forbidden` or `membership.unavailable`."
+              }
+            },
             "content": {
               "application/json": {
+                "examples": {
+                  "auth.forbidden": {
+                    "value": {
+                      "error": {
+                        "code": "auth.forbidden",
+                        "message": "You are not allowed to do this."
+                      }
+                    }
+                  },
+                  "auth.no_organization": {
+                    "value": {
+                      "error": {
+                        "code": "auth.no_organization",
+                        "message": "You do not belong to an Organization, so you cannot sign in."
+                      }
+                    }
+                  },
+                  "auth.user_banned": {
+                    "value": {
+                      "error": {
+                        "code": "auth.user_banned",
+                        "message": "This account cannot sign in."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "`organization.deleted`: This Organization has been deleted.",
+            "headers": {
+              "set-cookie": {
+                "schema": {
+                  "type": "string",
+                  "description": "Client type `browser`, when the code means the token can never work again (`session.*`, `auth.user_banned`, `organization.deleted`): the cookie cleared (`Max-Age=0`). Never on `auth.forbidden` or `membership.unavailable`."
+                },
+                "required": false,
+                "description": "Client type `browser`, when the code means the token can never work again (`session.*`, `auth.user_banned`, `organization.deleted`): the cookie cleared (`Max-Age=0`). Never on `auth.forbidden` or `membership.unavailable`."
+              }
+            },
+            "content": {
+              "application/json": {
+                "examples": {
+                  "organization.deleted": {
+                    "value": {
+                      "error": {
+                        "code": "organization.deleted",
+                        "message": "This Organization has been deleted."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`request.unsupported_media_type`: The request content type is not supported.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "request.unsupported_media_type": {
+                    "value": {
+                      "error": {
+                        "code": "request.unsupported_media_type",
+                        "message": "The request content type is not supported."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -2157,9 +3333,19 @@
             }
           },
           "500": {
-            "description": "Something went wrong on our side.",
+            "description": "`server.internal`: Something went wrong on our side.",
             "content": {
               "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -2190,9 +3376,19 @@
             }
           },
           "503": {
-            "description": "The Organization membership service is unavailable.",
+            "description": "`membership.unavailable`: Organization membership is unavailable right now. Try again shortly.",
             "content": {
               "application/json": {
+                "examples": {
+                  "membership.unavailable": {
+                    "value": {
+                      "error": {
+                        "code": "membership.unavailable",
+                        "message": "Organization membership is unavailable right now. Try again shortly."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -2229,7 +3425,49 @@
       "post": {
         "tags": ["sessions"],
         "summary": "Sign out",
-        "description": "Ends the session of a refresh token. Succeeds for an unknown or spent token too.",
+        "description": "Ends the session of a refresh token. Succeeds for an unknown or spent token too. Client type `browser` sends no body: the token is read from the cookie only, `Origin` is checked first (`auth.forbidden`), and the cookie is cleared whether or not a session was found.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Client type. `browser` reads the refresh token from the cookie only, ignores the body, and requires `Origin`; every other value reads it from the body."
+            },
+            "required": false,
+            "description": "Client type. `browser` reads the refresh token from the cookie only, ignores the body, and requires `Origin`; every other value reads it from the body.",
+            "name": "x-tula-client",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Client type `browser`: required, and exactly one of `SESSION_ALLOWED_ORIGINS`, else `auth.forbidden`."
+            },
+            "required": false,
+            "description": "Client type `browser`: required, and exactly one of `SESSION_ALLOWED_ORIGINS`, else `auth.forbidden`.",
+            "name": "origin",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Client type `browser`: when present it must be `same-origin`."
+            },
+            "required": false,
+            "description": "Client type `browser`: when present it must be `same-origin`.",
+            "name": "sec-fetch-site",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Client type `browser`: the refresh token, set by the sign-in, sign-up and refresh responses (`tula_refresh`, unprefixed and without `Secure`, when `SESSION_COOKIE_INSECURE=true` in local development)."
+            },
+            "required": false,
+            "description": "Client type `browser`: the refresh token, set by the sign-in, sign-up and refresh responses (`tula_refresh`, unprefixed and without `Secure`, when `SESSION_COOKIE_INSECURE=true` in local development).",
+            "name": "__Secure-tula_refresh",
+            "in": "cookie"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2242,12 +3480,204 @@
         },
         "responses": {
           "204": {
-            "description": "Signed out."
+            "description": "Signed out.",
+            "headers": {
+              "set-cookie": {
+                "schema": {
+                  "type": "string",
+                  "description": "Client type `browser`: `__Secure-tula_refresh=<token>; Path=/v1/client/sessions/; Max-Age=<remaining absolute lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`. Sign-out sends the same name, path and attributes with an empty value and `Max-Age=0`."
+                },
+                "required": false,
+                "description": "Client type `browser`: `__Secure-tula_refresh=<token>; Path=/v1/client/sessions/; Max-Age=<remaining absolute lifetime>; HttpOnly; Secure; SameSite=Strict`, no `Domain`. Sign-out sends the same name, path and attributes with an empty value and `Max-Age=0`."
+              }
+            }
           },
-          "500": {
-            "description": "Something went wrong on our side.",
+          "400": {
+            "description": "`request.invalid`: The request is not valid.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.invalid": {
+                    "value": {
+                      "error": {
+                        "code": "request.invalid",
+                        "message": "The request is not valid."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`auth.forbidden`: You are not allowed to do this.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "auth.forbidden": {
+                    "value": {
+                      "error": {
+                        "code": "auth.forbidden",
+                        "message": "You are not allowed to do this."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "`request.unsupported_media_type`: The request content type is not supported.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "request.unsupported_media_type": {
+                    "value": {
+                      "error": {
+                        "code": "request.unsupported_media_type",
+                        "message": "The request content type is not supported."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "`server.internal`: Something went wrong on our side.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -2350,10 +3780,146 @@
               }
             }
           },
-          "401": {
-            "description": "No valid access token, or its session ended.",
+          "400": {
+            "description": "`request.invalid`: The request is not valid.",
             "content": {
               "application/json": {
+                "examples": {
+                  "request.invalid": {
+                    "value": {
+                      "error": {
+                        "code": "request.invalid",
+                        "message": "The request is not valid."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`auth.token_expired`: The access token has expired. Refresh it and try again.\n`auth.token_invalid`: The access token is not valid.\n`auth.unauthenticated`: Authentication is required.\n`session.expired`: This session has expired. Sign in again.\n`session.reuse_detected`: A refresh token was used twice, so the session was ended. Sign in again.\n`session.revoked`: This session has ended.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "auth.token_expired": {
+                    "value": {
+                      "error": {
+                        "code": "auth.token_expired",
+                        "message": "The access token has expired. Refresh it and try again."
+                      }
+                    }
+                  },
+                  "auth.token_invalid": {
+                    "value": {
+                      "error": {
+                        "code": "auth.token_invalid",
+                        "message": "The access token is not valid."
+                      }
+                    }
+                  },
+                  "auth.unauthenticated": {
+                    "value": {
+                      "error": {
+                        "code": "auth.unauthenticated",
+                        "message": "Authentication is required."
+                      }
+                    }
+                  },
+                  "session.expired": {
+                    "value": {
+                      "error": {
+                        "code": "session.expired",
+                        "message": "This session has expired. Sign in again."
+                      }
+                    }
+                  },
+                  "session.reuse_detected": {
+                    "value": {
+                      "error": {
+                        "code": "session.reuse_detected",
+                        "message": "A refresh token was used twice, so the session was ended. Sign in again."
+                      }
+                    }
+                  },
+                  "session.revoked": {
+                    "value": {
+                      "error": {
+                        "code": "session.revoked",
+                        "message": "This session has ended."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -2384,9 +3950,62 @@
             }
           },
           "500": {
-            "description": "Something went wrong on our side.",
+            "description": "`server.internal`: Something went wrong on our side.",
             "content": {
               "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`auth.unavailable`: Tokens cannot be verified right now. Try again later.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "auth.unavailable": {
+                    "value": {
+                      "error": {
+                        "code": "auth.unavailable",
+                        "message": "Tokens cannot be verified right now. Try again later."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -2448,9 +4067,102 @@
             }
           },
           "401": {
-            "description": "No valid access token, or its session ended.",
+            "description": "`auth.token_expired`: The access token has expired. Refresh it and try again.\n`auth.token_invalid`: The access token is not valid.\n`auth.unauthenticated`: Authentication is required.\n`session.expired`: This session has expired. Sign in again.\n`session.reuse_detected`: A refresh token was used twice, so the session was ended. Sign in again.\n`session.revoked`: This session has ended.",
             "content": {
               "application/json": {
+                "examples": {
+                  "auth.token_expired": {
+                    "value": {
+                      "error": {
+                        "code": "auth.token_expired",
+                        "message": "The access token has expired. Refresh it and try again."
+                      }
+                    }
+                  },
+                  "auth.token_invalid": {
+                    "value": {
+                      "error": {
+                        "code": "auth.token_invalid",
+                        "message": "The access token is not valid."
+                      }
+                    }
+                  },
+                  "auth.unauthenticated": {
+                    "value": {
+                      "error": {
+                        "code": "auth.unauthenticated",
+                        "message": "Authentication is required."
+                      }
+                    }
+                  },
+                  "session.expired": {
+                    "value": {
+                      "error": {
+                        "code": "session.expired",
+                        "message": "This session has expired. Sign in again."
+                      }
+                    }
+                  },
+                  "session.reuse_detected": {
+                    "value": {
+                      "error": {
+                        "code": "session.reuse_detected",
+                        "message": "A refresh token was used twice, so the session was ended. Sign in again."
+                      }
+                    }
+                  },
+                  "session.revoked": {
+                    "value": {
+                      "error": {
+                        "code": "session.revoked",
+                        "message": "This session has ended."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "`request.too_large`: The request body is too large.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "request.too_large": {
+                    "value": {
+                      "error": {
+                        "code": "request.too_large",
+                        "message": "The request body is too large."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -2481,9 +4193,62 @@
             }
           },
           "500": {
-            "description": "Something went wrong on our side.",
+            "description": "`server.internal`: Something went wrong on our side.",
             "content": {
               "application/json": {
+                "examples": {
+                  "server.internal": {
+                    "value": {
+                      "error": {
+                        "code": "server.internal",
+                        "message": "Something went wrong on our side."
+                      }
+                    }
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": ["code", "message"]
+                    }
+                  },
+                  "required": ["error"]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "`auth.unavailable`: Tokens cannot be verified right now. Try again later.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "auth.unavailable": {
+                    "value": {
+                      "error": {
+                        "code": "auth.unavailable",
+                        "message": "Tokens cannot be verified right now. Try again later."
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {

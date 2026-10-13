@@ -35,7 +35,7 @@ describe('sign-in', () => {
       identifier: 'maya@northline.app',
     })
     expect(portal.calls.find((call) => call.path === START)?.headers.get('x-tula-client')).toBe(
-      'web'
+      'browser'
     )
     const password = portal.calls.find((call) => call.path === PASSWORD)
     expect(password?.body).toEqual({ password: 'correct horse battery' })
