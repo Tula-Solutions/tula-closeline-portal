@@ -1,8 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import { ApiError, CLIENT_ERRORS } from '~/api/errors'
 import { type Authorizer, createHttpClient } from '~/api/http'
+import { createApp } from '~/app'
+import { noopReporter } from '~/report/reporter'
 import { createSession } from '~/session/session'
-import { failure, fakeFetch, json, route, tokens } from '~/testing/fixtures'
+import { failure, fakeFetch, json, route, TEST_ENV, tokens } from '~/testing/fixtures'
+import { organizationBody } from '~/testing/render'
 
 const noWait = async () => {}
 
@@ -380,6 +383,7 @@ describe('bearer calls', () => {
       accessToken: async () => null,
       refresh: async () => {},
       rejected: (token) => rejected.push(token),
+      epoch: () => 0,
     }
     const { http, calls } = client([route('GET', '/me', json(200, {}))], { authorizer })
     const error = await failureOf(http.request({ path: '/me', auth: true }))
@@ -389,34 +393,144 @@ describe('bearer calls', () => {
     expect(rejected).toEqual([])
   })
 
-  test('a 401 for a request sent before sign-out does not end the next session, or rotate it', async () => {
-    let answerA: (response: Response) => void = () => {}
-    const lateA = new Promise<Response>((resolve) => {
-      answerA = resolve
+  describe('a request never outlives the session it started in', () => {
+    function gated() {
+      const releases = new Map<string, (response: Response) => void>()
+      const sent = new Map<string, Promise<void>>()
+      const markSent = new Map<string, () => void>()
+      for (const method of ['GET', 'POST']) {
+        sent.set(
+          method,
+          new Promise<void>((resolve) => {
+            markSent.set(method, resolve)
+          })
+        )
+      }
+      const handler = route('POST', '/rename', () => hold('POST'))
+      const read = route('GET', '/me', () => hold('GET'))
+      function hold(method: string): Promise<Response> {
+        return new Promise<Response>((resolve) => {
+          releases.set(method, resolve)
+          markSent.get(method)?.()
+        })
+      }
+      return { releases, sent, handlers: [handler, read] }
+    }
+
+    function twoSessions() {
+      let refreshes = 0
+      const session = createSession({
+        refresh: async () => {
+          refreshes += 1
+          return tokens({ accessToken: 'access-refreshed', refreshToken: 'refresh-refreshed' })
+        },
+        revoke: async () => {},
+      })
+      session.start(tokens({ accessToken: 'access-A', refreshToken: 'refresh-A' }))
+      return { session, refreshes: () => refreshes }
+    }
+
+    test('a token_expired for a POST and a GET made as A is not replayed as B', async () => {
+      const { session, refreshes } = twoSessions()
+      const { releases, sent, handlers } = gated()
+      const { http, calls } = client(handlers, { authorizer: session, retries: 2 })
+      const post = failureOf(
+        http.request({ method: 'POST', path: '/rename', auth: true, body: {} })
+      )
+      const get = failureOf(http.request({ path: '/me', auth: true }))
+      await Promise.all([sent.get('POST'), sent.get('GET')])
+      await session.signOut()
+      session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+      releases.get('POST')?.(failure(401, 'auth.token_expired'))
+      releases.get('GET')?.(failure(401, 'auth.token_expired'))
+      for (const error of [await post, await get]) {
+        expect([error.code, error.status]).toEqual(['auth.unauthenticated', 401])
+      }
+      expect(calls).toHaveLength(2)
+      expect(calls.map((call) => call.headers.get('authorization'))).toEqual([
+        'Bearer access-A',
+        'Bearer access-A',
+      ])
+      expect(refreshes()).toBe(0)
+      expect(session.getSnapshot().status).toBe('signed_in')
+      expect(await session.accessToken()).toBe('access-B')
     })
-    let refreshes = 0
-    const session = createSession({
-      refresh: async () => {
-        refreshes += 1
-        return tokens()
-      },
-      revoke: async () => {},
+
+    test('a success that arrives for A after B signed in is discarded, not returned', async () => {
+      const { session } = twoSessions()
+      const { releases, sent, handlers } = gated()
+      const { http } = client(handlers, { authorizer: session })
+      const get = failureOf(http.request({ path: '/me', auth: true }))
+      await sent.get('GET')
+      await session.signOut()
+      session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+      releases.get('GET')?.(json(200, { organization: 'A only' }))
+      expect((await get).code).toBe('auth.unauthenticated')
+      expect(session.getSnapshot().status).toBe('signed_in')
     })
-    session.start(tokens({ accessToken: 'access-A', refreshToken: 'refresh-A' }))
-    const { http } = client(
-      [
-        route('GET', '/me', (call) =>
-          call.headers.get('authorization') === 'Bearer access-A' ? lateA : json(200, { ok: true })
-        ),
-      ],
-      { authorizer: session, retries: 0 }
-    )
-    const first = http.request({ path: '/me', auth: true }).catch(() => undefined)
-    await session.signOut()
-    session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
-    answerA(failure(401, 'auth.token_expired'))
-    await first
-    expect(session.getSnapshot().status).toBe('signed_in')
-    expect(refreshes).toBe(0)
+
+    test('a refresh inside one session still retries once, as before', async () => {
+      const { session, refreshes } = twoSessions()
+      const { http, calls } = client(
+        [
+          route('GET', '/me', (call) =>
+            call.headers.get('authorization') === 'Bearer access-A'
+              ? failure(401, 'auth.token_expired')
+              : json(200, { ok: true })
+          ),
+        ],
+        { authorizer: session }
+      )
+      expect(await http.request({ path: '/me', auth: true })).toEqual({ ok: true })
+      expect(refreshes()).toBe(1)
+      expect(calls).toHaveLength(2)
+    })
+
+    test('the cache never holds what A fetched once B is signed in', async () => {
+      let answer: (response: Response) => void = () => {}
+      const late = new Promise<Response>((resolve) => {
+        answer = resolve
+      })
+      let markSent: () => void = () => {}
+      const waitForSend = new Promise<void>((resolve) => {
+        markSent = resolve
+      })
+      const gate = fakeFetch(
+        route('GET', '/v1/organization', () => {
+          markSent()
+          return late
+        })
+      )
+      const gatedApp = createApp({
+        env: TEST_ENV,
+        reporter: noopReporter,
+        fetch: gate.fetch,
+        sleep: noWait,
+        random: () => 0,
+      })
+      gatedApp.session.start(tokens({ accessToken: 'access-A' }))
+      const fetching = gatedApp.queryClient
+        .fetchQuery({
+          queryKey: ['organization'],
+          queryFn: ({ signal }) => gatedApp.core.getOrganization(signal),
+        })
+        .catch((error: unknown) => error)
+      await waitForSend
+      await gatedApp.session.signOut()
+      gatedApp.session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+      answer(json(200, organizationBody('A Corp')))
+      const outcome = await fetching
+      // Sign-out cancels the in-flight query; either way the person gets an error, never A's data.
+      expect(outcome).toBeInstanceOf(Error)
+      expect(gatedApp.queryClient.getQueryData(['organization'])).toBeUndefined()
+      expect(
+        JSON.stringify(
+          gatedApp.queryClient
+            .getQueryCache()
+            .getAll()
+            .map((q) => q.state.data)
+        )
+      ).not.toContain('A Corp')
+    })
   })
 })

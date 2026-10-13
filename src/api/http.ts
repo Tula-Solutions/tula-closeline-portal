@@ -2,6 +2,8 @@ import { ApiError, CLIENT_ERRORS, clientError, isTransient, parseErrorResponse }
 
 /** The session as the HTTP client sees it: a token to send, a way to renew it, and a way to end it. */
 export type Authorizer = {
+  /** Changes on every sign-in and sign-out (not on a refresh): a request belongs to the one it started in. */
+  epoch(): number
   /** A usable access token (renewed first when about to expire), or null when signed out. */
   accessToken(): Promise<string | null>
   /** Renews the session whose access token was `token`; does nothing if that token is no longer the held one. Throws on failure. */
@@ -135,15 +137,23 @@ export function createHttpClient(config: HttpConfig): HttpClient {
     if (!options.auth || authorizer === undefined) {
       return attempt(options, null)
     }
+    // A request never outlives the session it started in: after any wait, a changed epoch means
+    // the person signed out (and maybe in again), so nothing is retried and nothing is returned.
+    const epoch = authorizer.epoch()
+    const sameSession = () => authorizer.epoch() === epoch
     const token = await authorizer.accessToken()
-    if (token === null) {
+    if (token === null || !sameSession()) {
       throw new ApiError({ code: 'auth.unauthenticated', status: 401 })
     }
+    let result: T
     try {
-      return await attempt(options, token)
+      result = await attempt(options, token)
     } catch (error) {
       if (!(error instanceof ApiError) || error.status !== 401) {
         throw error
+      }
+      if (!sameSession()) {
+        throw new ApiError({ code: 'auth.unauthenticated', status: 401 })
       }
       if (error.code !== 'auth.token_expired') {
         authorizer.rejected(token)
@@ -152,18 +162,26 @@ export function createHttpClient(config: HttpConfig): HttpClient {
       // One refresh and one retry. A failed refresh ends the session itself and rethrows.
       await authorizer.refresh(token)
       const renewed = await authorizer.accessToken()
-      if (renewed === null) {
+      if (renewed === null || !sameSession()) {
         throw error
       }
       try {
-        return await attempt(options, renewed)
+        const second = await attempt(options, renewed)
+        if (!sameSession()) {
+          throw new ApiError({ code: 'auth.unauthenticated', status: 401 })
+        }
+        return second
       } catch (second) {
-        if (second instanceof ApiError && second.status === 401) {
+        if (second instanceof ApiError && second.status === 401 && sameSession()) {
           authorizer.rejected(renewed)
         }
         throw second
       }
     }
+    if (!sameSession()) {
+      throw new ApiError({ code: 'auth.unauthenticated', status: 401 })
+    }
+    return result
   }
 
   return {

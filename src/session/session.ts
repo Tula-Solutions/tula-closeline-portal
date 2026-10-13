@@ -55,6 +55,7 @@ export function createSession(deps: SessionDeps): Session {
   let held: Held | null = null
   let snapshot: SessionSnapshot = SIGNED_OUT
   let inFlight: Promise<void> | null = null
+  let epoch = 0
 
   const publish = (next: SessionSnapshot) => {
     snapshot = next
@@ -80,6 +81,7 @@ export function createSession(deps: SessionDeps): Session {
   }
 
   const clear = (ended: boolean) => {
+    epoch += 1
     held = null
     publish(ended ? ENDED : SIGNED_OUT)
   }
@@ -120,7 +122,11 @@ export function createSession(deps: SessionDeps): Session {
         listeners.delete(listener)
       }
     },
-    start: hold,
+    epoch: () => epoch,
+    start(tokens) {
+      epoch += 1
+      hold(tokens)
+    },
     refresh,
     async accessToken() {
       if (held === null) {
