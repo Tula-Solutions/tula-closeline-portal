@@ -87,7 +87,8 @@ bun run generate:api -- --check --core-from ../tula-closeline-core --core-ref or
 
 `bun run spec:check` runs `--check` and also compares both copies with `origin/develop` of the
 sibling clones `../tula-closeline-auth` and `../tula-closeline-core`; a
-clone that is not present is skipped with a message. Each comparison prints `ok:` with the
+clone that is not present is skipped with a message. A copy whose content matches but whose recorded commit differs passes with an `info:` line;
+`--strict-hash` fails on that too. Each comparison prints `ok:` with the
 clone's last fetch time: without `--fetch` it is against that last fetch, and `bun run spec:check --fetch` first runs `git fetch origin develop` in each clone. The scheduled hub workflow and the
 service PR-template line from hub issue 44 are not done here. CI has no sibling clones, so CI does not catch a
 service moving on: run `spec:check` before opening a portal PR, and re-vendor when a service adds a

@@ -16,6 +16,8 @@
  *                                                              with a message (CI has none, so CI skips it)
  *   --fetch (with --siblings) first runs `git fetch origin develop` in each sibling; without it the
  *   comparison is against the clone's last fetch.
+ *   --strict-hash (with --check and a checkout) also fails when only the recorded commit differs; by
+ *   default a copy whose content matches the checkout passes and a differing commit is printed as info.
  *   --check also fails if the committed core copy is not a valid document with a commit hash, and with
  *   --from / --core-from it fails if the committed copy differs from that ref of the checkout.
  */
@@ -67,6 +69,7 @@ function git(directory: string, args: readonly string[]): string {
 }
 
 const checking = process.argv.includes('--check')
+const strictHash = process.argv.includes('--strict-hash')
 const failures: string[] = []
 
 /** When the clone's remote-tracking ref last moved (its reflog), else its last fetch, else unknown. */
@@ -101,10 +104,19 @@ function vendor(directory: string, ref: string, spec: URL, commit: URL, name: st
   }
   JSON.parse(text)
   if (checking) {
-    if (readFileSync(spec, 'utf8') !== text || readFileSync(commit, 'utf8') !== hash) {
-      failures.push(
-        `openapi/${name}.openapi.json differs from ${ref} of ${directory}: run \`bun run generate:api\` with the matching flag and commit the result.`
-      )
+    const recorded = readFileSync(commit, 'utf8')
+    const fix = `run \`bun run generate:api\` with the matching flag and commit the result.`
+    if (readFileSync(spec, 'utf8') !== text) {
+      failures.push(`openapi/${name}.openapi.json differs from ${ref} of ${directory}: ${fix}`)
+    } else if (recorded !== hash) {
+      const note = `openapi/${name}.openapi.json matches ${ref} of ${directory}; only the recorded commit differs (recorded ${recorded.trim()}, ${ref} is ${hash.trim()})`
+      if (strictHash) {
+        failures.push(`${note}: ${fix}`)
+      } else {
+        console.log(
+          `info: ${name} matches ${ref}; only the recorded commit differs (recorded ${recorded.trim()}, ${ref} is ${hash.trim()}). Not a failure; --strict-hash fails on it.`
+        )
+      }
     } else {
       const as = ref.startsWith('origin/') ? `${ref} as last fetched` : ref
       console.log(`ok: ${name} @ ${hash.slice(0, 7)} (${as}, ${fetchTime(directory, ref)})`)
