@@ -1,11 +1,11 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
-import { type AuthApi, createAuthApi } from '~/api/auth'
+import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
 import { type CoreApi, createCoreApi } from '~/api/core'
 import { createHttpClient, type Fetch } from '~/api/http'
 import type { Env } from '~/env'
 import { createInvitationHolder, type InvitationHolder } from '~/invitation'
 import type { Reporter } from '~/report/reporter'
-import { createSession, type Session } from '~/session/session'
+import { createSession, type Session, type SessionChannel } from '~/session/session'
 
 /** Everything the screens use, built once: the single place the pieces are wired together. */
 export type App = {
@@ -27,6 +27,8 @@ export type AppInit = {
   readonly random?: () => number
   readonly now?: () => number
   readonly timeoutMs?: number
+  /** The line to the other tabs; none when omitted (tests), so apps in one process never hear each other. */
+  readonly channel?: SessionChannel
   /** The holder that already took the Invitation from the address; a new one when omitted. */
   readonly invitation?: InvitationHolder
 }
@@ -39,22 +41,17 @@ export function createApp(init: AppInit): App {
     ...(init.random ? { random: init.random } : {}),
     ...(init.timeoutMs === undefined ? {} : { timeoutMs: init.timeoutMs }),
   }
-  const authHttp = createHttpClient({
-    ...shared,
-    baseUrl: init.env.authBaseUrl,
-    headers: { 'x-tula-client': 'web' },
-  })
+  // Every path is same-origin (the host or the dev server routes it to a service), so there is no
+  // service URL here and no CORS.
+  const authHttp = createHttpClient({ ...shared, headers: CLIENT_TYPE_HEADER })
   const auth = createAuthApi(authHttp)
   const session = createSession({
-    refresh: (refreshToken) => auth.refresh(refreshToken),
-    revoke: (refreshToken) => auth.signOut(refreshToken),
+    refresh: () => auth.refresh(),
+    revoke: () => auth.signOut(),
+    ...(init.channel ? { channel: init.channel } : {}),
     ...(init.now ? { now: init.now } : {}),
   })
-  const coreHttp = createHttpClient({
-    ...shared,
-    baseUrl: init.env.coreBaseUrl,
-    authorizer: session,
-  })
+  const coreHttp = createHttpClient({ ...shared, authorizer: session })
   const queryClient = new QueryClient({
     queryCache: new QueryCache({ onError: (error) => init.reporter.report(error) }),
     mutationCache: new MutationCache({ onError: (error) => init.reporter.report(error) }),

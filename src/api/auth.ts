@@ -2,9 +2,9 @@ import type { components } from '~/api/auth.gen'
 import type { HttpClient } from '~/api/http'
 
 /** The answer of every step of a sign-up or sign-in. */
-export type FlowResponse = components['schemas']['FlowResponse']
-/** A session as the auth service hands it over: both tokens, the expiry and the Organization. */
-export type SessionTokens = components['schemas']['SessionTokens']
+export type FlowResponse = components['schemas']['BrowserFlowResponse']
+/** A session as the auth service hands it to the browser: the access token, its expiry and the Organization. The refresh token is a cookie script cannot read. */
+export type SessionTokens = components['schemas']['BrowserSessionTokens']
 /** What a person types to start a sign-up; exactly one of `organizationName` and `invitationToken`. */
 export type SignUpDetails = components['schemas']['SignUpRequest']
 /** The password length limits. */
@@ -33,17 +33,20 @@ export type AuthApi = {
     password: string,
     signal?: AbortSignal
   ): Promise<FlowResponse>
-  /** Trades a refresh token for new tokens. */
-  refresh(refreshToken: string, signal?: AbortSignal): Promise<SessionTokens>
-  /** Ends the session of a refresh token. */
-  signOut(refreshToken: string, signal?: AbortSignal): Promise<void>
+  /** Renews the session from the refresh cookie the browser sends on its own. */
+  refresh(signal?: AbortSignal): Promise<SessionTokens>
+  /** Ends the session the refresh cookie belongs to; the service clears the cookie. */
+  signOut(signal?: AbortSignal): Promise<void>
   /** Reads the password length limits (a read, so it is retried). */
   passwordPolicy(signal?: AbortSignal): Promise<PasswordPolicy>
 }
 
 const ATTEMPT_HEADER = 'x-tula-attempt'
 
-/** Builds the auth routes over an HTTP client whose base URL is the auth service and whose headers carry `x-tula-client: web`. */
+/** The client type every call to auth declares: it makes auth keep the refresh token in a cookie. */
+export const CLIENT_TYPE_HEADER = { 'x-tula-client': 'browser' } as const
+
+/** Builds the auth routes over an HTTP client whose headers carry `x-tula-client: browser`; paths are same-origin. */
 export function createAuthApi(http: HttpClient): AuthApi {
   const flowPath = (kind: 'sign-ups' | 'sign-ins', id: string, step: string) =>
     `/v1/client/${kind}/${encodeURIComponent(id)}/${step}`
@@ -85,20 +88,14 @@ export function createAuthApi(http: HttpClient): AuthApi {
         body: { password },
         signal,
       }),
-    refresh: (refreshToken, signal) =>
+    refresh: (signal) =>
       http.request<SessionTokens>({
         method: 'POST',
         path: '/v1/client/sessions/refresh',
-        body: { refreshToken },
         signal,
       }),
-    signOut: (refreshToken, signal) =>
-      http.request<void>({
-        method: 'POST',
-        path: '/v1/client/sessions/sign-out',
-        body: { refreshToken },
-        signal,
-      }),
+    signOut: (signal) =>
+      http.request<void>({ method: 'POST', path: '/v1/client/sessions/sign-out', signal }),
     passwordPolicy: (signal) =>
       http.request<PasswordPolicy>({ path: '/v1/client/password-policy', signal }),
   }

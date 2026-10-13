@@ -4,8 +4,6 @@ import { parseEnv } from '~/env'
 
 const prod = parseEnv({
   VITE_ENVIRONMENT: 'prod',
-  VITE_AUTH_BASE_URL: 'https://auth.closeline.example/v1',
-  VITE_CORE_BASE_URL: 'https://core.closeline.example',
   VITE_SENTRY_DSN: 'https://abc123@o1.ingest.sentry.io/42',
 })
 
@@ -27,22 +25,16 @@ describe('buildCsp', () => {
     expect(directive(policy, 'default-src')).toBe("default-src 'none'")
   })
 
-  test('connections go to the auth, core and Sentry origins from configuration, and nowhere else', () => {
+  test('connections go to the page itself (auth and core are behind it) and to Sentry, and nowhere else', () => {
     const connect = directive(buildCsp(prod, { meta: true }), 'connect-src')
-    expect(connect).toBe(
-      "connect-src 'self' https://auth.closeline.example https://core.closeline.example https://o1.ingest.sentry.io"
-    )
+    expect(connect).toBe("connect-src 'self' https://o1.ingest.sentry.io")
   })
 
   test('with no DSN there is no Sentry origin', () => {
     const local = parseEnv({
       VITE_ENVIRONMENT: 'local',
-      VITE_AUTH_BASE_URL: 'http://localhost:3001',
-      VITE_CORE_BASE_URL: 'http://localhost:3002',
     })
-    expect(directive(buildCsp(local, { meta: true }), 'connect-src')).toBe(
-      "connect-src 'self' http://localhost:3001 http://localhost:3002"
-    )
+    expect(directive(buildCsp(local, { meta: true }), 'connect-src')).toBe("connect-src 'self'")
     expect(buildCsp(local, { meta: true })).not.toContain('upgrade-insecure-requests')
   })
 
@@ -70,7 +62,7 @@ describe('buildCsp', () => {
       "style-src 'self'",
       "img-src 'self'",
       "font-src 'self'",
-      "connect-src 'self' https://auth.closeline.example https://core.closeline.example https://o1.ingest.sentry.io",
+      "connect-src 'self' https://o1.ingest.sentry.io",
       "manifest-src 'self'",
       "base-uri 'none'",
       "form-action 'self'",

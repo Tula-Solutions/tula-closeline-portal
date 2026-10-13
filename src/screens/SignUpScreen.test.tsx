@@ -66,7 +66,7 @@ describe('sign-up: create an Organization', () => {
       password: 'correct horse battery',
       organizationName: 'Northline',
     })
-    expect(startCall?.headers.get('x-tula-client')).toBe('web')
+    expect(startCall?.headers.get('x-tula-client')).toBe('browser')
     expect(screen.getByText('maya@northline.app')).toBeTruthy()
 
     await enterCode(portal, '123 456')

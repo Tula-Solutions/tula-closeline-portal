@@ -6,6 +6,7 @@ import type { SessionTokens } from '~/api/auth'
 import { createApp } from '~/app'
 import { createReporter } from '~/report/reporter'
 import { createAppRouter } from '~/router'
+import type { SessionChannel } from '~/session/session'
 import { fakeFetch, type Handler, json, route, TEST_ENV, tokens } from '~/testing/fixtures'
 
 /** The Organization core returns, in the shape the contract defines. */
@@ -56,7 +57,14 @@ export function startedBody(
 
 /** Renders the whole portal at an address, with the network replaced by the given handlers. */
 export function renderPortal(
-  options: { url?: string; handlers?: Handler[]; signedIn?: boolean | SessionTokens } = {}
+  options: {
+    url?: string
+    handlers?: Handler[]
+    signedIn?: boolean | SessionTokens
+    /** Restore the session by refreshing on load, as `main.tsx` does. */
+    restore?: boolean
+    channel?: SessionChannel
+  } = {}
 ) {
   window.history.replaceState(null, '', options.url ?? '/sign-in')
   const reports: Error[] = []
@@ -67,11 +75,15 @@ export function renderPortal(
     fetch: double.fetch,
     sleep: async () => {},
     random: () => 0,
+    ...(options.channel ? { channel: options.channel } : {}),
   })
   if (options.signedIn) {
     app.session.start(options.signedIn === true ? tokens() : options.signedIn)
   }
   app.invitation.captureFromLocation(window.location, window.history)
+  if (options.restore) {
+    void app.session.restore()
+  }
   const history = createMemoryHistory({
     initialEntries: [window.location.pathname + window.location.search],
   })

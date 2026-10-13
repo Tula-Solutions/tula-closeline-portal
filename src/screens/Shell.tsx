@@ -23,6 +23,10 @@ export function Shell() {
   if (session.status === 'signed_out') {
     return <Navigate to='/sign-in' replace />
   }
+  if (session.status !== 'signed_in') {
+    // Restoring or unreachable: the session gate above shows the pending or retry screen.
+    return null
+  }
   return (
     <>
       <a className='skip-link' href='#main'>

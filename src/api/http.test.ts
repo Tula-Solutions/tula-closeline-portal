@@ -17,7 +17,6 @@ function client(
   const double = fakeFetch(...handlers)
   const slept: number[] = []
   const http = createHttpClient({
-    baseUrl: 'https://svc.test',
     fetch: double.fetch,
     sleep: async (ms) => {
       slept.push(ms)
@@ -42,7 +41,6 @@ describe('timeout', () => {
   test('a call that never answers fails with client.timeout and aborts the request', async () => {
     let signal: AbortSignal | undefined
     const http = createHttpClient({
-      baseUrl: 'https://svc.test',
       timeoutMs: 15,
       retries: 0,
       fetch: (_url, init) =>
@@ -61,7 +59,6 @@ describe('timeout', () => {
     let reads = 0
     let writes = 0
     const http = createHttpClient({
-      baseUrl: 'https://svc.test',
       timeoutMs: 10,
       retries: 2,
       sleep: noWait,
@@ -203,7 +200,7 @@ describe('requests and answers', () => {
       headers: { 'x-extra': 'y' },
     })
     const call = calls[0]
-    expect(call?.init.credentials).toBe('omit')
+    expect(call?.init.credentials).toBe('same-origin')
     expect(call?.init.referrerPolicy).toBe('no-referrer')
     expect(call?.headers.get('content-type')).toBe('application/json')
     expect(call?.headers.get('x-tula-client')).toBe('web')
@@ -224,7 +221,7 @@ describe('requests and answers', () => {
           return new Response(null, { status: 307, headers: { location: 'https://evil.test/x' } })
         }
       )
-      const http = createHttpClient({ baseUrl: 'https://svc.test', fetch: double.fetch })
+      const http = createHttpClient({ fetch: double.fetch })
       const error = await failureOf(
         http.request({ method, path: '/v1/x', ...(method === 'POST' ? { body: { a: 1 } } : {}) })
       )
@@ -236,7 +233,7 @@ describe('requests and answers', () => {
   test('puts query values in the address and skips undefined ones', async () => {
     const { http, calls } = client([route('GET', '/list', json(200, []))])
     await http.request({ path: '/list', query: { limit: 25, cursor: undefined, q: 'a b' } })
-    expect(calls[0]?.url).toBe('https://svc.test/list?limit=25&q=a+b')
+    expect(calls[0]?.url).toBe('/list?limit=25&q=a+b')
   })
 
   test('a 204 answer is undefined', async () => {
@@ -278,13 +275,12 @@ describe('requests and answers', () => {
 describe('bearer calls', () => {
   function signedIn(
     handlers: Parameters<typeof fakeFetch>,
-    refresh = async () => tokens({ accessToken: 'access-2', refreshToken: 'refresh-2' })
+    refresh = async () => tokens({ accessToken: 'access-2' })
   ) {
     let refreshes = 0
     const session = createSession({
-      refresh: async (token) => {
+      refresh: async () => {
         refreshes += 1
-        expect(token).toBe('refresh-1')
         return refresh()
       },
       revoke: async () => {},
@@ -350,11 +346,46 @@ describe('bearer calls', () => {
     ERRORS['auth.token_invalid'].code,
     ERRORS['auth.unauthenticated'].code,
     AUTH_ERRORS['session.revoked'].code,
-  ])('any other 401 (%s) signs the user out without a refresh', async (code) => {
-    const { http, session, refreshes } = signedIn([route('GET', '/me', failure(401, code))])
-    await failureOf(http.request({ path: '/me', auth: true }))
-    expect(refreshes()).toBe(0)
-    expect(session.getSnapshot()).toEqual({ status: 'signed_out', ended: true })
+  ])(
+    'any 401 (%s) gets one refresh and one retry, and a second 401 ends the session',
+    async (code) => {
+      const { http, calls, session, refreshes } = signedIn([
+        route('GET', '/me', failure(401, code)),
+      ])
+      await failureOf(http.request({ path: '/me', auth: true }))
+      expect(refreshes()).toBe(1)
+      expect(calls).toHaveLength(2)
+      expect(session.getSnapshot()).toEqual({ status: 'signed_out', ended: true })
+    }
+  )
+
+  test('a 401 that a refresh fixes is retried once and the person stays signed in', async () => {
+    const { http, calls, session, refreshes } = signedIn([
+      route('GET', '/me', (call) =>
+        call.headers.get('authorization') === 'Bearer access-1'
+          ? failure(401, ERRORS['auth.token_invalid'].code)
+          : json(200, { ok: true })
+      ),
+    ])
+    expect(await http.request({ path: '/me', auth: true })).toEqual({ ok: true })
+    expect(refreshes()).toBe(1)
+    expect(calls).toHaveLength(2)
+    expect(session.getSnapshot().status).toBe('signed_in')
+  })
+
+  test('ten concurrent calls that all get a 401 send exactly one refresh request', async () => {
+    const { http, refreshes } = signedIn([
+      route('GET', '/me', (call) =>
+        call.headers.get('authorization') === 'Bearer access-1'
+          ? failure(401, ERRORS['auth.token_invalid'].code)
+          : json(200, { ok: true })
+      ),
+    ])
+    const answers = await Promise.all(
+      Array.from({ length: 10 }, () => http.request({ path: '/me', auth: true }))
+    )
+    expect(answers).toHaveLength(10)
+    expect(refreshes()).toBe(1)
   })
 
   test('a refresh the service refuses signs the user out and surfaces the failure', async () => {
@@ -426,11 +457,11 @@ describe('bearer calls', () => {
       const session = createSession({
         refresh: async () => {
           refreshes += 1
-          return tokens({ accessToken: 'access-refreshed', refreshToken: 'refresh-refreshed' })
+          return tokens({ accessToken: 'access-refreshed' })
         },
         revoke: async () => {},
       })
-      session.start(tokens({ accessToken: 'access-A', refreshToken: 'refresh-A' }))
+      session.start(tokens({ accessToken: 'access-A' }))
       return { session, refreshes: () => refreshes }
     }
 
@@ -444,7 +475,7 @@ describe('bearer calls', () => {
       const get = failureOf(http.request({ path: '/me', auth: true }))
       await Promise.all([sent.get('POST'), sent.get('GET')])
       await session.signOut()
-      session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+      session.start(tokens({ accessToken: 'access-B' }))
       releases.get('POST')?.(failure(401, ERRORS['auth.token_expired'].code))
       releases.get('GET')?.(failure(401, ERRORS['auth.token_expired'].code))
       for (const error of [await post, await get]) {
@@ -467,7 +498,7 @@ describe('bearer calls', () => {
       const get = failureOf(http.request({ path: '/me', auth: true }))
       await sent.get('GET')
       await session.signOut()
-      session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+      session.start(tokens({ accessToken: 'access-B' }))
       releases.get('GET')?.(json(200, { organization: 'A only' }))
       expect((await get).code).toBe(ERRORS['auth.unauthenticated'].code)
       expect(session.getSnapshot().status).toBe('signed_in')
@@ -503,12 +534,12 @@ describe('bearer calls', () => {
         refresh: async () => {
           started()
           await gate
-          return tokens({ accessToken: 'access-late', refreshToken: 'refresh-late' })
+          return tokens({ accessToken: 'access-late' })
         },
         revoke: async () => {},
       })
       // Nearly expired, so the first thing the request does is wait for a refresh.
-      session.start(tokens({ accessToken: 'access-A', refreshToken: 'refresh-A', ttlMs: 1000 }))
+      session.start(tokens({ accessToken: 'access-A', ttlMs: 1000 }))
       const { http, calls } = client([route('POST', '/rename', json(200, { ok: true }))], {
         authorizer: session,
       })
@@ -517,7 +548,7 @@ describe('bearer calls', () => {
       )
       await refreshStarted
       await session.signOut()
-      session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+      session.start(tokens({ accessToken: 'access-B' }))
       releaseRefresh()
       expect((await post).code).toBe(ERRORS['auth.unauthenticated'].code)
       expect(calls).toHaveLength(0)
@@ -537,11 +568,11 @@ describe('bearer calls', () => {
         refresh: async () => {
           started()
           await gate
-          return tokens({ accessToken: 'access-late', refreshToken: 'refresh-late' })
+          return tokens({ accessToken: 'access-late' })
         },
         revoke: async () => {},
       })
-      session.start(tokens({ accessToken: 'access-A', refreshToken: 'refresh-A' }))
+      session.start(tokens({ accessToken: 'access-A' }))
       const { http, calls } = client(
         [route('POST', '/rename', failure(401, ERRORS['auth.token_expired'].code))],
         {
@@ -553,7 +584,7 @@ describe('bearer calls', () => {
       )
       await refreshStarted
       await session.signOut()
-      session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+      session.start(tokens({ accessToken: 'access-B' }))
       releaseRefresh()
       await post
       expect(calls.map((call) => call.headers.get('authorization'))).toEqual(['Bearer access-A'])
@@ -568,7 +599,7 @@ describe('bearer calls', () => {
         sleep: async () => {
           slept += 1
           await session.signOut()
-          session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+          session.start(tokens({ accessToken: 'access-B' }))
         },
       })
       const error = await failureOf(http.request({ path: '/me', auth: true }))
@@ -609,7 +640,7 @@ describe('bearer calls', () => {
         .catch((error: unknown) => error)
       await waitForSend
       await gatedApp.session.signOut()
-      gatedApp.session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+      gatedApp.session.start(tokens({ accessToken: 'access-B' }))
       answer(json(200, organizationBody('A Corp')))
       const outcome = await fetching
       // Sign-out cancels the in-flight query; either way the person gets an error, never A's data.

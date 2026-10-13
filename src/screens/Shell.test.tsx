@@ -75,26 +75,24 @@ describe('the signed-in shell', () => {
             ? failure(401, ERRORS['auth.token_expired'].code)
             : json(200, organizationBody('Northline'))
         ),
-        route(
-          'POST',
-          REFRESH,
-          json(200, tokens({ accessToken: 'access-2', refreshToken: 'refresh-2' }))
-        ),
+        route('POST', REFRESH, json(200, tokens({ accessToken: 'access-2' }))),
       ],
     })
     expect(await screen.findByText('Northline')).toBeTruthy()
     expect(portal.calls.filter((call) => call.path === REFRESH)).toHaveLength(1)
-    expect(portal.calls.find((call) => call.path === REFRESH)?.body).toEqual({
-      refreshToken: 'refresh-1',
-    })
+    // The refresh carries no body: the refresh token is a cookie the browser sends on its own.
+    expect(portal.calls.find((call) => call.path === REFRESH)?.body).toBeUndefined()
     expect(portal.app.session.getSnapshot().status).toBe('signed_in')
   })
 
-  test('a 401 for any other reason signs the person out and says the session ended', async () => {
+  test('a 401 that a refresh does not fix signs the person out and says the session ended', async () => {
     const portal = renderPortal({
       url: '/',
       signedIn: true,
-      handlers: [route('GET', '/v1/organization', failure(401, ERRORS['auth.token_invalid'].code))],
+      handlers: [
+        route('GET', '/v1/organization', failure(401, ERRORS['auth.token_invalid'].code)),
+        route('POST', REFRESH, json(200, tokens({ accessToken: 'access-2' }))),
+      ],
     })
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
     expect((await screen.findByRole('status')).textContent).toContain('Your session has ended.')
@@ -110,9 +108,7 @@ describe('the signed-in shell', () => {
     await screen.findByText('Northline')
     await portal.user.click(screen.getByRole('button', { name: 'Sign out' }))
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
-    expect(portal.calls.find((call) => call.path === SIGN_OUT)?.body).toEqual({
-      refreshToken: 'refresh-1',
-    })
+    expect(portal.calls.find((call) => call.path === SIGN_OUT)?.body).toBeUndefined()
     expect(portal.app.queryClient.getQueryData(['organization'])).toBeUndefined()
     expect(portal.app.session.getSnapshot()).toEqual({ status: 'signed_out', ended: false })
     expect(screen.queryByText('Your session has ended. Sign in again.')).toBeNull()

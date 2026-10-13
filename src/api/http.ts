@@ -7,18 +7,17 @@ export type Authorizer = {
   epoch(): number
   /** A usable access token (renewed first when about to expire), or null when signed out. */
   accessToken(): Promise<string | null>
-  /** Renews the session whose access token was `token`; does nothing if that token is no longer the held one. Throws on failure. */
+  /** Renews the session whose access token was `token` (all callers share one refresh); does nothing if that token is no longer the held one. Throws on failure. */
   refresh(token: string): Promise<void>
-  /** Called with the access token that got a 401 renewing cannot fix: ends the session only if that token is still the held one. */
+  /** Called with the access token that got a 401 a renewal did not fix: ends the session locally only if that token is still the held one. */
   rejected(token: string): void
 }
 
-/** The part of `fetch` the client uses; tests pass a double. */
-export type Fetch = (input: URL, init: RequestInit) => Promise<Response>
+/** The part of `fetch` the client uses; tests pass a double. The input is always a same-origin path (`/v1/...`). */
+export type Fetch = (input: string, init: RequestInit) => Promise<Response>
 
 /** How a client is set up; everything is injectable so tests need no network, timers or randomness. */
 export type HttpConfig = {
-  readonly baseUrl: string
   readonly fetch?: Fetch
   readonly timeoutMs?: number
   /** Extra tries for a read after a timeout, no answer, or 502/503/504. Writes never retry. */
@@ -65,12 +64,19 @@ export function createHttpClient(config: HttpConfig): HttpClient {
   const send: Fetch = config.fetch ?? ((input, init) => globalThis.fetch(input, init))
 
   async function attempt<T>(options: RequestOptions<T>, token: string | null): Promise<T> {
-    const url = new URL(`${config.baseUrl}${options.path}`)
+    // Same origin only: a path such as `/v1/organization`, never a URL with a host (and never
+    // `//host`, which a browser reads as one).
+    if (!options.path.startsWith('/') || options.path.startsWith('//')) {
+      throw new Error('An API path must start with a single slash')
+    }
+    const query = new URLSearchParams()
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined) {
-        url.searchParams.set(key, String(value))
+        query.set(key, String(value))
       }
     }
+    const queryText = query.toString()
+    const url = queryText === '' ? options.path : `${options.path}?${queryText}`
     const headers: Record<string, string> = {
       accept: 'application/json',
       ...config.headers,
@@ -100,7 +106,8 @@ export function createHttpClient(config: HttpConfig): HttpClient {
         method: options.method ?? 'GET',
         headers,
         ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
-        credentials: 'omit',
+        // The refresh cookie rides along on this origin only; never `include`.
+        credentials: 'same-origin',
         // A redirect would resend the body (a refresh token, a password) to wherever it points.
         redirect: 'error',
         cache: 'no-store',
@@ -156,11 +163,8 @@ export function createHttpClient(config: HttpConfig): HttpClient {
       if (!sameSession()) {
         throw new ApiError({ code: ERRORS['auth.unauthenticated'].code, status: 401 })
       }
-      if (error.code !== ERRORS['auth.token_expired'].code) {
-        authorizer.rejected(token)
-        throw error
-      }
-      // One refresh and one retry. A failed refresh ends the session itself and rethrows.
+      // Any 401 from the service gets one refresh and one retry (the token may have been revoked
+      // or rotated, not only expired). A refresh refused for good ends the session and rethrows.
       await authorizer.refresh(token)
       const renewed = await authorizer.accessToken()
       if (renewed === null || !sameSession()) {

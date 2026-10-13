@@ -9,8 +9,9 @@
     "prepare": "husky || true",
     "dev": "bunx --bun vite",
     "build": "bunx --bun vite build",
-    "build:verify": "VITE_ENVIRONMENT=local VITE_AUTH_BASE_URL=http://localhost:3001 VITE_CORE_BASE_URL=http://localhost:3002 bunx --bun vite build --outDir out/verify",
+    "build:verify": "VITE_ENVIRONMENT=local bunx --bun vite build --outDir out/verify",
     "check": "biome check src scripts test vite.config.ts",
+    "bundle:check": "bun scripts/check-bundle.ts out/verify",
     "routes:generate": "tsr generate",
     "generate:api": "bun scripts/generate-api.ts",
     "generate:check": "bun scripts/generate-api.ts --check && tsr generate && git diff --exit-code -- src/routeTree.gen.ts",
@@ -18,7 +19,7 @@
     "test": "bun test src",
     "test:coverage": "bun test src --coverage",
     "shared:check": "bash .claude/hooks/shared-check.sh",
-    "verify": "bun run check && bun run typecheck && bun run test:coverage && bun run generate:check && bun run build:verify && bun run shared:check",
+    "verify": "bun run check && bun run typecheck && bun run test:coverage && bun run generate:check && bun run build:verify && bun run bundle:check && bun run shared:check",
     "verify:changed": "biome check --changed --no-errors-on-unmatched src scripts test vite.config.ts && bun run typecheck && bun run test"
   },
   "devDependencies": {

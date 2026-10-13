@@ -5,8 +5,6 @@ import { parseEnv } from '~/env'
 /** The configuration the tests run with. */
 export const TEST_ENV = parseEnv({
   VITE_ENVIRONMENT: 'local',
-  VITE_AUTH_BASE_URL: 'https://auth.test',
-  VITE_CORE_BASE_URL: 'https://core.test',
 })
 
 /** A JSON response. */
@@ -35,7 +33,7 @@ export function failure(
   )
 }
 
-/** Session tokens as the auth service returns them; the access token expires `ttlMs` after `now`. */
+/** The session as the auth service returns it to a browser (no refresh token); the access token expires `ttlMs` after `now`. */
 export function tokens(
   overrides: Partial<SessionTokens> & { now?: number; ttlMs?: number } = {}
 ): SessionTokens {
@@ -44,7 +42,6 @@ export function tokens(
     sessionId: 'ses_1',
     accessToken: 'access-1',
     accessTokenExpiresAt: new Date(now + ttlMs).toISOString(),
-    refreshToken: 'refresh-1',
     organization: { id: 'org_1', role: 'owner' },
     ...rest,
   }
@@ -69,8 +66,8 @@ export function fakeFetch(...handlers: Handler[]) {
   const fetchDouble: Fetch = async (input, init) => {
     const call: Call = {
       method: init.method ?? 'GET',
-      url: input.toString(),
-      path: input.pathname,
+      url: input,
+      path: new URL(input, 'http://same-origin.test').pathname,
       headers: new Headers(init.headers),
       body: typeof init.body === 'string' ? JSON.parse(init.body) : undefined,
       init,
