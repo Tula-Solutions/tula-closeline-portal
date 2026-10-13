@@ -94,6 +94,14 @@ Every call to auth sends `x-tula-client: browser`, so auth sets the refresh toke
 cookie and returns only the access token, which the portal keeps in memory. On load the portal
 refreshes once to restore the session; sign-out ends it in every tab. See `AGENTS.md`.
 
+## Known gaps
+
+- The session carries no user id, so a different user signing in to the same Organization in
+  another tab is not detected until a sign-out or reload. A different Organization is detected
+  and clears this tab's data and held idempotency keys.
+- Core serves no list of a Team's members, so the Team panel adds or removes a member chosen from
+  the Organization's members.
+
 ## Invitations
 
 An Invitation email must link to `/sign-up#invitation=<token>`. The portal reads the fragment, keeps
