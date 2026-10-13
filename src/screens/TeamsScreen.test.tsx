@@ -3,7 +3,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { CORE_ERRORS, ERRORS } from 'tula-closeline-contract'
 import { hexId, memberBody, page, teamBody } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
-import { renderPortal } from '~/testing/render'
+import { renderPortal, waitUntilGone } from '~/testing/render'
 
 const TEAMS = '/v1/teams'
 const MEMBERS = '/v1/members'
@@ -306,7 +306,7 @@ describe('Teams: rename and delete', () => {
     await portal.user.click(screen.getByRole('button', { name: 'Delete Southern' }))
     expect(portal.calls.some((call) => call.method === 'DELETE')).toBe(false)
     await portal.user.click(screen.getByRole('button', { name: 'Delete Team' }))
-    await waitFor(() => expect(screen.queryByText('Southern')).toBeNull())
+    await waitUntilGone('Southern')
     expect(screen.getByRole('status').textContent).toBe('Team deleted.')
     expect(portal.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1)
     expect(document.activeElement === screen.getByRole('heading', { name: 'Teams' })).toBe(true)

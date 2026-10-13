@@ -3,7 +3,7 @@ import { act, screen, waitFor } from '@testing-library/react'
 import { CORE_ERRORS, ERRORS } from 'tula-closeline-contract'
 import { hexId, invitationBody, memberBody, page, teamBody } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
-import { renderPortal } from '~/testing/render'
+import { renderPortal, waitUntilGone } from '~/testing/render'
 
 const REFRESH = '/v1/client/sessions/refresh'
 const MEMBERS = '/v1/members'
@@ -357,7 +357,7 @@ describe('F6: accessible names', () => {
     const pending = await screen.findByRole('button', { name: 'Removing Rita Rep' })
     expect(pending.textContent).toBe('Removing...')
     release()
-    await waitFor(() => expect(screen.queryByText('Rita Rep')).toBeNull())
+    await waitUntilGone('Rita Rep')
   })
 
   test('bidirectional and control characters are stripped from the names in labels', async () => {
