@@ -98,6 +98,8 @@ export function createHttpClient(config: HttpConfig): HttpClient {
         headers,
         ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
         credentials: 'omit',
+        // A redirect would resend the body (a refresh token, a password) to wherever it points.
+        redirect: 'error',
         cache: 'no-store',
         referrerPolicy: 'no-referrer',
         signal: controller.signal,
@@ -175,10 +177,12 @@ export function createHttpClient(config: HttpConfig): HttpClient {
             throw error
           }
           const hinted = error instanceof ApiError ? error.retryAfterSeconds : undefined
+          // A wait longer than the budget is not waited out: the caller sees the error and the wait.
+          if (hinted !== undefined && hinted * 1000 > backoffMax) {
+            throw error
+          }
           const ceiling = Math.min(backoffMax, backoffBase * 2 ** tries)
-          await sleep(
-            hinted === undefined ? random() * ceiling : Math.min(hinted * 1000, backoffMax)
-          )
+          await sleep((hinted === undefined ? 0 : hinted * 1000) + random() * ceiling)
         }
       }
     },

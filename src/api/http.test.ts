@@ -130,14 +130,39 @@ describe('retry', () => {
     }
   )
 
-  test('waits are jittered and capped, and honour a Retry-After that is shorter than the cap', async () => {
+  test('a Retry-After shorter than the cap is honoured with jitter added', async () => {
     const { http, slept } = client(
       [route('GET', '/thing', failure(503, 'server.unavailable', { retryAfter: 1 }))],
-      { retries: 2, backoffMaxMs: 5000 }
+      { retries: 2, backoffMaxMs: 5000, random: () => 0.5 }
     )
     await failureOf(http.request({ path: '/thing' }))
-    expect(slept).toEqual([1000, 1000])
+    // the hint plus full jitter: 1000 + random() * min(max, base * 2^n)
+    expect(slept).toEqual([1100, 1200])
+  })
 
+  test('the jitter is drawn fresh for each wait and grows with the backoff', async () => {
+    const draws = [0, 1]
+    const { http, slept } = client(
+      [route('GET', '/thing', failure(503, 'server.unavailable', { retryAfter: 1 }))],
+      { retries: 2, backoffBaseMs: 100, backoffMaxMs: 5000, random: () => draws.shift() ?? 0 }
+    )
+    await failureOf(http.request({ path: '/thing' }))
+    expect(slept[0]).toBe(1000)
+    expect(slept[1]).toBe(1200)
+  })
+
+  test('a Retry-After longer than the cap stops the retries and surfaces the wait', async () => {
+    const { http, calls, slept } = client([
+      route('GET', '/thing', failure(503, 'server.unavailable', {}, { 'retry-after': '60' })),
+    ])
+    const error = await failureOf(http.request({ path: '/thing' }))
+    expect(calls).toHaveLength(1)
+    expect(slept).toEqual([])
+    expect(error.code).toBe('server.unavailable')
+    expect(error.retryAfterSeconds).toBe(60)
+  })
+
+  test('waits without a hint are jittered and capped', async () => {
     const plain = client([route('GET', '/t', () => new Response(null, { status: 502 }))], {
       retries: 3,
       backoffBaseMs: 100,
@@ -182,6 +207,27 @@ describe('requests and answers', () => {
     expect(call?.headers.get('authorization')).toBeNull()
     expect(call?.body).toEqual({ a: 1 })
   })
+
+  test.each(['GET', 'POST'] as const)(
+    'a %s never follows a redirect, so a body with a token cannot be forwarded',
+    async (method) => {
+      const double = fakeFetch(
+        // What fetch does: with redirect "error" a redirect rejects; otherwise it would follow it.
+        (call) => {
+          if (call.init.redirect === 'error') {
+            throw new TypeError('Failed to fetch: redirect')
+          }
+          return new Response(null, { status: 307, headers: { location: 'https://evil.test/x' } })
+        }
+      )
+      const http = createHttpClient({ baseUrl: 'https://svc.test', fetch: double.fetch })
+      const error = await failureOf(
+        http.request({ method, path: '/v1/x', ...(method === 'POST' ? { body: { a: 1 } } : {}) })
+      )
+      expect(error.code).toBe(CLIENT_ERRORS.network)
+      expect(double.calls.every((call) => call.init.redirect === 'error')).toBe(true)
+    }
+  )
 
   test('puts query values in the address and skips undefined ones', async () => {
     const { http, calls } = client([route('GET', '/list', json(200, []))])

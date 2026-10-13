@@ -18,6 +18,14 @@ const baseUrlSchema = z
       return false
     }
   }, 'must be an http(s) URL without a query or fragment')
+  .refine((value) => {
+    try {
+      const url = new URL(value)
+      return url.username === '' && url.password === ''
+    } catch {
+      return true
+    }
+  }, 'must not contain credentials')
   .transform((value) => value.replace(/\/+$/, ''))
 
 const optionalString = z

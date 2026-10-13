@@ -74,4 +74,15 @@ describe('parseEnv', () => {
     expect(text).toContain('VITE_AUTH_BASE_URL')
     expect(text).toContain('VITE_CORE_BASE_URL')
   })
+
+  test.each([
+    ['VITE_AUTH_BASE_URL', 'https://user:secret@auth.closeline.example'],
+    ['VITE_CORE_BASE_URL', 'https://user@core.closeline.example'],
+    ['VITE_AUTH_BASE_URL', 'https://:secret@auth.closeline.example'],
+  ])('%s with a username or password (%s) is refused, without echoing it', (name, value) => {
+    const message = problems({ ...valid, [name]: value })
+    expect(message).toContain(name)
+    expect(message).toContain('credentials')
+    expect(message).not.toContain('secret')
+  })
 })
