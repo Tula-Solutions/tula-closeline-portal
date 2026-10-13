@@ -160,3 +160,127 @@ describe('scrubEvent drops anything named like a secret, at any depth', () => {
     expect(clean.debug_meta.images[0]?.debug_id).toBe('12345678-1234-1234-1234-123456789abc')
   })
 })
+
+const SHORT_HELD = 'Zm9vYmFyYmF6cXV4MTIz4w' // exactly 22 characters, the contract minimum
+
+describe('scrubEvent removes a held secret by its exact value', () => {
+  test.each([
+    ['plain', `failed for ${SHORT_HELD} today`],
+    ['split by a slash', `GET /sign-up/${SHORT_HELD}/step`],
+    ['after a percent-encoded fragment', `%23invitation%3D${SHORT_HELD}`],
+    ['inside JSON text', `{"invitation":"${SHORT_HELD}","ok":true}`],
+    ['after a bare fragment', `sign-up#${SHORT_HELD}`],
+    [
+      'fully percent-encoded',
+      [...SHORT_HELD].map((c) => `%${c.charCodeAt(0).toString(16)}`).join(''),
+    ],
+    [
+      'fully percent-encoded in capitals',
+      [...SHORT_HELD].map((c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`).join(''),
+    ],
+    [
+      'unicode-escaped',
+      [...SHORT_HELD].map((c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`).join(''),
+    ],
+    ['twice in one string', `${SHORT_HELD} and again ${SHORT_HELD}`],
+  ])('%s', (_name, text) => {
+    const clean = scrubEvent(
+      { message: text, exception: { values: [{ value: text }] }, tags: { where: text } },
+      [SHORT_HELD]
+    )
+    const out = JSON.stringify(clean)
+    expect(out).not.toContain(SHORT_HELD)
+    expect(out).not.toContain('%5A')
+    expect(out).toContain('[redacted]')
+  })
+
+  test('also when the string is longer than the cut, wherever in it the token sits', () => {
+    const text = `${'x '.repeat(5000)}${SHORT_HELD}`
+    expect(JSON.stringify(scrubEvent({ message: text }, [SHORT_HELD]))).not.toContain(SHORT_HELD)
+  })
+
+  test('with nothing held, a 22-character token-like string is left alone', () => {
+    const message = `see ${SHORT_HELD} here`
+    expect(scrubEvent({ message }).message).toBe(message)
+    expect(scrubEvent({ message }, []).message).toBe(message)
+  })
+
+  test('the length rule still applies as well, at 32 characters', () => {
+    const forty = 'Qk'.repeat(20)
+    expect(JSON.stringify(scrubEvent({ message: forty }, [SHORT_HELD]))).not.toContain(forty)
+  })
+})
+
+describe('scrubEvent keeps Sentry debug metadata', () => {
+  test('code_file and debug_id stay on a debug image, code_id too, and others named like a code go', () => {
+    const clean = scrubEvent({
+      debug_meta: {
+        images: [
+          {
+            type: 'sourcemap',
+            code_file: '/assets/index-abc.js#frag',
+            debug_id: '12345678-1234-1234-1234-123456789abc',
+            code_id: 'f'.repeat(40),
+            verification_code: '123456',
+          },
+        ],
+      },
+    })
+    expect(clean.debug_meta.images[0] as unknown).toEqual({
+      type: 'sourcemap',
+      code_file: '/assets/index-abc.js',
+      debug_id: '12345678-1234-1234-1234-123456789abc',
+      code_id: 'f'.repeat(40),
+    })
+  })
+
+  test('a frame filename that is a bare path with a fragment loses the fragment', () => {
+    const fragment = 'Zm9vYmFyYmF6cXV4MTIz4w'
+    const clean = scrubEvent({
+      exception: { values: [{ stacktrace: { frames: [{ filename: `/sign-up#${fragment}` }] } }] },
+    })
+    expect(clean.exception.values[0]?.stacktrace.frames[0]?.filename).toBe('/sign-up')
+  })
+
+  test('a keyed query or fragment with no scheme is cut from text', () => {
+    const clean = scrubEvent({ message: 'came from /sign-up?next=/a#invitation=abc then died' })
+    expect(clean.message).toBe('came from /sign-up then died')
+  })
+})
+
+describe('scrubEvent bounds its work on long strings', () => {
+  function timeOf(run: () => void): number {
+    const start = performance.now()
+    run()
+    return performance.now() - start
+  }
+
+  test('a 1 MB string is cut to 2,000 characters and scrubbed in time comparable to a short one', () => {
+    const huge = 'a.'.repeat(500_000)
+    const short = 'a.'.repeat(1000)
+    scrubEvent({ message: short }) // warm up
+    const shortTime = Math.max(
+      timeOf(() => scrubEvent({ message: short })),
+      1
+    )
+    let out = ''
+    const hugeTime = timeOf(() => {
+      out = scrubEvent({ message: huge }).message
+    })
+    expect(out.length).toBeLessThanOrEqual(2000 + '[truncated]'.length)
+    expect(out.endsWith('[truncated]')).toBe(true)
+    // Generous: the cut makes the two cost about the same; unbounded work would be orders slower.
+    expect(hugeTime).toBeLessThan(shortTime * 200 + 200)
+  })
+
+  test('a string of 2,000 characters or fewer is not marked as cut', () => {
+    const message = 'b '.repeat(1000)
+    expect(scrubEvent({ message }).message).toBe(message)
+  })
+
+  test('a hyphenated or dotted run with no scheme is not quadratic', () => {
+    const run = 'a-'.repeat(900)
+    const ms = timeOf(() => scrubEvent({ message: run }))
+    expect(ms).toBeLessThan(500)
+  })
+})

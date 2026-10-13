@@ -7,6 +7,8 @@ import { scrubEvent } from '~/report/scrub'
 export type Reporter = {
   /** Reports an unexpected error. Expected ones (validation, 401, 403, 404, 409, 429, offline) are dropped. */
   report(error: unknown): void
+  /** Registers a literal (an Invitation token) that no report may carry, in any encoding. */
+  redact(secret: string): void
 }
 
 /** True for an error worth a report: a fault of ours, not something the user can fix or retry. */
@@ -17,9 +19,20 @@ export function shouldReport(error: unknown): boolean {
   return !(error instanceof DOMException && error.name === 'AbortError')
 }
 
+/** Secrets shorter than this are not registered: redacting a short string would hide ordinary words. */
+const MIN_SECRET_LENGTH = 16
+
 /** Builds a reporter over a capture function; an ApiError is reduced to its status and code. */
-export function createReporter(capture: (error: Error) => void): Reporter {
+export function createReporter(
+  capture: (error: Error) => void,
+  redact: (secret: string) => void = () => undefined
+): Reporter {
   return {
+    redact(secret) {
+      if (secret.length >= MIN_SECRET_LENGTH) {
+        redact(secret)
+      }
+    },
     report(error) {
       if (!shouldReport(error)) {
         return
@@ -36,10 +49,14 @@ export function createReporter(capture: (error: Error) => void): Reporter {
 }
 
 /** A reporter that does nothing: used when no DSN is configured. */
-export const noopReporter: Reporter = { report: () => undefined }
+export const noopReporter: Reporter = { report: () => undefined, redact: () => undefined }
 
 /** The Sentry options: no user, cookie, header, body or query data, no replay, no tracing, no breadcrumbs, and every event scrubbed. */
-export function sentryOptions(env: Env, dsn: string): Sentry.BrowserOptions {
+export function sentryOptions(
+  env: Env,
+  dsn: string,
+  secrets: () => readonly string[] = () => []
+): Sentry.BrowserOptions {
   return {
     dsn,
     environment: env.environment,
@@ -68,18 +85,27 @@ export function sentryOptions(env: Env, dsn: string): Sentry.BrowserOptions {
       if (hint.originalException !== undefined && !shouldReport(hint.originalException)) {
         return null
       }
-      return scrubEvent(event)
+      return scrubEvent(event, secrets())
     },
   }
 }
 
-/** Starts Sentry and returns the reporter, or a no-op reporter when there is no DSN. */
-export function startReporting(env: Env): Reporter {
+/**
+ * Starts Sentry and returns the reporter, or a no-op reporter when there is no DSN. `overrides`
+ * lets a test replace the transport.
+ */
+export function startReporting(env: Env, overrides: Sentry.BrowserOptions = {}): Reporter {
   if (env.sentryDsn === undefined) {
     return noopReporter
   }
-  Sentry.init(sentryOptions(env, env.sentryDsn))
-  return createReporter((error) => {
-    Sentry.captureException(error)
-  })
+  const secrets = new Set<string>()
+  Sentry.init({ ...sentryOptions(env, env.sentryDsn, () => [...secrets]), ...overrides })
+  return createReporter(
+    (error) => {
+      Sentry.captureException(error)
+    },
+    (secret) => {
+      secrets.add(secret)
+    }
+  )
 }

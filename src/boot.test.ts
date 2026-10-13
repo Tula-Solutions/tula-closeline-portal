@@ -72,4 +72,26 @@ describe('boot', () => {
     })
     expect(app.invitation.current().status).toBe('present')
   })
+
+  test('gives the held Invitation to the reporter to redact, and nothing when none is held', () => {
+    visit()
+    const redacted: string[] = []
+    const reporter = { ...noopReporter, redact: (secret: string) => redacted.push(secret) }
+    boot({
+      raw: RAW,
+      location: window.location,
+      history: window.history,
+      startReporting: () => reporter,
+    })
+    expect(redacted).toEqual([TOKEN])
+
+    window.history.replaceState(null, '', '/sign-up')
+    boot({
+      raw: RAW,
+      location: window.location,
+      history: window.history,
+      startReporting: () => reporter,
+    })
+    expect(redacted).toEqual([TOKEN])
+  })
 })

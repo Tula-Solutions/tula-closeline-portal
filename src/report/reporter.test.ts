@@ -134,4 +134,35 @@ describe('Sentry setup', () => {
     }
     expect(sent.filter((item) => item.includes('rate.limited'))).toEqual([])
   })
+
+  test('a token given to redact() never leaves, even as a bare 22-character string', async () => {
+    const sent: string[] = []
+    const token = 'Zm9vYmFyYmF6cXV4MTIz4w'
+    const reporter = startReporting(env, {
+      transport: () => ({
+        send: async (envelope) => {
+          sent.push(JSON.stringify(envelope))
+          return {}
+        },
+        flush: async () => true,
+      }),
+    })
+    reporter.redact(token)
+    reporter.report(new Error(`could not use sign-up/${token}/step`))
+    await Sentry.flush(2000)
+    const payload = sent.join('\n')
+    expect(payload).toContain('could not use')
+    expect(payload).not.toContain(token)
+  })
+
+  test('a string too short to be a token is not registered, so ordinary words stay', () => {
+    const registered: string[] = []
+    const reporter = createReporter(
+      () => undefined,
+      (secret) => registered.push(secret)
+    )
+    reporter.redact('short')
+    reporter.redact('Zm9vYmFyYmF6cXV4MTIz4w')
+    expect(registered).toEqual(['Zm9vYmFyYmF6cXV4MTIz4w'])
+  })
 })

@@ -23,5 +23,7 @@ export function boot(deps: BootDeps): App {
   invitation.captureFromLocation(deps.location, deps.history)
   const env = parseEnv(deps.raw)
   const reporter = (deps.startReporting ?? realStartReporting)(env)
+  // The reporter strips the token by exact value from anything it sends.
+  invitation.revealTo((token) => reporter.redact(token))
   return (deps.createApp ?? realCreateApp)({ env, reporter, invitation })
 }

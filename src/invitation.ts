@@ -15,6 +15,8 @@ export type InvitationHolder = {
   ): void
   /** The captured state. */
   current(): InvitationState
+  /** Gives the held token (if any) to a sink that must keep it out of reports; nothing else gets it from here. */
+  revealTo(sink: (token: string) => void): void
   /** Forgets the Invitation (the person chose to create an Organization instead). */
   clear(): void
 }
@@ -33,15 +35,23 @@ export function createInvitationHolder(): InvitationHolder {
       const raw = parameters.get(PARAMETER) ?? ''
       parameters.delete(PARAMETER)
       const rest = parameters.toString()
+      // A path that starts with two slashes would resolve as another origin and make replaceState
+      // throw with the token still in the address bar.
+      const path = location.pathname.replace(/^\/{2,}/, '/')
       history.replaceState(
         history.state,
         '',
-        `${location.pathname}${location.search}${rest === '' ? '' : `#${rest}`}`
+        `${path}${location.search}${rest === '' ? '' : `#${rest}`}`
       )
       const parsed = invitationTokenSchema.safeParse(raw)
       state = parsed.success ? { status: 'present', token: parsed.data } : { status: 'malformed' }
     },
     current: () => state,
+    revealTo(sink) {
+      if (state.status === 'present') {
+        sink(state.token)
+      }
+    },
     clear() {
       state = { status: 'none' }
     },

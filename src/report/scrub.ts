@@ -4,13 +4,20 @@ const SENSITIVE_KEY =
 
 const MAX_DEPTH = 12
 
+/** Sentry's debug metadata, which links a frame to its binary: named like a code but not secret. */
+const KEPT_KEY = /^(code_file|code_id)$/
+
 /** Keys whose string value is an identifier the event needs to be delivered: left as it is. */
-const IDENTIFIER_KEY = /^(event_id|release|trace_id|span_id|parent_span_id|debug_id|code_id)$/
+const IDENTIFIER_KEY = /^(event_id|release|trace_id|debug_id|code_id)$/
 
 /** Keys that hold a script address; only its query and fragment are cut. */
-const ADDRESS_KEY = /^(filename|abs_path)$/
+const ADDRESS_KEY = /^(filename|abs_path|code_file)$/
 
-const URL_SHAPED = /\b[a-z][a-z0-9+.-]*:\/\/[^\s'"<>)\]]+/gi
+/** No string in a report is longer than this; the scrubbing patterns never see more. */
+const MAX_STRING = 2000
+
+// The scheme is at most 32 characters, so each start position scans a bounded stretch: linear.
+const URL_SHAPED = /\b[a-z][a-z0-9+.-]{0,31}:\/\/[^\s'"<>)\]]+/gi
 const QUERY_OR_FRAGMENT = /[?#].*$/s
 const USERINFO = /^([a-z][a-z0-9+.-]*:\/\/)[^/?#]*@/i
 const KEYED_QUERY_OR_FRAGMENT = /[?#][A-Za-z0-9_.-]+=[^\s'"<>)\]]*/g
@@ -25,12 +32,47 @@ function stripAddress(value: string): string {
   return value.replace(QUERY_OR_FRAGMENT, '')
 }
 
-/** Removes URL queries, fragments and credentials, and token-shaped runs, from free text. */
-function scrubText(value: string): string {
-  return value
-    .replace(URL_SHAPED, redactUrl)
-    .replace(KEYED_QUERY_OR_FRAGMENT, '')
-    .replace(TOKEN_SHAPED, '[redacted]')
+function hex(code: number, width: number): string {
+  return code.toString(16).padStart(width, '0')
+}
+
+/** The ways a literal secret can be written into text: plain, percent-encoded, JSON- or unicode-escaped. */
+export function secretForms(secret: string): string[] {
+  const units = [...secret].map((char) => char.charCodeAt(0))
+  const forms = new Set<string>([
+    secret,
+    encodeURIComponent(secret),
+    JSON.stringify(secret).slice(1, -1),
+    units.map((unit) => `%${hex(unit, 2).toUpperCase()}`).join(''),
+    units.map((unit) => `%${hex(unit, 2)}`).join(''),
+    units.map((unit) => `\\u${hex(unit, 4)}`).join(''),
+    units.map((unit) => `\\u${hex(unit, 4).toUpperCase()}`).join(''),
+  ])
+  forms.delete('')
+  return [...forms]
+}
+
+type TextScrubber = (value: string) => string
+
+/**
+ * Builds the string scrubber: held secrets are removed by exact value first, then the string is
+ * cut to MAX_STRING, then URL queries, fragments and credentials and token-shaped runs go.
+ */
+function textScrubber(secrets: readonly string[]): TextScrubber {
+  const forms = secrets.flatMap(secretForms)
+  return (value) => {
+    let text = value
+    for (const form of forms) {
+      text = text.split(form).join('[redacted]')
+    }
+    if (text.length > MAX_STRING) {
+      text = `${text.slice(0, MAX_STRING)}[truncated]`
+    }
+    return text
+      .replace(URL_SHAPED, redactUrl)
+      .replace(KEYED_QUERY_OR_FRAGMENT, '')
+      .replace(TOKEN_SHAPED, '[redacted]')
+  }
 }
 
 /** Reduces a URL to its origin and path: no query, no fragment, no credentials. */
@@ -44,17 +86,17 @@ export function stripUrl(value: string): string {
   }
 }
 
-function scrubValue(value: unknown, depth: number): unknown {
+function scrubValue(value: unknown, depth: number, scrubText: TextScrubber): unknown {
   if (depth > MAX_DEPTH) {
     return '[truncated]'
   }
   if (Array.isArray(value)) {
-    return value.map((item) => scrubValue(item, depth + 1))
+    return value.map((item) => scrubValue(item, depth + 1, scrubText))
   }
   if (value !== null && typeof value === 'object') {
     const clean: Record<string, unknown> = {}
     for (const [key, inner] of Object.entries(value)) {
-      if (SENSITIVE_KEY.test(key)) {
+      if (SENSITIVE_KEY.test(key) && !KEPT_KEY.test(key)) {
         continue
       }
       if (typeof inner === 'string') {
@@ -62,7 +104,7 @@ function scrubValue(value: unknown, depth: number): unknown {
           ? inner
           : scrubText(ADDRESS_KEY.test(key) ? stripAddress(inner) : inner)
       } else {
-        clean[key] = scrubValue(inner, depth + 1)
+        clean[key] = scrubValue(inner, depth + 1, scrubText)
       }
     }
     return clean
@@ -74,10 +116,12 @@ function scrubValue(value: unknown, depth: number): unknown {
  * Removes what an error report must never carry: request and user data, breadcrumbs, extra data
  * and any field named like a token, password, code, email or authorization; URLs (in the request,
  * in stack frames and inside any text) lose their query, fragment and credentials, and any run of
- * 32 or more URL-safe characters in a string is replaced. Returns a new object.
+ * 32 or more URL-safe characters in a string is replaced. Every given secret is removed by exact
+ * value (plain, percent-encoded, JSON- or unicode-escaped) wherever it appears, and no string
+ * keeps more than 2,000 characters. Returns a new object.
  */
-export function scrubEvent<T extends object>(event: T): T {
-  const clean = scrubValue(event, 0) as Record<string, unknown>
+export function scrubEvent<T extends object>(event: T, secrets: readonly string[] = []): T {
+  const clean = scrubValue(event, 0, textScrubber(secrets)) as Record<string, unknown>
   for (const key of ['user', 'breadcrumbs', 'extra', 'server_name']) {
     delete clean[key]
   }
