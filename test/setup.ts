@@ -1,6 +1,6 @@
+import { afterEach } from 'bun:test'
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
 import { cleanup } from '@testing-library/react'
-import { afterEach } from 'bun:test'
 
 // Bun's own `fetch`, `Response`, `Headers`, `Request` and `AbortController` stay in place;
 // happy-dom adds the DOM (window, document, history, location). Tests inject `fetch` into the app.
