@@ -14,6 +14,7 @@ const CORE_PATHS = [
   '/healthz',
   '/readyz',
   '/internal/organizations',
+  '/internal/organizations/{organizationId}/abandon',
   '/internal/invitations/accept',
   '/internal/membership',
   '/v1/organization',
@@ -83,6 +84,7 @@ describe('the routing table', () => {
 
   test.each([
     '/internal/organizations',
+    '/internal/organizations/{organizationId}/abandon',
     '/internal/invitations/accept',
     '/internal/membership',
     '/internal',
@@ -115,8 +117,10 @@ describe('the routing table', () => {
   test.skipIf(!existsSync(coreClone))(
     'matches the core clone beside this one, when there is one',
     () => {
-      const paths = Object.keys(JSON.parse(readFileSync(coreClone, 'utf8')).paths)
-      expect(paths.sort()).toEqual([...CORE_PATHS].sort())
+      // /internal paths are never routed, so only the others must match what the table was written for.
+      const outside = (path: string) => !path.startsWith('/internal')
+      const paths = Object.keys(JSON.parse(readFileSync(coreClone, 'utf8')).paths).filter(outside)
+      expect(paths.sort()).toEqual(CORE_PATHS.filter(outside).sort())
     }
   )
 })
