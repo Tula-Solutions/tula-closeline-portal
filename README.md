@@ -106,9 +106,11 @@ refreshes once to restore the session; sign-out ends it in every tab. See `AGENT
 - The session carries no user id, so a different user signing in to the same Organization in
   another tab is not detected until a sign-out or reload. A different Organization is detected
   and clears this tab's data and held idempotency keys.
-  This is correct today: every cached query (members, Invitations, Teams) is the Organization's own
-  list, the same for any caller core lets read it, so none is user-specific. Add a clear on a change
-  of user (which needs a user id in the session) together with the first user-specific query.
+  This is correct today: no cached query is user-specific. The three lists (members, Invitations,
+  Teams) and the Organization record are per Organization, the same for any caller core lets read
+  them, and the password policy is public (`src/data/query-keys.test.tsx` checks the keys on these
+  screens). Add a clear on a change of user (which needs a user id in the session) together with
+  the first user-specific query.
 - Core serves no list of a Team's members, so the Team panel adds or removes a member chosen from
   the Organization's members.
 - After a laptop sleep the monotonic clock may not advance, so the first call can go out with an

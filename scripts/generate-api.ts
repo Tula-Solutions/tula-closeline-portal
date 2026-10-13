@@ -26,6 +26,39 @@ import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+const VALUE_FLAGS = ['--root', '--siblings-dir', '--from', '--ref', '--core-from', '--core-ref']
+const SWITCHES = ['--check', '--siblings', '--fetch', '--strict-hash']
+
+/** Refuses an unknown flag, a value flag with no value (or another flag as its value), and a stray word. */
+function validateArguments(args: readonly string[]): string | null {
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index] as string
+    if (VALUE_FLAGS.includes(arg)) {
+      const value = args[index + 1]
+      if (value === undefined || value.startsWith('--')) {
+        return `error: ${arg} needs a value`
+      }
+      index += 1
+    } else if (!SWITCHES.includes(arg) && arg !== '--') {
+      return `error: unknown argument ${arg}`
+    }
+  }
+  const has = (name: string) => args.includes(name)
+  if (
+    has('--strict-hash') &&
+    !(has('--check') && (has('--siblings') || has('--from') || has('--core-from')))
+  ) {
+    return 'error: --strict-hash needs --check and a checkout to compare (--siblings, --from or --core-from)'
+  }
+  return null
+}
+
+const argumentError = validateArguments(process.argv.slice(2))
+if (argumentError !== null) {
+  console.error(argumentError)
+  process.exit(1)
+}
+
 // openapi-typescript drives the JavaScript compiler API, which TypeScript 7 (the native compiler
 // that `tsc` is here) does not ship. Load its modules with their `typescript` import pointed at
 // the TypeScript 6 package instead.
