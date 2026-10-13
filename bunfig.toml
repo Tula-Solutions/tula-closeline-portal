@@ -2,5 +2,9 @@
 # Only install package versions published at least 3 days ago (supply-chain buffer, same as payhub).
 minimumReleaseAge = 259200
 
+[test]
+# A DOM (happy-dom) for the rendered-screen tests.
+preload = ["./test/setup.ts"]
+
 # Test/coverage settings live in each package's own bunfig.toml: Bun only reads bunfig from the
 # test cwd, and Turborepo runs each package's tests from inside that package.
