@@ -7,7 +7,7 @@
  */
 
 /** A service the browser reaches through the portal's origin. */
-export type Service = 'auth' | 'core'
+export type Service = 'auth' | 'core' | 'playbook'
 
 /** One path prefix and the service that serves everything under it (the prefix itself, or `prefix/...`). */
 export type ServiceRoute = { readonly prefix: string; readonly service: Service }
@@ -19,6 +19,7 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/members', service: 'core' },
   { prefix: '/v1/invitations', service: 'core' },
   { prefix: '/v1/teams', service: 'core' },
+  { prefix: '/v1/playbook', service: 'playbook' },
 ]
 
 /**
@@ -49,11 +50,16 @@ export function serviceFor(path: string): Service | null {
 }
 
 /** The server-side dev settings: where each service listens. Never shipped to the browser. */
-export type ProxyTargets = { readonly auth: string; readonly core: string }
+export type ProxyTargets = {
+  readonly auth: string
+  readonly core: string
+  readonly playbook: string
+}
 
 const DEFAULT_TARGETS: ProxyTargets = {
   auth: 'http://127.0.0.1:3001',
   core: 'http://127.0.0.1:3002',
+  playbook: 'http://127.0.0.1:3003',
 }
 
 function originOnly(name: string, value: string): string {
@@ -76,7 +82,7 @@ function originOnly(name: string, value: string): string {
   return url.origin
 }
 
-/** Reads `AUTH_PROXY_TARGET` and `CORE_PROXY_TARGET` (dev server settings, not `VITE_*`), or throws naming the bad one. */
+/** Reads `AUTH_PROXY_TARGET`, `CORE_PROXY_TARGET` and `PLAYBOOK_PROXY_TARGET` (dev server settings, not `VITE_*`), or throws naming the bad one. */
 export function parseProxyTargets(raw: Readonly<Record<string, string | undefined>>): ProxyTargets {
   const read = (name: string, fallback: string) => {
     const value = raw[name]?.trim()
@@ -85,6 +91,7 @@ export function parseProxyTargets(raw: Readonly<Record<string, string | undefine
   return {
     auth: read('AUTH_PROXY_TARGET', DEFAULT_TARGETS.auth),
     core: read('CORE_PROXY_TARGET', DEFAULT_TARGETS.core),
+    playbook: read('PLAYBOOK_PROXY_TARGET', DEFAULT_TARGETS.playbook),
   }
 }
 

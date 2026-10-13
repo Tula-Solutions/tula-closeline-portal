@@ -10,23 +10,34 @@
  *                                                              the same for core's OpenAPI document; only its
  *                                                              paths are used (the routing table's test), so no
  *                                                              types are generated from it
+ *   bun run generate:api -- --playbook-from ../tula-closeline-playbook [--playbook-ref origin/develop]
+ *                                                              the same for the playbook service's document
  *   bun run spec:check                                         --check, plus drift against origin/develop of the
  *                                                              sibling clones ../tula-closeline-auth and
- *                                                              ../tula-closeline-core; a missing clone is skipped
+ *                                                              ../tula-closeline-core and ../tula-closeline-playbook; a missing clone is skipped
  *                                                              with a message (CI has none, so CI skips it)
  *   --fetch (with --siblings) first runs `git fetch origin develop` in each sibling; without it the
  *   comparison is against the clone's last fetch.
  *   --strict-hash (with --check and a checkout) also fails when only the recorded commit differs; by
  *   default a copy whose content matches the checkout passes and a differing commit is printed as info.
- *   --check also fails if the committed core copy is not a valid document with a commit hash, and with
- *   --from / --core-from it fails if the committed copy differs from that ref of the checkout.
+ *   --check also fails if a committed core or playbook copy is not a valid document with a commit hash, and with
+ *   --from / --core-from / --playbook-from it fails if the committed copy differs from that ref of the checkout.
  */
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const VALUE_FLAGS = ['--root', '--siblings-dir', '--from', '--ref', '--core-from', '--core-ref']
+const VALUE_FLAGS = [
+  '--root',
+  '--siblings-dir',
+  '--from',
+  '--ref',
+  '--core-from',
+  '--core-ref',
+  '--playbook-from',
+  '--playbook-ref',
+]
 const SWITCHES = ['--check', '--siblings', '--fetch', '--strict-hash']
 
 /** Refuses an unknown flag, a value flag with no value (or another flag as its value), and a stray word. */
@@ -46,7 +57,10 @@ function validateArguments(args: readonly string[]): string | null {
   const has = (name: string) => args.includes(name)
   if (
     has('--strict-hash') &&
-    !(has('--check') && (has('--siblings') || has('--from') || has('--core-from')))
+    !(
+      has('--check') &&
+      (has('--siblings') || has('--from') || has('--core-from') || has('--playbook-from'))
+    )
   ) {
     return 'error: --strict-hash needs --check and a checkout to compare (--siblings, --from or --core-from)'
   }
@@ -92,6 +106,8 @@ const COMMIT = new URL('openapi/auth.commit', ROOT)
 const OUTPUT = new URL('src/api/auth.gen.ts', ROOT)
 const CORE_SPEC = new URL('openapi/core.openapi.json', ROOT)
 const CORE_COMMIT = new URL('openapi/core.commit', ROOT)
+const PLAYBOOK_SPEC = new URL('openapi/playbook.openapi.json', ROOT)
+const PLAYBOOK_COMMIT = new URL('openapi/playbook.commit', ROOT)
 
 function git(directory: string, args: readonly string[]): string {
   const result = spawnSync('git', ['-C', directory, ...args], { encoding: 'utf8' })
@@ -168,6 +184,7 @@ if (siblings && !checking) {
 const fetching = process.argv.includes('--fetch')
 let from = option('--from')
 let coreFrom = option('--core-from')
+let playbookFrom = option('--playbook-from')
 if (siblings) {
   const sibling = (short: string): string | undefined => {
     const base = option('--siblings-dir') ?? new URL('../', ROOT).pathname
@@ -190,6 +207,7 @@ if (siblings) {
   }
   from ??= sibling('auth')
   coreFrom ??= sibling('core')
+  playbookFrom ??= sibling('playbook')
 }
 const defaultRef = siblings ? 'origin/develop' : 'HEAD'
 if (from !== undefined) {
@@ -198,13 +216,34 @@ if (from !== undefined) {
 if (coreFrom !== undefined) {
   vendor(coreFrom, option('--core-ref') ?? defaultRef, CORE_SPEC, CORE_COMMIT, 'core')
 }
+if (playbookFrom !== undefined) {
+  vendor(
+    playbookFrom,
+    option('--playbook-ref') ?? defaultRef,
+    PLAYBOOK_SPEC,
+    PLAYBOOK_COMMIT,
+    'playbook'
+  )
+}
 if (checking) {
-  const core = JSON.parse(readFileSync(CORE_SPEC, 'utf8')) as { paths?: Record<string, unknown> }
-  if (
-    core.paths === undefined ||
-    !/^[0-9a-f]{40}$/.test(readFileSync(CORE_COMMIT, 'utf8').trim())
-  ) {
-    failures.push('openapi/core.openapi.json or openapi/core.commit is missing or malformed.')
+  for (const [name, spec, commitFile] of [
+    ['core', CORE_SPEC, CORE_COMMIT],
+    ['playbook', PLAYBOOK_SPEC, PLAYBOOK_COMMIT],
+  ] as const) {
+    let valid = false
+    try {
+      const document = JSON.parse(readFileSync(spec, 'utf8')) as { paths?: Record<string, unknown> }
+      valid =
+        document.paths !== undefined &&
+        /^[0-9a-f]{40}$/.test(readFileSync(commitFile, 'utf8').trim())
+    } catch {
+      valid = false
+    }
+    if (!valid) {
+      failures.push(
+        `openapi/${name}.openapi.json or openapi/${name}.commit is missing or malformed.`
+      )
+    }
   }
 }
 
