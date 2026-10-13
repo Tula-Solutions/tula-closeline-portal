@@ -22,11 +22,7 @@ export type App = {
    * here, not in a screen, so leaving a screen after an unknown outcome keeps the key; they are
    * dropped on sign-out and when the Organization changes.
    */
-  readonly keys: {
-    readonly invitation: KeyHolder
-    readonly team: KeyHolder
-    readonly teamMember: KeyHolder
-  }
+  readonly keys: KeyHolder
 }
 
 /** What `createApp` takes; tests pass a `fetch` double and a no-wait `sleep`. */
@@ -88,11 +84,7 @@ export function createApp(init: AppInit): App {
       mutations: { retry: false, gcTime: 0 },
     },
   })
-  const keys = {
-    invitation: createKeyHolder(),
-    team: createKeyHolder(),
-    teamMember: createKeyHolder(),
-  }
+  const keys = createKeyHolder()
   const organizationOf = () => {
     const snapshot = session.getSnapshot()
     return snapshot.status === 'signed_in' ? snapshot.organization.id : null
@@ -104,9 +96,7 @@ export function createApp(init: AppInit): App {
     // old one may be shown, and no key of a write meant for it may be sent again.
     if (session.getSnapshot().status === 'signed_out' || next !== currentOrganization) {
       queryClient.clear()
-      for (const holder of Object.values(keys)) {
-        holder.reset()
-      }
+      keys.clear()
     }
     currentOrganization = next
   })

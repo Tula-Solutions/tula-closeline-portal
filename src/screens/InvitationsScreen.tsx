@@ -5,6 +5,7 @@ import {
   type Invitation,
   invitableRoleSchema,
 } from 'tula-closeline-contract'
+import { dropInvitationKeys, fingerprint } from '~/api/idempotency'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
 import { can, canRevokeInvitation, invitableRoles, ROLE_LABEL } from '~/data/permissions'
@@ -103,20 +104,19 @@ function InviteForm(props: {
   const [email, setEmail] = useState('')
   const [offeredRole, setOfferedRole] = useState<InvitableRole>(offered.at(-1) ?? 'rep')
   const [errors, setErrors] = useState<{ email?: string; form?: string }>({})
-  const keys = app.keys.invitation
   const emailInput = useRef<HTMLDivElement>(null)
   const { formRef, bannerRef, focusFirstError } = useFocusOnError()
 
   const send = useSubmit<{ email: string; role: InvitableRole }>(
     async (body) => {
-      const key = keys.keyFor(`${body.email}|${body.role}`)
+      const attempt = app.keys.begin(fingerprint.invitation(body.email, body.role))
       try {
-        await app.core.createInvitation(body, key)
+        await app.core.createInvitation(body, attempt.key)
       } catch (error) {
-        keys.failed(error)
+        attempt.failed(error)
         throw error
       }
-      keys.succeeded()
+      attempt.succeeded()
       setEmail('')
       setErrors({})
       await refresh(app, 'invitations')
@@ -200,8 +200,8 @@ function InvitationRow(props: {
   const revoke = useSubmit<void>(
     async () => {
       setError(null)
-      // Whatever was unsure about sending to this address is over: a later send is a new intent.
-      app.keys.invitation.reset()
+      // Whatever was unsure about sending to this address (any role) is over: a later send is a new intent.
+      dropInvitationKeys(app.keys, invitation.email)
       await app.core.revokeInvitation(invitation.id)
       await refresh(app, 'invitations')
       props.onDone('Invitation revoked.')
@@ -209,6 +209,7 @@ function InvitationRow(props: {
     },
     { onError: (failure) => setError(presentManage(failure, 'invitation').message) }
   )
+  const label = plain(invitation.email, 'this address')
   const expired = Date.parse(invitation.expiresAt) < Date.now()
   return (
     <tr>
@@ -224,8 +225,8 @@ function InvitationRow(props: {
         {props.canRevoke ? (
           <Confirm
             label='Revoke'
-            accessibleName={`Revoke the Invitation for ${plain(invitation.email)}`}
-            pendingAccessibleName={`Revoking the Invitation for ${plain(invitation.email)}`}
+            accessibleName={`Revoke the Invitation for ${label}`}
+            pendingAccessibleName={`Revoking the Invitation for ${label}`}
             pendingLabel='Revoking...'
             question={
               <>

@@ -110,7 +110,7 @@ function MemberRow(props: {
   )
 
   const display = member.name ?? member.email
-  const label = plain(display)
+  const label = plain(member.name ?? '', plain(member.email, 'member'))
   return (
     <tr>
       <th scope='row'>

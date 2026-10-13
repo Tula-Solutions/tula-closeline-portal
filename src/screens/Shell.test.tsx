@@ -106,10 +106,11 @@ describe('the signed-in shell', () => {
       handlers: [route('POST', SIGN_OUT, new Response(null, { status: 204 }))],
     })
     await screen.findByText('Northline')
+    expect(portal.app.queryClient.getQueryData(['organization', 'org_1'])).toBeDefined()
     await portal.user.click(screen.getByRole('button', { name: 'Sign out' }))
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
     expect(portal.calls.find((call) => call.path === SIGN_OUT)?.body).toBeUndefined()
-    expect(portal.app.queryClient.getQueryData(['organization', 'org_A'])).toBeUndefined()
+    expect(portal.app.queryClient.getQueryData(['organization', 'org_1'])).toBeUndefined()
     expect(portal.app.session.getSnapshot()).toEqual({ status: 'signed_out', ended: false })
     expect(screen.queryByText('Your session has ended. Sign in again.')).toBeNull()
   })

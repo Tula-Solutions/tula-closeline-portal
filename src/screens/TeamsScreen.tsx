@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { type Team, teamNameSchema } from 'tula-closeline-contract'
+import { fingerprint } from '~/api/idempotency'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
 import { can } from '~/data/permissions'
@@ -64,19 +65,18 @@ function CreateTeamForm(props: { readonly onDone: (notice: string) => void }) {
   const app = useApp()
   const [name, setName] = useState('')
   const [errors, setErrors] = useState<{ name?: string; form?: string }>({})
-  const keys = app.keys.team
   const box = useRef<HTMLDivElement>(null)
   const { formRef, bannerRef, focusFirstError } = useFocusOnError()
   const create = useSubmit<string>(
     async (teamName) => {
-      const key = keys.keyFor(teamName)
+      const attempt = app.keys.begin(fingerprint.team(teamName))
       try {
-        await app.core.createTeam({ name: teamName }, key)
+        await app.core.createTeam({ name: teamName }, attempt.key)
       } catch (error) {
-        keys.failed(error)
+        attempt.failed(error)
         throw error
       }
-      keys.succeeded()
+      attempt.succeeded()
       setName('')
       setErrors({})
       await refresh(app, 'teams')
@@ -139,6 +139,7 @@ function TeamItem(props: {
   readonly onDeleted: () => void
 }) {
   const { team } = props
+  const label = plain(team.name, 'unnamed Team')
   const app = useApp()
   const [renaming, setRenaming] = useState(false)
   const [membersOpen, setMembersOpen] = useState(false)
@@ -156,7 +157,7 @@ function TeamItem(props: {
     async () => {
       setError(null)
       // A Team of this name is gone: creating one again is a new intent, not a retry.
-      app.keys.team.reset()
+      app.keys.drop(fingerprint.team(team.name.trim()))
       await app.core.deleteTeam(team.id)
       await refresh(app, 'teams')
       props.onDone('Team deleted.')
@@ -176,7 +177,7 @@ function TeamItem(props: {
               type='button'
               ref={renameButton}
               className='button button-quiet'
-              aria-label={`Rename ${plain(team.name)}`}
+              aria-label={`Rename ${label}`}
               aria-expanded={renaming}
               onClick={() => setRenaming(true)}
             >
@@ -185,7 +186,7 @@ function TeamItem(props: {
             <button
               type='button'
               className='button button-quiet'
-              aria-label={`Members of ${plain(team.name)}`}
+              aria-label={`Members of ${label}`}
               aria-expanded={membersOpen}
               aria-controls={`${team.id}-members`}
               onClick={() => setMembersOpen((open) => !open)}
@@ -194,8 +195,8 @@ function TeamItem(props: {
             </button>
             <Confirm
               label='Delete'
-              accessibleName={`Delete ${plain(team.name)}`}
-              pendingAccessibleName={`Deleting ${plain(team.name)}`}
+              accessibleName={`Delete ${label}`}
+              pendingAccessibleName={`Deleting ${label}`}
               pendingLabel='Deleting...'
               question={
                 <>
@@ -323,9 +324,9 @@ function TeamMembersPanel(props: {
 }) {
   const app = useApp()
   const members = useMembers(true)
+  const label = plain(props.team.name, 'unnamed Team')
   const [membershipId, setMembershipId] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const keys = app.keys.teamMember
   const errorId = `${props.team.id}-members-error`
   // The chosen member, or the first when they are no longer in the list (and nothing for an empty list).
   const chosen = members.items.some((member) => member.id === membershipId)
@@ -335,14 +336,14 @@ function TeamMembersPanel(props: {
   const add = useSubmit<string>(
     async (id) => {
       setError(null)
-      const key = keys.keyFor(id)
+      const attempt = app.keys.begin(fingerprint.teamMember(props.team.id, id))
       try {
-        await app.core.addTeamMember(props.team.id, id, key)
+        await app.core.addTeamMember(props.team.id, id, attempt.key)
       } catch (failure) {
-        keys.failed(failure)
+        attempt.failed(failure)
         throw failure
       }
-      keys.succeeded()
+      attempt.succeeded()
       props.onDone('Member added to the Team.')
     },
     { onError }
@@ -351,14 +352,14 @@ function TeamMembersPanel(props: {
     async (id) => {
       setError(null)
       // Whatever was unsure about adding this member is over: adding again is a new intent.
-      keys.reset()
+      app.keys.drop(fingerprint.teamMember(props.team.id, id))
       await app.core.removeTeamMember(props.team.id, id)
       props.onDone('Member removed from the Team.')
     },
     { onError }
   )
   return (
-    <section id={`${props.team.id}-members`} aria-label={`Members of ${plain(props.team.name)}`}>
+    <section id={`${props.team.id}-members`} aria-label={`Members of ${label}`}>
       <p className='hint'>
         The list of who is in a Team is not available yet. Choose a member to add or remove.
       </p>

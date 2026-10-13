@@ -373,3 +373,64 @@ describe('F6: accessible names', () => {
     }
   })
 })
+
+describe('F11: labels fall back when nothing visible is left', () => {
+  test('a member whose name is only zero-width characters is labelled by the email', async () => {
+    visit(
+      '/members',
+      'owner',
+      route(
+        'GET',
+        MEMBERS,
+        json(
+          200,
+          page([memberBody(2, { name: String.fromCharCode(0x200b), email: 'zed@northline.app' })])
+        )
+      )
+    )
+    expect(await screen.findByRole('button', { name: 'Remove zed@northline.app' })).toBeTruthy()
+    expect(screen.getByLabelText('Role for zed@northline.app')).toBeTruthy()
+  })
+
+  test('a Team whose name is only invisible characters is labelled with a plain noun', async () => {
+    const name = `${String.fromCharCode(0x00ad)}${String.fromCharCode(0x3164)}${String.fromCharCode(0xfe0f)}`
+    visit('/teams', 'owner', route('GET', TEAMS, json(200, page([teamBody(1, name)]))))
+    expect(await screen.findByRole('button', { name: 'Rename unnamed Team' })).toBeTruthy()
+  })
+})
+
+describe('F7: one member in two Teams, over the real screens', () => {
+  test('add to X fails, add the same member to Y: a different key on a different path', async () => {
+    const pathX = `${TEAMS}/${hexId('team', 1)}/members`
+    const pathY = `${TEAMS}/${hexId('team', 2)}/members`
+    const portal = visit(
+      '/teams',
+      'owner',
+      route('POST', pathX, networkDown),
+      route(
+        'POST',
+        pathY,
+        json(200, {
+          teamId: hexId('team', 2),
+          membershipId: hexId('mem', 1),
+          createdAt: '2026-10-13T00:00:00Z',
+        })
+      ),
+      route('GET', TEAMS, json(200, page([teamBody(1, 'Northern'), teamBody(2, 'Southern')]))),
+      route('GET', MEMBERS, json(200, page([memberBody(1, { name: 'Maya Chen' })])))
+    )
+    await screen.findByText('Southern', { selector: 'bdi' })
+    await portal.user.click(screen.getByRole('button', { name: 'Members of Northern' }))
+    await portal.user.click(await screen.findByRole('button', { name: 'Add to Team' }))
+    await screen.findByText(/Could not reach Closeline/)
+    await portal.user.click(screen.getByRole('button', { name: 'Members of Southern' }))
+    await waitFor(() =>
+      expect(screen.getAllByRole('button', { name: 'Add to Team' })).toHaveLength(2)
+    )
+    await portal.user.click(
+      screen.getAllByRole('button', { name: 'Add to Team' })[1] as HTMLElement
+    )
+    await waitFor(() => expect(postKeys(portal, pathY)).toHaveLength(1))
+    expect(postKeys(portal, pathY)[0]).not.toBe(postKeys(portal, pathX)[0])
+  })
+})

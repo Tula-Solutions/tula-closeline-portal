@@ -1,42 +1,99 @@
-import { idempotencyKeySchema } from 'tula-closeline-contract'
+import { INVITABLE_ROLES, idempotencyKeySchema } from 'tula-closeline-contract'
 import { outcomeUnknown } from '~/api/manage-messages'
 
-/** Remembers the idempotency key of the request in flight, so a retry of the same request reuses it. */
-export type KeyHolder = {
-  /** The key for a request with this fingerprint: the held one if the fingerprint is the same, else a new one. */
-  keyFor(fingerprint: string): string
-  /** The request is done: the next one gets a new key. */
+/** One try of one write: its key, and how it ended. */
+export type Attempt = {
+  readonly key: string
+  /** The write was done: its key is finished. Ignored if the holder was cleared since the attempt began. */
   succeeded(): void
-  /** The request failed: the key is kept only if the server may have received it (see `outcomeUnknown`). */
+  /** The write failed: its key is kept only if the server may have received it (see `outcomeUnknown`). Ignored if the holder was cleared since. */
   failed(error: unknown): void
-  /** Forgets the held key: the intent it stood for is over or changed (a revoke, a delete, a remove, a new Organization). */
-  reset(): void
+}
+
+/** Remembers the idempotency key of each write whose outcome may be unknown, so a retry of the same intent reuses it. */
+export type KeyHolder = {
+  /** Starts a try: the held key for this exact intent, or a new one. */
+  begin(fingerprint: string): Attempt
+  /** Forgets the key of one intent that is over or changed (a revoke, a delete, a remove). */
+  drop(fingerprint: string): void
+  /** Forgets every key and disowns every try in flight (sign-out, another Organization). */
+  clear(): void
+  /** How many keys are held (for tests). */
+  size(): number
+}
+
+/**
+ * The most keys held at once. A key is held only while a write's outcome is unknown, and a person
+ * has a handful of those at a time, so 32 is far above real use; the cap keeps memory fixed however
+ * long the tab lives. The oldest-used key is dropped first: its retry would get a new key, which is
+ * safe for a write core de-duplicates by its own rules (a pending Invitation, a Team name).
+ */
+export const MAX_HELD_KEYS = 32
+
+/** The fingerprints: everything that identifies an intent (its kind, path parameters and body), as one string. */
+export const fingerprint = {
+  /** Inviting `email` for `role`. */
+  invitation: (email: string, role: string) => JSON.stringify(['invitation', email, role]),
+  /** Creating a Team called `name`. */
+  team: (name: string) => JSON.stringify(['team', name]),
+  /** Adding `membershipId` to the Team `teamId`. */
+  teamMember: (teamId: string, membershipId: string) =>
+    JSON.stringify(['team-member', teamId, membershipId]),
+}
+
+/** Drops every key for inviting `email`, whatever role was offered. */
+export function dropInvitationKeys(holder: KeyHolder, email: string): void {
+  for (const role of INVITABLE_ROLES) {
+    holder.drop(fingerprint.invitation(email, role))
+  }
 }
 
 /** Makes a key holder; `makeKey` is injectable so tests can see what is generated. */
 export function createKeyHolder(
-  makeKey: () => string = () => `portal-${crypto.randomUUID()}`
+  makeKey: () => string = () => `portal-${crypto.randomUUID()}`,
+  max: number = MAX_HELD_KEYS
 ): KeyHolder {
-  let held: { readonly fingerprint: string; readonly key: string } | null = null
+  const held = new Map<string, string>()
+  let epoch = 0
   return {
-    keyFor(fingerprint) {
-      if (held === null || held.fingerprint !== fingerprint) {
-        const key = makeKey()
+    begin(print) {
+      let key = held.get(print)
+      if (key === undefined) {
+        key = makeKey()
         idempotencyKeySchema.parse(key)
-        held = { fingerprint, key }
       }
-      return held.key
-    },
-    succeeded() {
-      held = null
-    },
-    failed(error) {
-      if (!outcomeUnknown(error)) {
-        held = null
+      // Re-insert so the Map's order is least recently used first.
+      held.delete(print)
+      held.set(print, key)
+      while (held.size > max) {
+        const oldest = held.keys().next().value
+        if (oldest === undefined) {
+          break
+        }
+        held.delete(oldest)
+      }
+      const startedIn = epoch
+      return {
+        key,
+        succeeded() {
+          if (epoch === startedIn) {
+            held.delete(print)
+          }
+        },
+        failed(error) {
+          if (epoch === startedIn && !outcomeUnknown(error)) {
+            held.delete(print)
+          }
+        },
       }
     },
-    reset() {
-      held = null
+    drop(print) {
+      held.delete(print)
     },
+    clear() {
+      epoch += 1
+      held.clear()
+    },
+    size: () => held.size,
   }
 }
