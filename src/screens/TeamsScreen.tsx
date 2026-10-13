@@ -3,17 +3,17 @@ import { type Team, teamNameSchema } from 'tula-closeline-contract'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
 import { can } from '~/data/permissions'
-import { KEYS, useMembers, useTeams } from '~/data/queries'
+import { refresh, useMembers, useTeams } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { Banner } from '~/ui/Banner'
 import { Confirm } from '~/ui/Confirm'
 import { Field } from '~/ui/Field'
 import { Paged } from '~/ui/Paged'
+import { plain } from '~/ui/plain'
 import { SelectField } from '~/ui/SelectField'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { useFocusOnError } from '~/ui/useFocusOnError'
-import { useKeyHolder } from '~/ui/useIdempotency'
 import { useSubmit } from '~/ui/useSubmit'
 
 const NAME_RULE = 'Enter a name of 1 to 200 characters, with no control characters.'
@@ -64,7 +64,7 @@ function CreateTeamForm(props: { readonly onDone: (notice: string) => void }) {
   const app = useApp()
   const [name, setName] = useState('')
   const [errors, setErrors] = useState<{ name?: string; form?: string }>({})
-  const keys = useKeyHolder()
+  const keys = app.keys.team
   const box = useRef<HTMLDivElement>(null)
   const { formRef, bannerRef, focusFirstError } = useFocusOnError()
   const create = useSubmit<string>(
@@ -79,7 +79,7 @@ function CreateTeamForm(props: { readonly onDone: (notice: string) => void }) {
       keys.succeeded()
       setName('')
       setErrors({})
-      await app.queryClient.invalidateQueries({ queryKey: KEYS.teams })
+      await refresh(app, 'teams')
       props.onDone('Team created.')
       box.current?.querySelector('input')?.focus()
     },
@@ -155,8 +155,10 @@ function TeamItem(props: {
   const remove = useSubmit<void>(
     async () => {
       setError(null)
+      // A Team of this name is gone: creating one again is a new intent, not a retry.
+      app.keys.team.reset()
       await app.core.deleteTeam(team.id)
-      await app.queryClient.invalidateQueries({ queryKey: KEYS.teams })
+      await refresh(app, 'teams')
       props.onDone('Team deleted.')
       props.onDeleted()
     },
@@ -174,7 +176,7 @@ function TeamItem(props: {
               type='button'
               ref={renameButton}
               className='button button-quiet'
-              aria-label={`Rename ${team.name}`}
+              aria-label={`Rename ${plain(team.name)}`}
               aria-expanded={renaming}
               onClick={() => setRenaming(true)}
             >
@@ -183,7 +185,7 @@ function TeamItem(props: {
             <button
               type='button'
               className='button button-quiet'
-              aria-label={`Members of ${team.name}`}
+              aria-label={`Members of ${plain(team.name)}`}
               aria-expanded={membersOpen}
               aria-controls={`${team.id}-members`}
               onClick={() => setMembersOpen((open) => !open)}
@@ -192,7 +194,8 @@ function TeamItem(props: {
             </button>
             <Confirm
               label='Delete'
-              accessibleName={`Delete ${team.name}`}
+              accessibleName={`Delete ${plain(team.name)}`}
+              pendingAccessibleName={`Deleting ${plain(team.name)}`}
               pendingLabel='Deleting...'
               question={
                 <>
@@ -244,7 +247,7 @@ function RenameForm(props: {
   const rename = useSubmit<string>(
     async (next) => {
       await app.core.renameTeam(props.team.id, next)
-      await app.queryClient.invalidateQueries({ queryKey: KEYS.teams })
+      await refresh(app, 'teams')
       props.onDone('Team renamed.')
       props.onClose()
     },
@@ -322,9 +325,12 @@ function TeamMembersPanel(props: {
   const members = useMembers(true)
   const [membershipId, setMembershipId] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const keys = useKeyHolder()
+  const keys = app.keys.teamMember
   const errorId = `${props.team.id}-members-error`
-  const chosen = membershipId || members.items[0]?.id || ''
+  // The chosen member, or the first when they are no longer in the list (and nothing for an empty list).
+  const chosen = members.items.some((member) => member.id === membershipId)
+    ? membershipId
+    : (members.items[0]?.id ?? '')
   const onError = (failure: unknown) => setError(presentManage(failure).message)
   const add = useSubmit<string>(
     async (id) => {
@@ -344,13 +350,15 @@ function TeamMembersPanel(props: {
   const take = useSubmit<string>(
     async (id) => {
       setError(null)
+      // Whatever was unsure about adding this member is over: adding again is a new intent.
+      keys.reset()
       await app.core.removeTeamMember(props.team.id, id)
       props.onDone('Member removed from the Team.')
     },
     { onError }
   )
   return (
-    <section id={`${props.team.id}-members`} aria-label={`Members of ${props.team.name}`}>
+    <section id={`${props.team.id}-members`} aria-label={`Members of ${plain(props.team.name)}`}>
       <p className='hint'>
         The list of who is in a Team is not available yet. Choose a member to add or remove.
       </p>

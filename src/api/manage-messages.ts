@@ -103,10 +103,20 @@ const RULES: { readonly [C in HandledCode]: (wait: number | undefined) => ShownF
   }),
 }
 
-/** Turns a failure into plain words (branching on the code, never the status), with the field it belongs to if any. */
-export function presentManage(error: unknown): ShownFailure {
+/**
+ * Turns a failure into plain words (branching on the code, never the status), with the field it
+ * belongs to if any. `route` says which call failed where a code means more than one thing.
+ */
+export function presentManage(error: unknown, route?: 'invitation'): ShownFailure {
   if (!(error instanceof ApiError) || !Object.hasOwn(RULES, error.code)) {
     return { message: GENERIC_MESSAGE }
+  }
+  if (route === 'invitation' && error.code === ERRORS['rate.limited'].code) {
+    // Core answers rate.limited here for two reasons (too many pending, or too many sent in a
+    // day) and the code does not say which, so the words cover both.
+    return {
+      message: `Your Organization has too many pending Invitations, or has sent too many recently. Revoke any you no longer need, or wait. ${tryAgain(error.retryAfterSeconds)}`,
+    }
   }
   return RULES[error.code as HandledCode](error.retryAfterSeconds)
 }

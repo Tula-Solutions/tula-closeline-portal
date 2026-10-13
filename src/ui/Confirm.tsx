@@ -8,6 +8,8 @@ import { type ReactNode, useEffect, useRef, useState } from 'react'
 export function Confirm(props: {
   readonly label: string
   readonly accessibleName: string
+  /** The trigger's name while the action runs, so it matches its visible text. */
+  readonly pendingAccessibleName: string
   readonly pendingLabel: string
   readonly question: ReactNode
   readonly confirmLabel: string
@@ -37,7 +39,7 @@ export function Confirm(props: {
         type='button'
         ref={trigger}
         className='button button-quiet'
-        aria-label={props.accessibleName}
+        aria-label={props.pending ? props.pendingAccessibleName : props.accessibleName}
         aria-describedby={props.describedBy}
         aria-disabled={props.pending}
         onClick={() => {

@@ -8,18 +8,18 @@ import {
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
 import { can, canRevokeInvitation, invitableRoles, ROLE_LABEL } from '~/data/permissions'
-import { KEYS, useInvitations } from '~/data/queries'
+import { refresh, useInvitations } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { Banner } from '~/ui/Banner'
 import { Confirm } from '~/ui/Confirm'
 import { Field } from '~/ui/Field'
 import { Paged } from '~/ui/Paged'
+import { plain } from '~/ui/plain'
 import { ScrollRegion } from '~/ui/ScrollRegion'
 import { SelectField } from '~/ui/SelectField'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { useFocusOnError } from '~/ui/useFocusOnError'
-import { useKeyHolder } from '~/ui/useIdempotency'
 import { useSubmit } from '~/ui/useSubmit'
 
 const DATE = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
@@ -103,7 +103,7 @@ function InviteForm(props: {
   const [email, setEmail] = useState('')
   const [offeredRole, setOfferedRole] = useState<InvitableRole>(offered.at(-1) ?? 'rep')
   const [errors, setErrors] = useState<{ email?: string; form?: string }>({})
-  const keys = useKeyHolder()
+  const keys = app.keys.invitation
   const emailInput = useRef<HTMLDivElement>(null)
   const { formRef, bannerRef, focusFirstError } = useFocusOnError()
 
@@ -119,13 +119,13 @@ function InviteForm(props: {
       keys.succeeded()
       setEmail('')
       setErrors({})
-      await app.queryClient.invalidateQueries({ queryKey: KEYS.invitations })
+      await refresh(app, 'invitations')
       props.onSent('Invitation sent.')
       emailInput.current?.querySelector('input')?.focus()
     },
     {
       onError(error) {
-        const shown = presentManage(error)
+        const shown = presentManage(error, 'invitation')
         setErrors(shown.field === 'email' ? { email: shown.message } : { form: shown.message })
         focusFirstError()
       },
@@ -200,12 +200,14 @@ function InvitationRow(props: {
   const revoke = useSubmit<void>(
     async () => {
       setError(null)
+      // Whatever was unsure about sending to this address is over: a later send is a new intent.
+      app.keys.invitation.reset()
       await app.core.revokeInvitation(invitation.id)
-      await app.queryClient.invalidateQueries({ queryKey: KEYS.invitations })
+      await refresh(app, 'invitations')
       props.onDone('Invitation revoked.')
       props.onRevoked()
     },
-    { onError: (failure) => setError(presentManage(failure).message) }
+    { onError: (failure) => setError(presentManage(failure, 'invitation').message) }
   )
   const expired = Date.parse(invitation.expiresAt) < Date.now()
   return (
@@ -222,7 +224,8 @@ function InvitationRow(props: {
         {props.canRevoke ? (
           <Confirm
             label='Revoke'
-            accessibleName={`Revoke the Invitation for ${invitation.email}`}
+            accessibleName={`Revoke the Invitation for ${plain(invitation.email)}`}
+            pendingAccessibleName={`Revoking the Invitation for ${plain(invitation.email)}`}
             pendingLabel='Revoking...'
             question={
               <>

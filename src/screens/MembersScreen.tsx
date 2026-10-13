@@ -3,10 +3,11 @@ import type { Member, Role } from 'tula-closeline-contract'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
 import { assignableRoles, can, canRemoveMember, ROLE_LABEL } from '~/data/permissions'
-import { KEYS, useMembers } from '~/data/queries'
+import { refresh, useMembers } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { Confirm } from '~/ui/Confirm'
 import { Paged } from '~/ui/Paged'
+import { plain } from '~/ui/plain'
 import { ScrollRegion } from '~/ui/ScrollRegion'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
@@ -75,6 +76,12 @@ function MemberRow(props: {
   const { member, viewerRole } = props
   const app = useApp()
   const [selected, setSelected] = useState<Role>(member.role)
+  // The role can change under us (another Admin, a refetch): follow it instead of keeping a stale choice.
+  const [seenRole, setSeenRole] = useState<Role>(member.role)
+  if (seenRole !== member.role) {
+    setSeenRole(member.role)
+    setSelected(member.role)
+  }
   const [error, setError] = useState<string | null>(null)
   const select = useRef<HTMLSelectElement>(null)
   const errorId = `${member.id}-error`
@@ -85,7 +92,7 @@ function MemberRow(props: {
     async (next) => {
       setError(null)
       await app.core.changeMemberRole(member.id, next)
-      await app.queryClient.invalidateQueries({ queryKey: KEYS.members })
+      await refresh(app, 'members')
       props.onDone('Role updated.')
       select.current?.focus()
     },
@@ -95,7 +102,7 @@ function MemberRow(props: {
     async () => {
       setError(null)
       await app.core.removeMember(member.id)
-      await app.queryClient.invalidateQueries({ queryKey: KEYS.members })
+      await refresh(app, 'members')
       props.onDone('Member removed.')
       props.onRemoved()
     },
@@ -103,6 +110,7 @@ function MemberRow(props: {
   )
 
   const display = member.name ?? member.email
+  const label = plain(display)
   return (
     <tr>
       <th scope='row'>
@@ -118,7 +126,7 @@ function MemberRow(props: {
             {choices.length > 0 ? (
               <>
                 <label className='sr-only' htmlFor={`${member.id}-role`}>
-                  Role for {display}
+                  Role for {label}
                 </label>
                 <select
                   id={`${member.id}-role`}
@@ -138,7 +146,7 @@ function MemberRow(props: {
                     type='button'
                     className='button'
                     aria-disabled={change.pending}
-                    aria-label={`Save role for ${display}`}
+                    aria-label={`Save role for ${label}`}
                     onClick={() => change.submit(selected)}
                   >
                     {change.pending ? 'Saving...' : 'Save role'}
@@ -149,7 +157,8 @@ function MemberRow(props: {
             {canRemoveMember(viewerRole, member.role) ? (
               <Confirm
                 label='Remove'
-                accessibleName={`Remove ${display}`}
+                accessibleName={`Remove ${label}`}
+                pendingAccessibleName={`Removing ${label}`}
                 pendingLabel='Removing...'
                 question={
                   <>

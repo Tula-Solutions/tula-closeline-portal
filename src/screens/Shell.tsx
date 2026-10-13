@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link, Navigate, Outlet } from '@tanstack/react-router'
+import { Fragment } from 'react'
 import { useApp, useSessionState } from '~/app-context'
 import { can } from '~/data/permissions'
 import type { Role } from '~/session/session'
@@ -17,7 +18,7 @@ export function Shell() {
   const app = useApp()
   const session = useSessionState()
   const organization = useQuery({
-    queryKey: ['organization'],
+    queryKey: ['organization', session.status === 'signed_in' ? session.organization.id : null],
     queryFn: ({ signal }) => app.core.getOrganization(signal),
     enabled: session.status === 'signed_in',
   })
@@ -53,7 +54,10 @@ export function Shell() {
         <Link to='/teams'>Teams</Link>
       </nav>
       <main id='main' tabIndex={-1}>
-        <Outlet />
+        {/* Keyed by Organization: another Organization starts every screen fresh, with no state of the last. */}
+        <Fragment key={session.organization.id}>
+          <Outlet />
+        </Fragment>
       </main>
     </>
   )

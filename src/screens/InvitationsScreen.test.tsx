@@ -245,7 +245,7 @@ describe('Invitations: sending', () => {
     [
       ERRORS['rate.limited'].code,
       429,
-      'Too many tries. Try again in 5 minutes.',
+      'Revoke any you no longer need, or wait. Try again in 5 minutes.',
       'banner',
       { retryAfter: 300 },
     ],

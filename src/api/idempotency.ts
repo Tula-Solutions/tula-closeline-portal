@@ -9,6 +9,8 @@ export type KeyHolder = {
   succeeded(): void
   /** The request failed: the key is kept only if the server may have received it (see `outcomeUnknown`). */
   failed(error: unknown): void
+  /** Forgets the held key: the intent it stood for is over or changed (a revoke, a delete, a remove, a new Organization). */
+  reset(): void
 }
 
 /** Makes a key holder; `makeKey` is injectable so tests can see what is generated. */
@@ -32,6 +34,9 @@ export function createKeyHolder(
       if (!outcomeUnknown(error)) {
         held = null
       }
+    },
+    reset() {
+      held = null
     },
   }
 }

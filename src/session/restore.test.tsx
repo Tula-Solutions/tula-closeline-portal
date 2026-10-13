@@ -146,7 +146,7 @@ describe('a refresh that returns another Organization', () => {
       ],
     })
     await screen.findByText('Northline')
-    expect(portal.app.queryClient.getQueryData(['organization'])).toBeDefined()
+    expect(portal.app.queryClient.getQueryData(['organization', 'org_A'])).toBeDefined()
     portal.app.queryClient.setQueryData(['other'], 'org A only')
     await portal.app.session.refresh('access-1')
     expect(portal.app.queryClient.getQueryData(['other'])).toBeUndefined()

@@ -2,6 +2,7 @@ import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
 import { type CoreApi, createCoreApi } from '~/api/core'
 import { createHttpClient, type Fetch } from '~/api/http'
+import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
 import type { Env } from '~/env'
 import { createInvitationHolder, type InvitationHolder } from '~/invitation'
 import type { Reporter } from '~/report/reporter'
@@ -16,6 +17,16 @@ export type App = {
   readonly reporter: Reporter
   readonly queryClient: QueryClient
   readonly invitation: InvitationHolder
+  /**
+   * The idempotency key of the write in flight, one holder per kind of write (bounded). They live
+   * here, not in a screen, so leaving a screen after an unknown outcome keeps the key; they are
+   * dropped on sign-out and when the Organization changes.
+   */
+  readonly keys: {
+    readonly invitation: KeyHolder
+    readonly team: KeyHolder
+    readonly teamMember: KeyHolder
+  }
 }
 
 /** What `createApp` takes; tests pass a `fetch` double and a no-wait `sleep`. */
@@ -77,10 +88,27 @@ export function createApp(init: AppInit): App {
       mutations: { retry: false, gcTime: 0 },
     },
   })
+  const keys = {
+    invitation: createKeyHolder(),
+    team: createKeyHolder(),
+    teamMember: createKeyHolder(),
+  }
+  const organizationOf = () => {
+    const snapshot = session.getSnapshot()
+    return snapshot.status === 'signed_in' ? snapshot.organization.id : null
+  }
+  let currentOrganization = organizationOf()
   session.subscribe(() => {
-    if (session.getSnapshot().status === 'signed_out') {
+    const next = organizationOf()
+    // Sign-out, or another Organization (this tab adopted it through a refresh): nothing of the
+    // old one may be shown, and no key of a write meant for it may be sent again.
+    if (session.getSnapshot().status === 'signed_out' || next !== currentOrganization) {
       queryClient.clear()
+      for (const holder of Object.values(keys)) {
+        holder.reset()
+      }
     }
+    currentOrganization = next
   })
   return {
     env: init.env,
@@ -90,5 +118,6 @@ export function createApp(init: AppInit): App {
     reporter: init.reporter,
     queryClient,
     invitation: init.invitation ?? createInvitationHolder(),
+    keys,
   }
 }
