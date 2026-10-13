@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from 'bun:test'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { createApp } from '~/app'
 import { AppContext } from '~/app-context'
 import { ErrorBoundary } from '~/ErrorBoundary'
@@ -163,5 +163,48 @@ describe('the error boundary', () => {
     expect(screen.getByRole('alert')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Reload' })).toBeTruthy()
     expect(reports.map((error) => error.message)).toEqual(['render failed'])
+  })
+})
+
+describe('a session started over a live one', () => {
+  test("clears the first person's cached data before the second begins", async () => {
+    const portal = renderPortal({
+      url: '/',
+      signedIn: tokens({ accessToken: 'access-A', organization: { id: 'org_A', role: 'owner' } }),
+      handlers: [route('GET', '/v1/organization', json(200, organizationBody('A Corp')))],
+    })
+    expect(await screen.findByText('A Corp')).toBeTruthy()
+    expect(portal.app.queryClient.getQueryData(['organization'])).toBeDefined()
+    act(() => {
+      portal.app.session.start(
+        tokens({ accessToken: 'access-B', organization: { id: 'org_B', role: 'rep' } })
+      )
+    })
+    expect(
+      JSON.stringify(
+        portal.app.queryClient
+          .getQueryCache()
+          .getAll()
+          .map((q) => q.state.data)
+      )
+    ).not.toContain('A Corp')
+  })
+
+  test('does not bounce the person through the sign-in page', async () => {
+    const portal = renderPortal({ url: '/', signedIn: true })
+    await screen.findByRole('heading', { name: 'Home' })
+    const paths: string[] = []
+    const stop = portal.router.subscribe('onResolved', (event) => {
+      paths.push(event.toLocation.pathname)
+    })
+    act(() => {
+      portal.app.session.start(
+        tokens({ accessToken: 'access-B', organization: { id: 'org_B', role: 'rep' } })
+      )
+    })
+    await screen.findByRole('heading', { name: 'Home' })
+    stop()
+    expect(paths).not.toContain('/sign-in')
+    expect(screen.getByText('Rep')).toBeTruthy()
   })
 })

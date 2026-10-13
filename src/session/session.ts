@@ -124,6 +124,11 @@ export function createSession(deps: SessionDeps): Session {
     },
     epoch: () => epoch,
     start(tokens) {
+      // A session started over a live one (a slow sign-in finishing late) ends the old one first,
+      // so its cached data is cleared before the new person's begins.
+      if (held !== null) {
+        clear(false)
+      }
       epoch += 1
       hold(tokens)
     },

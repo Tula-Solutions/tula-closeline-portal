@@ -247,3 +247,46 @@ describe('a late answer about a token that is no longer held', () => {
     expect(session.getSnapshot().status).toBe('signed_out')
   })
 })
+
+describe('the epoch', () => {
+  test('changes on every start and every end of a session, and not on a refresh', async () => {
+    const { session, advance } = setup()
+    const seen = [session.epoch()]
+    session.start(tokens({ now: T0 }))
+    seen.push(session.epoch())
+    advance(50_000)
+    await session.accessToken()
+    expect(session.epoch()).toBe(seen[1] as number)
+    await session.signOut()
+    seen.push(session.epoch())
+    session.start(tokens({ now: T0 }))
+    seen.push(session.epoch())
+    session.rejected('access-1')
+    seen.push(session.epoch())
+    expect(new Set(seen).size).toBe(seen.length)
+  })
+
+  test('changes on a start alone, even with no sign-out before it', () => {
+    const { session } = setup()
+    const before = session.epoch()
+    session.start(tokens({ now: T0 }))
+    expect(session.epoch()).not.toBe(before)
+  })
+
+  test('changes on an end alone', () => {
+    const { session } = setup()
+    session.start(tokens({ now: T0 }))
+    const before = session.epoch()
+    session.rejected('access-1')
+    expect(session.epoch()).not.toBe(before)
+  })
+
+  test('starting over a live session ends the old one first, so subscribers see it signed out', () => {
+    const { session } = setup()
+    session.start(tokens({ now: T0, accessToken: 'access-A' }))
+    const states: string[] = []
+    session.subscribe(() => states.push(session.getSnapshot().status))
+    session.start(tokens({ now: T0, accessToken: 'access-B' }))
+    expect(states).toEqual(['signed_out', 'signed_in'])
+  })
+})

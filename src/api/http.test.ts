@@ -486,6 +486,94 @@ describe('bearer calls', () => {
       expect(calls).toHaveLength(2)
     })
 
+    test('a request waiting on an expiring token is not sent as B when B signs in during the wait', async () => {
+      let started: () => void = () => {}
+      const refreshStarted = new Promise<void>((resolve) => {
+        started = resolve
+      })
+      let releaseRefresh: () => void = () => {}
+      const gate = new Promise<void>((resolve) => {
+        releaseRefresh = resolve
+      })
+      const session = createSession({
+        refresh: async () => {
+          started()
+          await gate
+          return tokens({ accessToken: 'access-late', refreshToken: 'refresh-late' })
+        },
+        revoke: async () => {},
+      })
+      // Nearly expired, so the first thing the request does is wait for a refresh.
+      session.start(tokens({ accessToken: 'access-A', refreshToken: 'refresh-A', ttlMs: 1000 }))
+      const { http, calls } = client([route('POST', '/rename', json(200, { ok: true }))], {
+        authorizer: session,
+      })
+      const post = failureOf(
+        http.request({ method: 'POST', path: '/rename', auth: true, body: {} })
+      )
+      await refreshStarted
+      await session.signOut()
+      session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+      releaseRefresh()
+      expect((await post).code).toBe('auth.unauthenticated')
+      expect(calls).toHaveLength(0)
+      expect(session.getSnapshot().status).toBe('signed_in')
+    })
+
+    test('a retry after token_expired is not sent as B when B signs in during the refresh', async () => {
+      let started: () => void = () => {}
+      const refreshStarted = new Promise<void>((resolve) => {
+        started = resolve
+      })
+      let releaseRefresh: () => void = () => {}
+      const gate = new Promise<void>((resolve) => {
+        releaseRefresh = resolve
+      })
+      const session = createSession({
+        refresh: async () => {
+          started()
+          await gate
+          return tokens({ accessToken: 'access-late', refreshToken: 'refresh-late' })
+        },
+        revoke: async () => {},
+      })
+      session.start(tokens({ accessToken: 'access-A', refreshToken: 'refresh-A' }))
+      const { http, calls } = client(
+        [route('POST', '/rename', failure(401, 'auth.token_expired'))],
+        {
+          authorizer: session,
+        }
+      )
+      const post = failureOf(
+        http.request({ method: 'POST', path: '/rename', auth: true, body: {} })
+      )
+      await refreshStarted
+      await session.signOut()
+      session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+      releaseRefresh()
+      await post
+      expect(calls.map((call) => call.headers.get('authorization'))).toEqual(['Bearer access-A'])
+      expect(session.getSnapshot().status).toBe('signed_in')
+    })
+
+    test('a read retried after a 503 is not sent if the session changed during the wait', async () => {
+      const { session } = twoSessions()
+      let slept = 0
+      const { http, calls } = client([route('GET', '/me', failure(503, 'server.unavailable'))], {
+        authorizer: session,
+        sleep: async () => {
+          slept += 1
+          await session.signOut()
+          session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+        },
+      })
+      const error = await failureOf(http.request({ path: '/me', auth: true }))
+      expect(slept).toBe(1)
+      expect(calls).toHaveLength(1)
+      expect(error.code).toBe('auth.unauthenticated')
+      expect(session.getSnapshot().status).toBe('signed_in')
+    })
+
     test('the cache never holds what A fetched once B is signed in', async () => {
       let answer: (response: Response) => void = () => {}
       const late = new Promise<Response>((resolve) => {

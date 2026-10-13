@@ -132,14 +132,14 @@ export function createHttpClient(config: HttpConfig): HttpClient {
     }
   }
 
-  async function authorized<T>(options: RequestOptions<T>): Promise<T> {
+  async function authorized<T>(options: RequestOptions<T>, epoch: number): Promise<T> {
     const authorizer = config.authorizer
     if (!options.auth || authorizer === undefined) {
       return attempt(options, null)
     }
-    // A request never outlives the session it started in: after any wait, a changed epoch means
-    // the person signed out (and maybe in again), so nothing is retried and nothing is returned.
-    const epoch = authorizer.epoch()
+    // A request never outlives the session it started in (`epoch` was taken once, in `request`):
+    // after any wait, a changed epoch means the person signed out (and maybe in again), so nothing
+    // is sent again and nothing is returned.
     const sameSession = () => authorizer.epoch() === epoch
     const token = await authorizer.accessToken()
     if (token === null || !sameSession()) {
@@ -187,9 +187,10 @@ export function createHttpClient(config: HttpConfig): HttpClient {
   return {
     async request<T>(options: RequestOptions<T>): Promise<T> {
       const isRead = (options.method ?? 'GET') === 'GET'
+      const epoch = config.authorizer?.epoch() ?? 0
       for (let tries = 0; ; tries += 1) {
         try {
-          return await authorized(options)
+          return await authorized(options, epoch)
         } catch (error) {
           if (!isRead || tries >= retries || !isTransient(error) || options.signal?.aborted) {
             throw error
