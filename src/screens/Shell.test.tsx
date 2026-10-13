@@ -1,5 +1,6 @@
 import { describe, expect, spyOn, test } from 'bun:test'
 import { act, render, screen, waitFor } from '@testing-library/react'
+import { ERRORS } from 'tula-closeline-contract'
 import { createApp } from '~/app'
 import { AppContext } from '~/app-context'
 import { ErrorBoundary } from '~/ErrorBoundary'
@@ -71,7 +72,7 @@ describe('the signed-in shell', () => {
       handlers: [
         route('GET', '/v1/organization', (call) =>
           call.headers.get('authorization') === 'Bearer access-1'
-            ? failure(401, 'auth.token_expired')
+            ? failure(401, ERRORS['auth.token_expired'].code)
             : json(200, organizationBody('Northline'))
         ),
         route(
@@ -93,7 +94,7 @@ describe('the signed-in shell', () => {
     const portal = renderPortal({
       url: '/',
       signedIn: true,
-      handlers: [route('GET', '/v1/organization', failure(401, 'auth.token_invalid'))],
+      handlers: [route('GET', '/v1/organization', failure(401, ERRORS['auth.token_invalid'].code))],
     })
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
     expect((await screen.findByRole('status')).textContent).toContain('Your session has ended.')

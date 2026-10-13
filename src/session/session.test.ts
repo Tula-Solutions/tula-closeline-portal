@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { AUTH_ERRORS } from 'tula-closeline-contract'
 import type { SessionTokens } from '~/api/auth'
 import { ApiError } from '~/api/errors'
 import { createSession } from '~/session/session'
@@ -126,7 +127,7 @@ describe('a refresh that fails', () => {
     async (status) => {
       const { session, advance } = setup({
         refresh: async () => {
-          throw new ApiError({ code: 'session.expired', status })
+          throw new ApiError({ code: AUTH_ERRORS['session.expired'].code, status })
         },
       })
       session.start(tokens({ now: T0 }))

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { AUTH_ERRORS, ERRORS } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS } from '~/api/errors'
 import { type Authorizer, createHttpClient } from '~/api/http'
 import { createApp } from '~/app'
@@ -244,9 +245,11 @@ describe('requests and answers', () => {
   })
 
   test('a failure becomes an ApiError with the contract code, so callers branch on the code', async () => {
-    const { http } = client([route('POST', '/x', failure(409, 'flow.invalid_step'))])
+    const { http } = client([
+      route('POST', '/x', failure(409, AUTH_ERRORS['flow.invalid_step'].code)),
+    ])
     const error = await failureOf(http.request({ method: 'POST', path: '/x' }))
-    expect([error.code, error.status]).toEqual(['flow.invalid_step', 409])
+    expect([error.code, error.status]).toEqual([AUTH_ERRORS['flow.invalid_step'].code, 409])
   })
 
   test('an answer the parser refuses is client.bad_response', async () => {
@@ -303,7 +306,7 @@ describe('bearer calls', () => {
     const { http, calls, refreshes } = signedIn([
       route('GET', '/me', (call) =>
         call.headers.get('authorization') === 'Bearer access-1'
-          ? failure(401, 'auth.token_expired')
+          ? failure(401, ERRORS['auth.token_expired'].code)
           : json(200, { ok: true })
       ),
     ])
@@ -319,7 +322,7 @@ describe('bearer calls', () => {
     const { http, refreshes } = signedIn([
       route('GET', '/me', (call) =>
         call.headers.get('authorization') === 'Bearer access-1'
-          ? failure(401, 'auth.token_expired')
+          ? failure(401, ERRORS['auth.token_expired'].code)
           : json(200, { ok: true })
       ),
     ])
@@ -334,40 +337,41 @@ describe('bearer calls', () => {
 
   test('only one retry: a second token_expired signs the user out instead of looping', async () => {
     const { http, calls, session, refreshes } = signedIn([
-      route('GET', '/me', failure(401, 'auth.token_expired')),
+      route('GET', '/me', failure(401, ERRORS['auth.token_expired'].code)),
     ])
     const error = await failureOf(http.request({ path: '/me', auth: true }))
-    expect(error.code).toBe('auth.token_expired')
+    expect(error.code).toBe(ERRORS['auth.token_expired'].code)
     expect(calls).toHaveLength(2)
     expect(refreshes()).toBe(1)
     expect(session.getSnapshot().status).toBe('signed_out')
   })
 
-  test.each(['auth.token_invalid', 'auth.unauthenticated', 'session.revoked'])(
-    'any other 401 (%s) signs the user out without a refresh',
-    async (code) => {
-      const { http, session, refreshes } = signedIn([route('GET', '/me', failure(401, code))])
-      await failureOf(http.request({ path: '/me', auth: true }))
-      expect(refreshes()).toBe(0)
-      expect(session.getSnapshot()).toEqual({ status: 'signed_out', ended: true })
-    }
-  )
+  test.each([
+    ERRORS['auth.token_invalid'].code,
+    ERRORS['auth.unauthenticated'].code,
+    AUTH_ERRORS['session.revoked'].code,
+  ])('any other 401 (%s) signs the user out without a refresh', async (code) => {
+    const { http, session, refreshes } = signedIn([route('GET', '/me', failure(401, code))])
+    await failureOf(http.request({ path: '/me', auth: true }))
+    expect(refreshes()).toBe(0)
+    expect(session.getSnapshot()).toEqual({ status: 'signed_out', ended: true })
+  })
 
   test('a refresh the service refuses signs the user out and surfaces the failure', async () => {
     const { http, session } = signedIn(
-      [route('GET', '/me', failure(401, 'auth.token_expired'))],
+      [route('GET', '/me', failure(401, ERRORS['auth.token_expired'].code))],
       async () => {
-        throw new ApiError({ code: 'session.reuse_detected', status: 401 })
+        throw new ApiError({ code: AUTH_ERRORS['session.reuse_detected'].code, status: 401 })
       }
     )
     const error = await failureOf(http.request({ path: '/me', auth: true }))
-    expect(error.code).toBe('session.reuse_detected')
+    expect(error.code).toBe(AUTH_ERRORS['session.reuse_detected'].code)
     expect(session.getSnapshot()).toEqual({ status: 'signed_out', ended: true })
   })
 
   test('a refresh that cannot reach the service keeps the session', async () => {
     const { http, session } = signedIn(
-      [route('GET', '/me', failure(401, 'auth.token_expired'))],
+      [route('GET', '/me', failure(401, ERRORS['auth.token_expired'].code))],
       async () => {
         throw new ApiError({ code: CLIENT_ERRORS.network, status: 0 })
       }
@@ -387,7 +391,7 @@ describe('bearer calls', () => {
     }
     const { http, calls } = client([route('GET', '/me', json(200, {}))], { authorizer })
     const error = await failureOf(http.request({ path: '/me', auth: true }))
-    expect(error.code).toBe('auth.unauthenticated')
+    expect(error.code).toBe(ERRORS['auth.unauthenticated'].code)
     expect(calls).toHaveLength(0)
     // No token was used, so there is nothing to reject.
     expect(rejected).toEqual([])
@@ -441,10 +445,10 @@ describe('bearer calls', () => {
       await Promise.all([sent.get('POST'), sent.get('GET')])
       await session.signOut()
       session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
-      releases.get('POST')?.(failure(401, 'auth.token_expired'))
-      releases.get('GET')?.(failure(401, 'auth.token_expired'))
+      releases.get('POST')?.(failure(401, ERRORS['auth.token_expired'].code))
+      releases.get('GET')?.(failure(401, ERRORS['auth.token_expired'].code))
       for (const error of [await post, await get]) {
-        expect([error.code, error.status]).toEqual(['auth.unauthenticated', 401])
+        expect([error.code, error.status]).toEqual([ERRORS['auth.unauthenticated'].code, 401])
       }
       expect(calls).toHaveLength(2)
       expect(calls.map((call) => call.headers.get('authorization'))).toEqual([
@@ -465,7 +469,7 @@ describe('bearer calls', () => {
       await session.signOut()
       session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
       releases.get('GET')?.(json(200, { organization: 'A only' }))
-      expect((await get).code).toBe('auth.unauthenticated')
+      expect((await get).code).toBe(ERRORS['auth.unauthenticated'].code)
       expect(session.getSnapshot().status).toBe('signed_in')
     })
 
@@ -475,7 +479,7 @@ describe('bearer calls', () => {
         [
           route('GET', '/me', (call) =>
             call.headers.get('authorization') === 'Bearer access-A'
-              ? failure(401, 'auth.token_expired')
+              ? failure(401, ERRORS['auth.token_expired'].code)
               : json(200, { ok: true })
           ),
         ],
@@ -515,7 +519,7 @@ describe('bearer calls', () => {
       await session.signOut()
       session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
       releaseRefresh()
-      expect((await post).code).toBe('auth.unauthenticated')
+      expect((await post).code).toBe(ERRORS['auth.unauthenticated'].code)
       expect(calls).toHaveLength(0)
       expect(session.getSnapshot().status).toBe('signed_in')
     })
@@ -539,7 +543,7 @@ describe('bearer calls', () => {
       })
       session.start(tokens({ accessToken: 'access-A', refreshToken: 'refresh-A' }))
       const { http, calls } = client(
-        [route('POST', '/rename', failure(401, 'auth.token_expired'))],
+        [route('POST', '/rename', failure(401, ERRORS['auth.token_expired'].code))],
         {
           authorizer: session,
         }
@@ -570,7 +574,7 @@ describe('bearer calls', () => {
       const error = await failureOf(http.request({ path: '/me', auth: true }))
       expect(slept).toBe(1)
       expect(calls).toHaveLength(1)
-      expect(error.code).toBe('auth.unauthenticated')
+      expect(error.code).toBe(ERRORS['auth.unauthenticated'].code)
       expect(session.getSnapshot().status).toBe('signed_in')
     })
 

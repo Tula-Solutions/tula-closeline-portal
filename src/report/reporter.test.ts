@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import * as Sentry from '@sentry/browser'
+import { AUTH_ERRORS, ERRORS } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS } from '~/api/errors'
 import {
   createReporter,
@@ -13,18 +14,18 @@ import { TEST_ENV } from '~/testing/fixtures'
 describe('shouldReport', () => {
   test.each([
     [400, 'request.invalid', false],
-    [401, 'auth.invalid_credentials', false],
-    [401, 'auth.token_expired', false],
-    [403, 'auth.forbidden', false],
-    [404, 'flow.not_found', false],
-    [409, 'flow.invalid_step', false],
-    [422, 'verification.invalid_code', false],
+    [401, AUTH_ERRORS['auth.invalid_credentials'].code, false],
+    [401, ERRORS['auth.token_expired'].code, false],
+    [403, ERRORS['auth.forbidden'].code, false],
+    [404, AUTH_ERRORS['flow.not_found'].code, false],
+    [409, AUTH_ERRORS['flow.invalid_step'].code, false],
+    [422, AUTH_ERRORS['verification.invalid_code'].code, false],
     [429, 'rate.limited', false],
     [0, CLIENT_ERRORS.network, false],
     [0, CLIENT_ERRORS.timeout, false],
     [500, 'server.internal', true],
     [503, 'server.unavailable', true],
-    [503, 'membership.unavailable', true],
+    [503, AUTH_ERRORS['membership.unavailable'].code, true],
     [200, CLIENT_ERRORS.badResponse, true],
   ])('API %d %s reports: %p', (status, code, expected) => {
     expect(shouldReport(new ApiError({ code, status }))).toBe(expected)
