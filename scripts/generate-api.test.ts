@@ -23,7 +23,7 @@ function git(directory: string, ...args: string[]): string {
 }
 
 /** Makes a scratch repository whose `origin/develop` holds `openapi.json`; returns its commit. */
-function fakeService(directory: string, spec: string | null): string {
+function fakeService(directory: string, spec: string | null, note?: string): string {
   rmSync(directory, { recursive: true, force: true })
   mkdirSync(directory, { recursive: true })
   git(directory, 'init', '-q')
@@ -33,6 +33,9 @@ function fakeService(directory: string, spec: string | null): string {
     writeFileSync(join(directory, 'openapi.json'), spec)
   } else {
     writeFileSync(join(directory, 'README.md'), 'no spec')
+  }
+  if (note !== undefined) {
+    writeFileSync(join(directory, 'NOTES.md'), note)
   }
   git(directory, 'add', '-A')
   git(directory, 'commit', '-q', '-m', 'init')
@@ -67,8 +70,8 @@ async function run(...args: string[]) {
 }
 
 /** Puts the core clone back to `spec` on its origin/develop. */
-function resetCore(spec: string | null = CORE_SPEC) {
-  fakeService(join(siblings, 'tula-closeline-core'), spec)
+function resetCore(spec: string | null = CORE_SPEC, note?: string) {
+  fakeService(join(siblings, 'tula-closeline-core'), spec, note)
 }
 
 beforeAll(async () => {
@@ -133,5 +136,93 @@ describe('generate-api --check --siblings', () => {
     const result = await run('--check', '--siblings')
     expect(result.code).toBe(1)
     expect(result.output).toContain('error: core clone has no origin/develop:openapi.json\n')
+  })
+
+  test('identical content with a different commit passes and says only the commit differs', async () => {
+    resetCore(CORE_SPEC, 'a change that does not touch openapi.json')
+    const result = await run('--check', '--siblings')
+    expect(result.code).toBe(0)
+    expect(result.output).toContain('info: core matches')
+    expect(result.output).toContain('only the recorded commit differs')
+    expect(result.output).toContain('ok: auth @')
+  })
+
+  test('different content with a different commit fails and names the core copy', async () => {
+    const changed = JSON.parse(CORE_SPEC) as { paths: Record<string, unknown> }
+    changed.paths['/v1/another-new'] = { get: { responses: { '200': { description: 'ok' } } } }
+    resetCore(JSON.stringify(changed, null, 2), 'and a new commit')
+    const result = await run('--check', '--siblings')
+    expect(result.code).not.toBe(0)
+    expect(result.output).toContain('openapi/core.openapi.json')
+  })
+
+  test('--strict-hash fails on the commit alone', async () => {
+    resetCore(CORE_SPEC, 'a change that does not touch openapi.json')
+    const result = await run('--check', '--siblings', '--strict-hash')
+    expect(result.code).not.toBe(0)
+    expect(result.output).toContain('openapi/core.openapi.json')
+  })
+
+  test('changed core content with the commit unchanged fails and names the core copy', async () => {
+    const changed = JSON.parse(CORE_SPEC) as { paths: Record<string, unknown> }
+    changed.paths['/v1/same-commit'] = { get: { responses: { '200': { description: 'ok' } } } }
+    // Vendor the changed content, then restore the clone, so the recorded commit is the clone's.
+    resetCore(JSON.stringify(changed, null, 2))
+    await run('--core-from', join(siblings, 'tula-closeline-core'), '--core-ref', 'origin/develop')
+    resetCore(JSON.stringify(changed, null, 2))
+    writeFileSync(join(root, 'openapi/core.openapi.json'), CORE_SPEC)
+    const result = await run('--check', '--siblings')
+    expect(result.code).not.toBe(0)
+    expect(result.output).toContain('openapi/core.openapi.json')
+    expect(result.output).not.toContain('only the recorded commit differs (recorded')
+    await run('--core-from', join(siblings, 'tula-closeline-core'), '--core-ref', 'origin/develop')
+  })
+
+  test('core differs while auth only has a new commit: exit 1, core named, auth info shown', async () => {
+    const changed = JSON.parse(CORE_SPEC) as { paths: Record<string, unknown> }
+    changed.paths['/v1/mixed'] = { get: { responses: { '200': { description: 'ok' } } } }
+    resetCore(JSON.stringify(changed, null, 2))
+    fakeService(join(siblings, 'tula-closeline-auth'), AUTH_SPEC, 'a new auth commit')
+    const result = await run('--check', '--siblings')
+    expect(result.code).toBe(1)
+    expect(result.output).toContain('openapi/core.openapi.json')
+    expect(result.output).toContain('info: auth matches')
+    // Put auth back on the commit the shared setup vendored.
+    fakeService(join(siblings, 'tula-closeline-auth'), AUTH_SPEC)
+  })
+
+  test('--strict-hash without --check is refused', async () => {
+    const result = await run('--strict-hash', '--siblings')
+    expect(result.code).toBe(1)
+    expect(result.output).toContain('--strict-hash needs --check')
+  })
+
+  test('--strict-hash with --check but no checkout to compare is refused', async () => {
+    const result = await run('--check', '--strict-hash')
+    expect(result.code).toBe(1)
+    expect(result.output).toContain('--strict-hash needs --check')
+  })
+
+  test('an unknown flag is refused', async () => {
+    const result = await run('--check', '--sibling')
+    expect(result.code).toBe(1)
+    expect(result.output).toContain('unknown argument --sibling')
+  })
+
+  test('an option whose value is another flag is refused', async () => {
+    const result = await Bun.spawn(
+      [
+        'bun',
+        join(REPO, 'scripts/generate-api.ts'),
+        '--check',
+        '--siblings',
+        '--siblings-dir',
+        '--strict-hash',
+      ],
+      { cwd: REPO, stdout: 'pipe', stderr: 'pipe' }
+    )
+    const output = await new Response(result.stderr).text()
+    expect(await result.exited).toBe(1)
+    expect(output).toContain('--siblings-dir needs a value')
   })
 })

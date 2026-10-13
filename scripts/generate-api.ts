@@ -16,6 +16,8 @@
  *                                                              with a message (CI has none, so CI skips it)
  *   --fetch (with --siblings) first runs `git fetch origin develop` in each sibling; without it the
  *   comparison is against the clone's last fetch.
+ *   --strict-hash (with --check and a checkout) also fails when only the recorded commit differs; by
+ *   default a copy whose content matches the checkout passes and a differing commit is printed as info.
  *   --check also fails if the committed core copy is not a valid document with a commit hash, and with
  *   --from / --core-from it fails if the committed copy differs from that ref of the checkout.
  */
@@ -23,6 +25,39 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+const VALUE_FLAGS = ['--root', '--siblings-dir', '--from', '--ref', '--core-from', '--core-ref']
+const SWITCHES = ['--check', '--siblings', '--fetch', '--strict-hash']
+
+/** Refuses an unknown flag, a value flag with no value (or another flag as its value), and a stray word. */
+function validateArguments(args: readonly string[]): string | null {
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index] as string
+    if (VALUE_FLAGS.includes(arg)) {
+      const value = args[index + 1]
+      if (value === undefined || value.startsWith('--')) {
+        return `error: ${arg} needs a value`
+      }
+      index += 1
+    } else if (!SWITCHES.includes(arg) && arg !== '--') {
+      return `error: unknown argument ${arg}`
+    }
+  }
+  const has = (name: string) => args.includes(name)
+  if (
+    has('--strict-hash') &&
+    !(has('--check') && (has('--siblings') || has('--from') || has('--core-from')))
+  ) {
+    return 'error: --strict-hash needs --check and a checkout to compare (--siblings, --from or --core-from)'
+  }
+  return null
+}
+
+const argumentError = validateArguments(process.argv.slice(2))
+if (argumentError !== null) {
+  console.error(argumentError)
+  process.exit(1)
+}
 
 // openapi-typescript drives the JavaScript compiler API, which TypeScript 7 (the native compiler
 // that `tsc` is here) does not ship. Load its modules with their `typescript` import pointed at
@@ -67,6 +102,7 @@ function git(directory: string, args: readonly string[]): string {
 }
 
 const checking = process.argv.includes('--check')
+const strictHash = process.argv.includes('--strict-hash')
 const failures: string[] = []
 
 /** When the clone's remote-tracking ref last moved (its reflog), else its last fetch, else unknown. */
@@ -101,10 +137,19 @@ function vendor(directory: string, ref: string, spec: URL, commit: URL, name: st
   }
   JSON.parse(text)
   if (checking) {
-    if (readFileSync(spec, 'utf8') !== text || readFileSync(commit, 'utf8') !== hash) {
-      failures.push(
-        `openapi/${name}.openapi.json differs from ${ref} of ${directory}: run \`bun run generate:api\` with the matching flag and commit the result.`
-      )
+    const recorded = readFileSync(commit, 'utf8')
+    const fix = `run \`bun run generate:api\` with the matching flag and commit the result.`
+    if (readFileSync(spec, 'utf8') !== text) {
+      failures.push(`openapi/${name}.openapi.json differs from ${ref} of ${directory}: ${fix}`)
+    } else if (recorded !== hash) {
+      const note = `openapi/${name}.openapi.json matches ${ref} of ${directory}; only the recorded commit differs (recorded ${recorded.trim()}, ${ref} is ${hash.trim()})`
+      if (strictHash) {
+        failures.push(`${note}: ${fix}`)
+      } else {
+        console.log(
+          `info: ${name} matches ${ref}; only the recorded commit differs (recorded ${recorded.trim()}, ${ref} is ${hash.trim()}). Not a failure; --strict-hash fails on it.`
+        )
+      }
     } else {
       const as = ref.startsWith('origin/') ? `${ref} as last fetched` : ref
       console.log(`ok: ${name} @ ${hash.slice(0, 7)} (${as}, ${fetchTime(directory, ref)})`)

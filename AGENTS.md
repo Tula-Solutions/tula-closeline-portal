@@ -59,6 +59,9 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
   one refresh and one retry; a second 401 ends the session locally. Expiry is the token's
   lifetime against the server's `Date`, kept as a monotonic deadline, with a minimum gap between
   proactive refreshes.
+  After a laptop sleep the monotonic clock may not have advanced, so the first call can go out with
+  an expired token and costs one 401, refresh and retry. This is accepted: checking the wall clock
+  too cannot tell a sleep from a clock change, and a test pins that moving it changes nothing.
 - Sign-out calls auth, then clears memory whatever the answer, and tells other tabs over a
   `BroadcastChannel` (`signed_in` / `signed_out` only, never a token).
 - The path-to-service table is `src/api/service-routes.ts`. The dev server proxies those prefixes,

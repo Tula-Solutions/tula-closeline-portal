@@ -87,7 +87,8 @@ bun run generate:api -- --check --core-from ../tula-closeline-core --core-ref or
 
 `bun run spec:check` runs `--check` and also compares both copies with `origin/develop` of the
 sibling clones `../tula-closeline-auth` and `../tula-closeline-core`; a
-clone that is not present is skipped with a message. Each comparison prints `ok:` with the
+clone that is not present is skipped with a message. A copy whose content matches but whose recorded commit differs passes with an `info:` line;
+`--strict-hash` fails on that too. Each comparison prints `ok:` with the
 clone's last fetch time: without `--fetch` it is against that last fetch, and `bun run spec:check --fetch` first runs `git fetch origin develop` in each clone. The scheduled hub workflow and the
 service PR-template line from hub issue 44 are not done here. CI has no sibling clones, so CI does not catch a
 service moving on: run `spec:check` before opening a portal PR, and re-vendor when a service adds a
@@ -105,10 +106,16 @@ refreshes once to restore the session; sign-out ends it in every tab. See `AGENT
 - The session carries no user id, so a different user signing in to the same Organization in
   another tab is not detected until a sign-out or reload. A different Organization is detected
   and clears this tab's data and held idempotency keys.
+  This is correct today: no cached query is user-specific. The three lists (members, Invitations,
+  Teams) and the Organization record are per Organization, the same for any caller core lets read
+  them, and the password policy is public (`src/data/query-keys.test.tsx` checks the keys on these
+  screens). Add a clear on a change of user (which needs a user id in the session) together with
+  the first user-specific query.
 - Core serves no list of a Team's members, so the Team panel adds or removes a member chosen from
   the Organization's members.
 - After a laptop sleep the monotonic clock may not advance, so the first call can go out with an
-  expired token; a 401 then costs one refresh and one retry. One wasted request, by design.
+  expired token; a 401 then costs one refresh and one retry. One wasted request, accepted (see
+  `AGENTS.md`).
 - The query cache clears on sign-out and Organization change only, not when a different user signs
   in to the same Organization.
 
