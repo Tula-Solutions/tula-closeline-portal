@@ -106,10 +106,14 @@ refreshes once to restore the session; sign-out ends it in every tab. See `AGENT
 - The session carries no user id, so a different user signing in to the same Organization in
   another tab is not detected until a sign-out or reload. A different Organization is detected
   and clears this tab's data and held idempotency keys.
+  This is correct today: every cached query (members, Invitations, Teams) is the Organization's own
+  list, the same for any caller core lets read it, so none is user-specific. Add a clear on a change
+  of user (which needs a user id in the session) together with the first user-specific query.
 - Core serves no list of a Team's members, so the Team panel adds or removes a member chosen from
   the Organization's members.
 - After a laptop sleep the monotonic clock may not advance, so the first call can go out with an
-  expired token; a 401 then costs one refresh and one retry. One wasted request, by design.
+  expired token; a 401 then costs one refresh and one retry. One wasted request, accepted (see
+  `AGENTS.md`).
 - The query cache clears on sign-out and Organization change only, not when a different user signs
   in to the same Organization.
 
