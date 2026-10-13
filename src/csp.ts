@@ -1,4 +1,4 @@
-import { type Env, originOf } from './env'
+import { type Env, originOf } from './env.ts'
 
 /** Builds the Content-Security-Policy for the static build; `meta` drops the directives a `<meta>` tag ignores. */
 export function buildCsp(env: Env, options: { readonly meta: boolean }): string {

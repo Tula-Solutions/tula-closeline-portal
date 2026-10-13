@@ -1,8 +1,8 @@
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
-import { buildCsp, buildHeaders } from './src/csp'
-import { parseEnv } from './src/env'
+import { buildCsp, buildHeaders } from './src/csp.ts'
+import { parseEnv } from './src/env.ts'
 
 /** Puts the Content-Security-Policy in index.html and writes the same policy as a `_headers` file. */
 function securityHeaders(raw: Record<string, string | undefined>): Plugin {
@@ -40,6 +40,6 @@ export default defineConfig(({ command, mode }) => {
       ...(command === 'build' ? [securityHeaders(raw)] : []),
     ],
     resolve: { alias: { '~': new URL('./src', import.meta.url).pathname } },
-    build: { outDir: 'out', sourcemap: 'hidden', assetsInlineLimit: 0 },
+    build: { chunkSizeWarningLimit: 600, outDir: 'out', sourcemap: 'hidden', assetsInlineLimit: 0 },
   }
 })
