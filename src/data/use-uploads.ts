@@ -3,6 +3,7 @@ import { checkUploadFile } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import { fingerprint } from '~/api/idempotency'
 import { outcomeUnknown } from '~/api/manage-messages'
+import type { UploadResult } from '~/api/playbook'
 import { presentDocument } from '~/api/playbook-messages'
 import { useApp } from '~/app-context'
 import { refresh } from '~/data/queries'
@@ -47,7 +48,9 @@ export function useUploads() {
   const nextId = useRef(1)
   const running = useRef(false)
   const alive = useRef(true)
-  const controller = useRef(new AbortController())
+  // Made when the screen mounts and aborted when it unmounts; a new one on each mount, because
+  // React (StrictMode) may mount, clean up and mount again, and an aborted signal stays aborted.
+  const controller = useRef<AbortController | null>(null)
 
   const change = useCallback(
     (update: (current: readonly UploadEntry[]) => readonly UploadEntry[]) => {
@@ -68,21 +71,11 @@ export function useUploads() {
     async (id: number, file: File) => {
       setOutcome(id, { kind: 'uploading' })
       const attempt = app.keys.begin(fingerprint.document(file.name, file.size, file.lastModified))
+      let result: UploadResult
       try {
-        const result = await app.playbook.uploadDocument(
-          file,
-          attempt.key,
-          controller.current.signal
-        )
+        result = await app.playbook.uploadDocument(file, attempt.key, controller.current?.signal)
         attempt.succeeded()
         files.current.delete(id)
-        await refresh(app, 'documents')
-        if (alive.current) {
-          setOutcome(id, {
-            kind: result.duplicate ? 'duplicate' : 'stored',
-            storedName: result.document.fileName,
-          })
-        }
       } catch (error) {
         attempt.failed(error)
         if (!alive.current) {
@@ -109,6 +102,20 @@ export function useUploads() {
             }
           })
         }
+        return
+      }
+      if (alive.current) {
+        setOutcome(id, {
+          kind: result.duplicate ? 'duplicate' : 'stored',
+          storedName: result.document.fileName,
+        })
+      }
+      // The file is stored whatever happens to the list: a refresh that fails is the list's own
+      // error (it has a Try again), not this upload's.
+      try {
+        await refresh(app, 'documents')
+      } catch {
+        // Nothing more to say about the upload.
       }
     },
     [app, setOutcome]
@@ -139,7 +146,8 @@ export function useUploads() {
 
   useEffect(() => {
     alive.current = true
-    const abort = controller.current
+    const abort = new AbortController()
+    controller.current = abort
     return () => {
       alive.current = false
       abort.abort()

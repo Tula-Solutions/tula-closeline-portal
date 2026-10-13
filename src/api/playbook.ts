@@ -33,6 +33,18 @@ export type PlaybookApi = {
 
 const segment = encodeURIComponent
 
+/**
+ * Passes `status` through only if the route documents it. Any other success code (a 202 from a
+ * proxy, say) is not an answer this client understands, so it throws and the HTTP client turns it
+ * into `client.bad_response`, a failure whose outcome is unknown.
+ */
+function onlyStatus<S extends number>(status: number, ...allowed: readonly S[]): S {
+  if (!allowed.includes(status as S)) {
+    throw new Error(`unexpected status ${status}`)
+  }
+  return status as S
+}
+
 /** Builds the playbook routes over an HTTP client for same-origin paths, which sends the access token. */
 export function createPlaybookApi(http: HttpClient): PlaybookApi {
   return {
@@ -57,7 +69,7 @@ export function createPlaybookApi(http: HttpClient): PlaybookApi {
         ...(signal ? { signal } : {}),
         parse: (json, status) => ({
           document: documentSchema.parse(json),
-          duplicate: status === 200,
+          duplicate: onlyStatus(status, 200, 201) === 200,
         }),
       })
     },
@@ -66,14 +78,20 @@ export function createPlaybookApi(http: HttpClient): PlaybookApi {
         method: 'DELETE',
         path: `/v1/playbook/documents/${segment(documentId)}`,
         auth: true,
-        parse: (json) => documentSchema.parse(json),
+        parse: (json, status) => {
+          onlyStatus(status, 200)
+          return documentSchema.parse(json)
+        },
       }),
     restoreDocument: (documentId) =>
       http.request({
         method: 'POST',
         path: `/v1/playbook/documents/${segment(documentId)}/restore`,
         auth: true,
-        parse: (json) => documentSchema.parse(json),
+        parse: (json, status) => {
+          onlyStatus(status, 200)
+          return documentSchema.parse(json)
+        },
       }),
   }
 }

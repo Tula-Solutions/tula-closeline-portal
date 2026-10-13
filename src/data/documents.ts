@@ -46,6 +46,23 @@ export const FAILURE_WORDS: Record<DocumentFailureReason, string> = {
     'Something went wrong while processing this file. Upload it again; if it keeps failing, contact support.',
 }
 
+/** The words for a state; a value this build does not know (a newer service) gets a plain default. */
+export function stateLabel(state: string): string {
+  return Object.hasOwn(STATE_LABEL, state) ? STATE_LABEL[state as DocumentState] : 'Unknown status'
+}
+
+/** The kind of file for a media type; one this build does not know is just "File". */
+export function typeLabel(mediaType: string): string {
+  return Object.hasOwn(TYPE_LABEL, mediaType) ? TYPE_LABEL[mediaType as DocumentMediaType] : 'File'
+}
+
+/** What to tell a person about a failure reason; one this build does not know gets a general sentence. */
+export function failureWords(reason: string): string {
+  return Object.hasOwn(FAILURE_WORDS, reason)
+    ? FAILURE_WORDS[reason as DocumentFailureReason]
+    : 'This file could not be processed. Upload it again; if it keeps failing, contact support.'
+}
+
 /** The largest upload, in the words used in messages ("25 MB"). */
 export const MAX_UPLOAD_WORDS = `${MAX_DOCUMENT_BYTES / (1024 * 1024)} MB`
 

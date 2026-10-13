@@ -59,7 +59,12 @@ export function presentDocument(error: unknown, action: DocumentAction): ShownFa
     case ERRORS['server.unavailable'].code:
       return { message: `Closeline is busy right now. ${tryAgain(error.retryAfterSeconds)}` }
     case ERRORS['server.timeout'].code:
+      // The service's own deadline on reading the body: nothing was stored.
+      return action === 'upload'
+        ? { message: 'The upload timed out before it finished, so nothing was stored. Retry it.' }
+        : presentManage(error)
     case CLIENT_ERRORS.timeout:
+      // This browser gave up waiting: the file may have arrived.
       return action === 'upload'
         ? {
             message:

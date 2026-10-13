@@ -64,6 +64,10 @@ export type Handler = (call: Call) => Response | Promise<Response> | null
 export function fakeFetch(...handlers: Handler[]) {
   const calls: Call[] = []
   const fetchDouble: Fetch = async (input, init) => {
+    // Like the real fetch: a request whose signal is already aborted never goes out.
+    if (init.signal?.aborted) {
+      throw new DOMException('The operation was aborted.', 'AbortError')
+    }
     const call: Call = {
       method: init.method ?? 'GET',
       url: input,

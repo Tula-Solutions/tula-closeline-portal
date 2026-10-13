@@ -12,13 +12,18 @@ type Role = 'owner' | 'admin' | 'manager' | 'rep'
 function visit(
   role: Role,
   handlers: Handler[],
-  extra: { sleep?: (milliseconds: number) => Promise<void>; organization?: string } = {}
+  extra: {
+    sleep?: (milliseconds: number) => Promise<void>
+    organization?: string
+    strict?: boolean
+  } = {}
 ) {
   return renderPortal({
     url: '/playbook',
     signedIn: tokens({ organization: { id: extra.organization ?? 'org_1', role } }),
     handlers,
     ...(extra.sleep ? { sleep: extra.sleep } : {}),
+    ...(extra.strict ? { strict: true } : {}),
   })
 }
 
@@ -46,6 +51,17 @@ function pdf(name = 'plan.pdf', size = 10) {
     Object.defineProperty(file, 'size', { value: size })
   }
   return file
+}
+
+/** The text of the uploads region once an upload has failed in it (a failure is announced by that region, not by an alert of its own). */
+async function uploadError(): Promise<string> {
+  return waitFor(() => {
+    const text = screen.getByRole('status', { name: 'Uploads' }).textContent ?? ''
+    if (!text.includes('Error:')) {
+      throw new Error('no upload error yet')
+    }
+    return text
+  })
 }
 
 const chooser = () => screen.getByLabelText(/choose files/i)
@@ -231,7 +247,7 @@ describe('Playbook documents: checks before sending', () => {
     const portal = visit('owner', [list([])])
     await screen.findByLabelText(/choose files/i)
     choose(new File(['x'], 'tool.exe'))
-    expect((await screen.findByRole('alert')).textContent).toContain('.pdf')
+    expect(await uploadError()).toContain('.pdf')
     expect(uploads(portal)).toHaveLength(0)
   })
 
@@ -239,7 +255,7 @@ describe('Playbook documents: checks before sending', () => {
     const portal = visit('owner', [list([])])
     await screen.findByLabelText(/choose files/i)
     choose(pdf('huge.pdf', MAX_DOCUMENT_BYTES + 1))
-    expect((await screen.findByRole('alert')).textContent).toContain('25 MB')
+    expect(await uploadError()).toContain('25 MB')
     expect(uploads(portal)).toHaveLength(0)
   })
 
@@ -247,7 +263,7 @@ describe('Playbook documents: checks before sending', () => {
     const portal = visit('owner', [list([])])
     await screen.findByLabelText(/choose files/i)
     choose(new File([], 'empty.pdf'))
-    expect((await screen.findByRole('alert')).textContent).toContain('empty')
+    expect(await uploadError()).toContain('empty')
     expect(uploads(portal)).toHaveLength(0)
   })
 })
@@ -314,7 +330,7 @@ describe('Playbook documents: every answer to an upload', () => {
       visit('owner', [route('POST', DOCS, failure(status, code)), list([])])
       await screen.findByLabelText(/choose files/i)
       choose(pdf())
-      expect((await screen.findByRole('alert')).textContent).toMatch(words)
+      expect(await uploadError()).toMatch(words)
       expect(screen.queryByRole('button', { name: /^Retry/ })).toBeNull()
     }
   )
@@ -340,7 +356,7 @@ describe('Playbook documents: every answer to an upload', () => {
     )
     await screen.findByLabelText(/choose files/i)
     choose(pdf('plan.pdf'))
-    expect((await screen.findByRole('alert')).textContent).toContain('30 seconds')
+    expect(await uploadError()).toContain('30 seconds')
     const retry = await screen.findByRole('button', { name: 'Retry plan.pdf' })
     expect(retry.getAttribute('aria-disabled')).toBe('true')
     expect(gate.waits).toContain(30_000)
@@ -377,7 +393,7 @@ describe('Playbook documents: every answer to an upload', () => {
     )
     await screen.findByLabelText(/choose files/i)
     choose(pdf('plan.pdf'))
-    expect((await screen.findByRole('alert')).textContent).toContain('5 seconds')
+    expect(await uploadError()).toContain('5 seconds')
     gate.release()
     await waitFor(() =>
       expect(
@@ -390,7 +406,7 @@ describe('Playbook documents: every answer to an upload', () => {
     expect(first?.headers.get(IDEMPOTENCY)).toBe(second?.headers.get(IDEMPOTENCY))
   })
 
-  test('504: it may have been stored, so the message says to check the list, and a retry is safe with the same key', async () => {
+  test('504 from the service: nothing was stored, so it says the upload timed out and a retry carries the same key', async () => {
     let attempts = 0
     const portal = visit('owner', [
       route('POST', DOCS, () => {
@@ -403,11 +419,26 @@ describe('Playbook documents: every answer to an upload', () => {
     ])
     await screen.findByLabelText(/choose files/i)
     choose(pdf('plan.pdf'))
-    expect((await screen.findByRole('alert')).textContent).toContain('check the list')
+    const text = await uploadError()
+    expect(text).toContain('timed out')
+    expect(text).not.toContain('may still have been stored')
     await portal.user.click(screen.getByRole('button', { name: 'Retry plan.pdf' }))
     await screen.findByText(/already uploaded/i)
     const [first, second] = uploads(portal)
     expect(first?.headers.get(IDEMPOTENCY)).toBe(second?.headers.get(IDEMPOTENCY))
+  })
+
+  test('no answer at all: it may or may not have arrived, and a retry does not store it twice', async () => {
+    visit('owner', [
+      route('POST', DOCS, () => {
+        throw new TypeError('network down')
+      }),
+      list([]),
+    ])
+    await screen.findByLabelText(/choose files/i)
+    choose(pdf('plan.pdf'))
+    expect(await uploadError()).toContain('may or may not have arrived')
+    expect(screen.getByRole('button', { name: 'Retry plan.pdf' })).toBeTruthy()
   })
 
   test('a definite refusal ends the key: choosing the file again gets a new one', async () => {
@@ -417,7 +448,7 @@ describe('Playbook documents: every answer to an upload', () => {
     ])
     await screen.findByLabelText(/choose files/i)
     choose(pdf('plan.pdf'))
-    await screen.findByRole('alert')
+    await uploadError()
     choose(pdf('plan.pdf'))
     await waitFor(() => expect(uploads(portal)).toHaveLength(2))
     const [first, second] = uploads(portal)
@@ -579,7 +610,7 @@ describe('Playbook documents: following documents that are still being processed
   const waiting = documentBody(1, { fileName: 'Pending.pdf', state: 'uploaded', pageCount: null })
   const ready = documentBody(1, { fileName: 'Pending.pdf', state: 'ready' })
 
-  test('refreshes after a growing wait until nothing is pending, then stops', async () => {
+  test('refreshes after a growing wait until nothing is pending, then stops; a state change alone does not shorten the wait', async () => {
     const gate = gatedSleep()
     let reads = 0
     const portal = visit(
@@ -602,19 +633,72 @@ describe('Playbook documents: following documents that are still being processed
     await waitFor(() => expect(gate.waits).toHaveLength(2))
     gate.release()
     await screen.findByText('Being processed')
-    // The state changed, so the wait starts again from the shortest.
-    // The state changed, so a new round starts at the shortest wait (the old round's last wait is
-    // still pending and ends without asking).
-    await waitFor(() => expect(gate.waits.slice(2)).toContain(gate.waits[0] as number))
-    gate.release()
+    await waitFor(() => expect(gate.waits).toHaveLength(3))
+    expect(gate.waits.slice(0, 3)).toEqual([2_000, 4_000, 8_000])
     gate.release()
     await screen.findByText('Ready')
     const polls = portal.calls.filter((call) => call.path === DOCS).length
     // A round that has just ended may still have one wait pending; ending it asks nothing.
     gate.release()
-    gate.release()
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(portal.calls.filter((call) => call.path === DOCS)).toHaveLength(polls)
+  })
+
+  test('a new pending document starts the waits again from the shortest', async () => {
+    const gate = gatedSleep()
+    let reads = 0
+    visit(
+      'rep',
+      [
+        route('GET', DOCS, () => {
+          reads += 1
+          const second = documentBody(2, {
+            fileName: 'Second.pdf',
+            state: 'uploaded',
+            pageCount: null,
+          })
+          return json(200, page(reads >= 2 ? [waiting, second] : [waiting]))
+        }),
+      ],
+      { sleep: gate.sleep }
+    )
+    await screen.findByText('Pending.pdf')
+    await waitFor(() => expect(gate.waits).toHaveLength(1))
+    gate.release()
+    await screen.findByText('Second.pdf')
+    // The old round's next wait (4 s) may be pending; the new round's first wait is the shortest.
+    await waitFor(() => expect(gate.waits.at(-1)).toBe(2_000))
+    expect(gate.waits.length).toBeGreaterThanOrEqual(3)
+  })
+
+  test('with three pages loaded and one pending document, each tick asks for exactly the three pages', async () => {
+    const gate = gatedSleep()
+    const portal = visit(
+      'rep',
+      [
+        route('GET', DOCS, (call) => {
+          const cursor = new URL(call.url, 'http://x').searchParams.get('cursor')
+          if (cursor === 'c3') {
+            return json(200, page([waiting]))
+          }
+          return cursor === 'c2'
+            ? json(200, page([documentBody(2, { fileName: 'Two.pdf' })], 'c3'))
+            : json(200, page([documentBody(3, { fileName: 'Three.pdf' })], 'c2'))
+        }),
+      ],
+      { sleep: gate.sleep }
+    )
+    await screen.findByText('Three.pdf')
+    await portal.user.click(screen.getByRole('button', { name: 'Load more documents' }))
+    await screen.findByText('Two.pdf')
+    await portal.user.click(screen.getByRole('button', { name: 'Load more documents' }))
+    await screen.findByText('Pending.pdf')
+    await waitFor(() => expect(gate.waits).toHaveLength(1))
+    const reads = () => portal.calls.filter((call) => call.path === DOCS).length
+    const before = reads()
+    gate.release()
+    await waitFor(() => expect(gate.waits).toHaveLength(2))
+    expect(reads() - before).toBe(3)
   })
 
   test('waits grow when nothing changes, up to a ceiling', async () => {
@@ -685,5 +769,201 @@ describe('Playbook documents: following documents that are still being processed
     gate.release()
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(reads).toBe(1)
+  })
+})
+
+describe('Playbook documents: under StrictMode, as in development', () => {
+  test('a chosen file still uploads after the screen has mounted, cleaned up and mounted again', async () => {
+    const portal = visit(
+      'owner',
+      [
+        route(
+          'POST',
+          DOCS,
+          json(201, documentBody(5, { fileName: 'plan.pdf', state: 'uploaded', pageCount: null }))
+        ),
+        list([]),
+      ],
+      { strict: true }
+    )
+    await screen.findByLabelText(/choose files/i)
+    choose(pdf('plan.pdf'))
+    await waitFor(() =>
+      expect(screen.getByRole('status', { name: 'Uploads' }).textContent).toContain(
+        'Uploaded plan.pdf'
+      )
+    )
+    expect(uploads(portal)).toHaveLength(1)
+  })
+
+  test('the follow-up poll asks once per round, not once per mount', async () => {
+    const gate = gatedSleep()
+    let reads = 0
+    visit(
+      'rep',
+      [
+        route('GET', DOCS, () => {
+          reads += 1
+          return json(
+            200,
+            page([documentBody(1, { fileName: 'Pending.pdf', state: 'uploaded', pageCount: null })])
+          )
+        }),
+      ],
+      { sleep: gate.sleep, strict: true }
+    )
+    await screen.findByText('Pending.pdf')
+    await waitFor(() => expect(gate.waits.length).toBeGreaterThanOrEqual(1))
+    const first = reads
+    while (gate.waits.length < 2) {
+      gate.release()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+    gate.release()
+    await waitFor(() => expect(reads).toBeGreaterThan(first))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(reads - first).toBeLessThanOrEqual(2)
+  })
+})
+
+describe('Playbook documents: an upload that worked stays worked', () => {
+  test('a failed refresh of the list afterwards does not turn a stored file into a failure', async () => {
+    let created = false
+    visit('owner', [
+      route('POST', DOCS, () => {
+        created = true
+        return json(
+          201,
+          documentBody(5, { fileName: 'plan.pdf', state: 'uploaded', pageCount: null })
+        )
+      }),
+      route('GET', DOCS, () =>
+        created ? failure(500, ERRORS['server.internal'].code) : json(200, page([]))
+      ),
+    ])
+    await screen.findByLabelText(/choose files/i)
+    choose(pdf('plan.pdf'))
+    await waitFor(() =>
+      expect(screen.getByRole('status', { name: 'Uploads' }).textContent).toContain(
+        'Uploaded plan.pdf'
+      )
+    )
+    expect(screen.getByRole('status', { name: 'Uploads' }).textContent).not.toContain('Error:')
+    expect(screen.queryByRole('button', { name: 'Retry plan.pdf' })).toBeNull()
+  })
+
+  test('a failure is announced once, by the uploads region, not again by an alert inside it', async () => {
+    visit('owner', [
+      route('POST', DOCS, failure(409, PLAYBOOK_ERRORS['document.quota_exceeded'].code)),
+      list([]),
+    ])
+    await screen.findByLabelText(/choose files/i)
+    choose(pdf())
+    await uploadError()
+    expect(within(screen.getByRole('status', { name: 'Uploads' })).queryByRole('alert')).toBeNull()
+  })
+})
+
+describe('Playbook documents: only the documented success codes count', () => {
+  test('an upload answered 202 is not taken as stored: it is a failed upload of unknown outcome, retryable with the same key', async () => {
+    const portal = visit('owner', [
+      route('POST', DOCS, json(202, documentBody(5, { fileName: 'plan.pdf' }))),
+      list([]),
+    ])
+    await screen.findByLabelText(/choose files/i)
+    choose(pdf('plan.pdf'))
+    expect(await uploadError()).toContain('could not read')
+    expect(screen.getByRole('button', { name: 'Retry plan.pdf' })).toBeTruthy()
+    expect(uploads(portal)).toHaveLength(1)
+  })
+
+  test('a delete answered 202 is an error, not a deletion', async () => {
+    const doc = documentBody(1, { fileName: 'Pricing.pdf' })
+    const portal = visit('admin', [
+      route('DELETE', `${DOCS}/${doc.id}`, json(202, doc)),
+      list([doc]),
+    ])
+    await screen.findByText('Pricing.pdf')
+    await portal.user.click(screen.getByRole('button', { name: 'Delete Pricing.pdf' }))
+    await portal.user.click(screen.getByRole('button', { name: 'Delete document' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('could not read')
+  })
+
+  test('a restore answered 202 is an error, not a restoration', async () => {
+    const doc = documentBody(1, {
+      fileName: 'Pricing.pdf',
+      state: 'deleted',
+      pageCount: null,
+      deletedAt: '2026-10-13T10:00:00Z',
+      purgeAt: '2026-11-12T10:00:00Z',
+    })
+    const portal = visit('owner', [
+      route('POST', `${DOCS}/${doc.id}/restore`, json(202, doc)),
+      route('GET', DOCS, (call) =>
+        new URL(call.url, 'http://x').searchParams.get('state') === 'deleted'
+          ? json(200, page([doc]))
+          : json(200, page([]))
+      ),
+    ])
+    await screen.findByLabelText('Show')
+    await portal.user.selectOptions(screen.getByLabelText('Show'), 'deleted')
+    await portal.user.click(await screen.findByRole('button', { name: 'Restore Pricing.pdf' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('could not read')
+  })
+})
+
+describe('Playbook documents: a service newer than the contract', () => {
+  test('a state this contract does not know fails the page by design, with the plain "could not read" message', async () => {
+    visit('rep', [list([{ ...documentBody(1), state: 'archived' }])])
+    expect((await screen.findByRole('alert')).textContent).toContain('could not read')
+    expect(screen.queryByText('Document 1.pdf')).toBeNull()
+  })
+})
+
+describe('Playbook documents: where focus goes', () => {
+  const doc = documentBody(1, { fileName: 'Pricing.pdf' })
+
+  test('cancelling the question puts focus back on the Delete button', async () => {
+    const portal = visit('admin', [list([doc])])
+    await screen.findByText('Pricing.pdf')
+    await portal.user.click(screen.getByRole('button', { name: 'Delete Pricing.pdf' }))
+    await portal.user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Delete Pricing.pdf' }))
+  })
+
+  test('a failed delete leaves focus on the Delete button, with the error tied to it', async () => {
+    const portal = visit('admin', [
+      route('DELETE', `${DOCS}/${doc.id}`, failure(500, ERRORS['server.internal'].code)),
+      list([doc]),
+    ])
+    await screen.findByText('Pricing.pdf')
+    await portal.user.click(screen.getByRole('button', { name: 'Delete Pricing.pdf' }))
+    await portal.user.click(screen.getByRole('button', { name: 'Delete document' }))
+    await screen.findByRole('alert')
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Delete Pricing.pdf' }))
+  })
+
+  test('after a delete the row is gone, so focus moves to the page heading', async () => {
+    let gone = false
+    const portal = visit('admin', [
+      route('DELETE', `${DOCS}/${doc.id}`, () => {
+        gone = true
+        return json(200, {
+          ...doc,
+          state: 'deleted',
+          pageCount: null,
+          deletedAt: '2026-10-13T10:00:00Z',
+          purgeAt: '2026-11-12T10:00:00Z',
+        })
+      }),
+      route('GET', DOCS, () => json(200, page(gone ? [] : [doc]))),
+    ])
+    await screen.findByText('Pricing.pdf')
+    await portal.user.click(screen.getByRole('button', { name: 'Delete Pricing.pdf' }))
+    await portal.user.click(screen.getByRole('button', { name: 'Delete document' }))
+    await waitUntilGone('Pricing.pdf')
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Playbook' }))
+    )
   })
 })

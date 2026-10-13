@@ -111,7 +111,12 @@ contract's `checkUploadFile` and limits, then sent one at a time as multipart wi
 progress, so a file shows "Uploading" until the service answers. Documents still `uploaded` or
 `processing` are asked about again after a growing wait (2 s up to 30 s, about ten minutes in all),
 never while the tab is hidden, and never once nothing is pending. The service returns no uploader
-name (only a user id), so the list does not show who uploaded a file.
+name (only a user id), so the list does not show who uploaded a file: that needs a contract field
+(joining to the members list is unsound, since it pages, members leave, and Managers and Reps
+may not read it). A document with a state, media type or failure reason this build's contract does
+not know fails the whole page by design (the strict parse is house behaviour) until the contract
+tag is bumped; the label helpers still have safe defaults so a widened schema never renders
+`undefined`.
 
 ## Sessions
 

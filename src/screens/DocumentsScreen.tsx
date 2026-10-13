@@ -1,4 +1,4 @@
-import { type DragEvent, useRef, useState } from 'react'
+import { type DragEvent, type RefObject, useRef, useState } from 'react'
 import {
   ACCEPTED_DOCUMENT_EXTENSIONS,
   type DocumentState,
@@ -8,12 +8,12 @@ import {
 import { presentDocument } from '~/api/playbook-messages'
 import { useApp } from '~/app-context'
 import {
-  FAILURE_WORDS,
   FILTER_LABEL,
+  failureWords,
   formatBytes,
   MAX_UPLOAD_WORDS,
-  STATE_LABEL,
-  TYPE_LABEL,
+  stateLabel,
+  typeLabel,
 } from '~/data/documents'
 import { can } from '~/data/permissions'
 import { refresh, useDocuments } from '~/data/queries'
@@ -55,10 +55,13 @@ function DocumentsView(props: { readonly manage: boolean }) {
   const [filter, setFilter] = useState<DocumentState | undefined>(undefined)
   const [notice, setNotice] = useState('')
   const documents = useDocuments(filter)
+  const headingRef = useRef<HTMLHeadingElement>(null)
   const poll = usePendingPoll(documents.items, documents.refetch)
   return (
     <>
-      <h1 tabIndex={-1}>Playbook</h1>
+      <h1 tabIndex={-1} ref={headingRef}>
+        Playbook
+      </h1>
       <p>The documents your Organization's sales knowledge comes from.</p>
       {props.manage ? <UploadSection /> : null}
       <SelectField
@@ -110,6 +113,7 @@ function DocumentsView(props: { readonly manage: boolean }) {
                   document={document}
                   manage={props.manage}
                   onDone={setNotice}
+                  heading={headingRef}
                 />
               ))}
             </tbody>
@@ -124,6 +128,8 @@ function DocumentRow(props: {
   readonly document: PlaybookDocument
   readonly manage: boolean
   readonly onDone: (notice: string) => void
+  /** The page heading: focus goes there when this row leaves the list (deleted, or restored out of the deleted filter). */
+  readonly heading: RefObject<HTMLHeadingElement | null>
 }) {
   const { document } = props
   const app = useApp()
@@ -141,6 +147,7 @@ function DocumentRow(props: {
           ? `Deleted ${label}.`
           : `Deleted ${label}. You can restore it until ${DATE.format(Date.parse(gone.purgeAt))}.`
       )
+      props.heading.current?.focus()
     },
     { onError: (failure) => setError(presentDocument(failure, 'delete').message) }
   )
@@ -150,6 +157,7 @@ function DocumentRow(props: {
       await app.playbook.restoreDocument(document.id)
       await refresh(app, 'documents')
       props.onDone(`Restored ${label}. It is being processed again.`)
+      props.heading.current?.focus()
     },
     { onError: (failure) => setError(presentDocument(failure, 'restore').message) }
   )
@@ -159,12 +167,12 @@ function DocumentRow(props: {
       <th scope='row'>
         <Untrusted value={document.fileName} />
       </th>
-      <td>{TYPE_LABEL[document.mediaType]}</td>
+      <td>{typeLabel(document.mediaType)}</td>
       <td>{formatBytes(document.sizeBytes)}</td>
       <td>
-        <span>{STATE_LABEL[document.state]}</span>
+        <span>{stateLabel(document.state)}</span>
         {document.failureReason === null ? null : (
-          <p className='hint'>{FAILURE_WORDS[document.failureReason]}</p>
+          <p className='hint'>{failureWords(document.failureReason)}</p>
         )}
         {document.state === 'deleted' && document.purgeAt !== null ? (
           <p className='hint'>
@@ -313,7 +321,7 @@ function UploadItem(props: {
       ) : null}
       {outcome.kind === 'failed' ? (
         <>
-          <p role='alert' className='field-error'>
+          <p className='field-error'>
             <strong>Error:</strong> <Untrusted value={entry.name} />: {outcome.message}
           </p>
           {outcome.retry ? (
