@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { AUTH_ERRORS } from 'tula-closeline-contract'
 import { failure, type Handler, json, route } from '~/testing/fixtures'
 import { completeBody, renderPortal, startedBody } from '~/testing/render'
 
@@ -66,7 +67,7 @@ describe('sign-in', () => {
   test('the same words for a wrong address and a wrong password', async () => {
     const portal = visit([
       started,
-      route('POST', PASSWORD, failure(401, 'auth.invalid_credentials')),
+      route('POST', PASSWORD, failure(401, AUTH_ERRORS['auth.invalid_credentials'].code)),
     ])
     await fill(portal)
     await submit(portal)
@@ -103,24 +104,30 @@ describe('sign-in', () => {
     ],
     [
       'password',
-      'membership.unavailable',
+      AUTH_ERRORS['membership.unavailable'].code,
       503,
       'We could not set up your place in the Organization right now. Try again in 5 seconds.',
       { retryAfter: 5 },
     ],
-    ['password', 'auth.user_banned', 403, 'This sign-in is blocked.', undefined],
+    ['password', AUTH_ERRORS['auth.user_banned'].code, 403, 'This sign-in is blocked.', undefined],
     [
       'password',
-      'auth.no_organization',
+      AUTH_ERRORS['auth.no_organization'].code,
       403,
       'You do not belong to an Organization, so you cannot sign in.',
       undefined,
     ],
     ['start', 'request.invalid', 400, 'Check the details you entered and try again.', undefined],
-    ['password', 'flow.not_found', 404, 'This sign-in has ended. Start again.', undefined],
     [
       'password',
-      'flow.invalid_step',
+      AUTH_ERRORS['flow.not_found'].code,
+      404,
+      'This sign-in has ended. Start again.',
+      undefined,
+    ],
+    [
+      'password',
+      AUTH_ERRORS['flow.invalid_step'].code,
       409,
       'That step is not available now. Start again.',
       undefined,
@@ -129,12 +136,18 @@ describe('sign-in', () => {
     ['start', 'server.timeout', 504, 'That took too long. Try again.', undefined],
     [
       'password',
-      'password.too_long',
+      AUTH_ERRORS['password.too_long'].code,
       422,
       'The email address or password is not right.',
       undefined,
     ],
-    ['password', 'password.common', 422, 'The email address or password is not right.', undefined],
+    [
+      'password',
+      AUTH_ERRORS['password.common'].code,
+      422,
+      'The email address or password is not right.',
+      undefined,
+    ],
   ]
 
   test.each(failures)(
@@ -158,7 +171,7 @@ describe('sign-in', () => {
   )
 
   test('an address the service calls invalid is shown beside the address field', async () => {
-    const portal = visit([route('POST', START, failure(422, 'email.invalid'))])
+    const portal = visit([route('POST', START, failure(422, AUTH_ERRORS['email.invalid'].code))])
     await fill(portal)
     await submit(portal)
     await waitFor(() => {

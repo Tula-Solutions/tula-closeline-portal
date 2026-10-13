@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { AUTH_ERRORS } from 'tula-closeline-contract'
 import { HANDLED_CODES } from '~/api/messages'
 import { failure, type Handler, json, route } from '~/testing/fixtures'
 import { completeBody, renderPortal, startedBody } from '~/testing/render'
@@ -173,20 +174,26 @@ describe('sign-up: checks before anything is sent', () => {
 
 describe('sign-up: every error the start step can return has its own words', () => {
   const cases: [string, number, string, 'field' | 'form', Record<string, unknown> | undefined][] = [
-    ['email.invalid', 422, 'Enter a valid email address.', 'field', undefined],
-    ['password.too_short', 422, 'The password is too short.', 'field', undefined],
-    ['password.too_long', 422, 'The password is too long.', 'field', undefined],
+    [AUTH_ERRORS['email.invalid'].code, 422, 'Enter a valid email address.', 'field', undefined],
+    [AUTH_ERRORS['password.too_short'].code, 422, 'The password is too short.', 'field', undefined],
+    [AUTH_ERRORS['password.too_long'].code, 422, 'The password is too long.', 'field', undefined],
     [
-      'password.contains_user_info',
+      AUTH_ERRORS['password.contains_user_info'].code,
       422,
       'The password contains your name or email address.',
       'field',
       undefined,
     ],
-    ['password.common', 422, 'That password is too common.', 'field', undefined],
-    ['password.breached', 422, 'That password has appeared in a data breach.', 'field', undefined],
+    [AUTH_ERRORS['password.common'].code, 422, 'That password is too common.', 'field', undefined],
     [
-      'signup.organization_name_invalid',
+      AUTH_ERRORS['password.breached'].code,
+      422,
+      'That password has appeared in a data breach.',
+      'field',
+      undefined,
+    ],
+    [
+      AUTH_ERRORS['signup.organization_name_invalid'].code,
       422,
       'Enter a valid Organization name.',
       'field',
@@ -202,14 +209,14 @@ describe('sign-up: every error the start step can return has its own words', () 
       { retryAfter: 90 },
     ],
     [
-      'membership.unavailable',
+      AUTH_ERRORS['membership.unavailable'].code,
       503,
       'We could not set up your place in the Organization right now.',
       'form',
       undefined,
     ],
     [
-      'mail.unavailable',
+      AUTH_ERRORS['mail.unavailable'].code,
       503,
       'We could not send the email right now. Try again in 1 second.',
       'form',
@@ -295,15 +302,15 @@ describe('sign-up: every error the start step can return has its own words', () 
   test('the table above covers every code the portal knows by name', () => {
     const tested = new Set(cases.map(([code]) => code))
     const elsewhere = new Set([
-      'signup.invitation_invalid',
-      'verification.invalid_code',
-      'verification.expired',
-      'verification.too_many_attempts',
-      'flow.not_found',
-      'flow.invalid_step',
-      'auth.invalid_credentials',
-      'auth.user_banned',
-      'auth.no_organization',
+      AUTH_ERRORS['signup.invitation_invalid'].code,
+      AUTH_ERRORS['verification.invalid_code'].code,
+      AUTH_ERRORS['verification.expired'].code,
+      AUTH_ERRORS['verification.too_many_attempts'].code,
+      AUTH_ERRORS['flow.not_found'].code,
+      AUTH_ERRORS['flow.invalid_step'].code,
+      AUTH_ERRORS['auth.invalid_credentials'].code,
+      AUTH_ERRORS['auth.user_banned'].code,
+      AUTH_ERRORS['auth.no_organization'].code,
       'server.timeout',
       'client.timeout',
       'client.network',
@@ -318,7 +325,7 @@ describe('sign-up: every error the start step can return has its own words', () 
 describe('sign-up: the emailed code step', () => {
   test('a wrong code is said to be wrong, beside the field, and the attempt stays open', async () => {
     const portal = await reachCodeStep([
-      route('POST', VERIFY, failure(422, 'verification.invalid_code')),
+      route('POST', VERIFY, failure(422, AUTH_ERRORS['verification.invalid_code'].code)),
     ])
     await enterCode(portal)
     const code = screen.getByLabelText('Code')
@@ -329,7 +336,7 @@ describe('sign-up: the emailed code step', () => {
 
   test('an expired code says to ask for a new one', async () => {
     const portal = await reachCodeStep([
-      route('POST', VERIFY, failure(422, 'verification.expired')),
+      route('POST', VERIFY, failure(422, AUTH_ERRORS['verification.expired'].code)),
     ])
     await enterCode(portal)
     expect((await screen.findByRole('alert')).textContent).toContain(
@@ -339,7 +346,7 @@ describe('sign-up: the emailed code step', () => {
 
   test('too many wrong codes says to ask for a new one', async () => {
     const portal = await reachCodeStep([
-      route('POST', VERIFY, failure(429, 'verification.too_many_attempts')),
+      route('POST', VERIFY, failure(429, AUTH_ERRORS['verification.too_many_attempts'].code)),
     ])
     await enterCode(portal)
     expect((await screen.findByRole('alert')).textContent).toContain(
@@ -347,11 +354,15 @@ describe('sign-up: the emailed code step', () => {
     )
   })
 
-  test.each(['flow.not_found', 'flow.invalid_step'])(
+  test.each([AUTH_ERRORS['flow.not_found'].code, AUTH_ERRORS['flow.invalid_step'].code])(
     'an attempt that has ended (%s) sends the person back to the start with the details kept',
     async (code) => {
       const portal = await reachCodeStep([
-        route('POST', VERIFY, failure(code === 'flow.not_found' ? 404 : 409, code)),
+        route(
+          'POST',
+          VERIFY,
+          failure(code === AUTH_ERRORS['flow.not_found'].code ? 404 : 409, code)
+        ),
       ])
       await enterCode(portal)
       expect(await screen.findByRole('heading', { name: 'Create your Organization' })).toBeTruthy()
@@ -370,7 +381,11 @@ describe('sign-up: the emailed code step', () => {
 
   test('the Organization service being down says the code still works, with the retry time', async () => {
     const portal = await reachCodeStep([
-      route('POST', VERIFY, failure(503, 'membership.unavailable', { retryAfter: 5 })),
+      route(
+        'POST',
+        VERIFY,
+        failure(503, AUTH_ERRORS['membership.unavailable'].code, { retryAfter: 5 })
+      ),
     ])
     await enterCode(portal)
     const alert = await screen.findByRole('alert')
@@ -381,7 +396,7 @@ describe('sign-up: the emailed code step', () => {
 
   test('a name the Organization service refuses sends the person back to fix it', async () => {
     const portal = await reachCodeStep([
-      route('POST', VERIFY, failure(422, 'signup.organization_name_invalid')),
+      route('POST', VERIFY, failure(422, AUTH_ERRORS['signup.organization_name_invalid'].code)),
     ])
     await enterCode(portal)
     const field = await screen.findByLabelText('Organization name')
@@ -448,7 +463,7 @@ describe('sign-up: accept an Invitation', () => {
   test('an Invitation the service refuses is explained, and an Organization can be created instead', async () => {
     const portal = renderPortal({
       url: `/sign-up#invitation=${TOKEN}`,
-      handlers: [route('POST', START, failure(422, 'signup.invitation_invalid'))],
+      handlers: [route('POST', START, failure(422, AUTH_ERRORS['signup.invitation_invalid'].code))],
     })
     await fillDetails(portal, { organization: null })
     await submitDetails(portal)
@@ -463,7 +478,10 @@ describe('sign-up: accept an Invitation', () => {
   test('an Invitation the service refuses at the code step sends the person back', async () => {
     const portal = renderPortal({
       url: `/sign-up#invitation=${TOKEN}`,
-      handlers: [started, route('POST', VERIFY, failure(422, 'signup.invitation_invalid'))],
+      handlers: [
+        started,
+        route('POST', VERIFY, failure(422, AUTH_ERRORS['signup.invitation_invalid'].code)),
+      ],
     })
     await fillDetails(portal, { organization: null })
     await submitDetails(portal)
@@ -480,7 +498,7 @@ describe('sign-up: accept an Invitation', () => {
   test('an Invitation the service refuses is forgotten: leaving and coming back shows the Organization form', async () => {
     const portal = renderPortal({
       url: `/sign-up#invitation=${TOKEN}`,
-      handlers: [route('POST', START, failure(422, 'signup.invitation_invalid'))],
+      handlers: [route('POST', START, failure(422, AUTH_ERRORS['signup.invitation_invalid'].code))],
     })
     await fillDetails(portal, { organization: null })
     await submitDetails(portal)

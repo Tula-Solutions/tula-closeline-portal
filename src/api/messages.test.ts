@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { AUTH_ERRORS } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import { type FieldName, GENERIC_MESSAGE, HANDLED_CODES, present, waitPhrase } from '~/api/messages'
 
@@ -24,17 +25,23 @@ describe('present', () => {
   })
 
   test.each<[string, FieldName]>([
-    ['email.invalid', 'email'],
-    ['password.breached', 'password'],
-    ['signup.organization_name_invalid', 'organizationName'],
-    ['verification.invalid_code', 'code'],
+    [AUTH_ERRORS['email.invalid'].code, 'email'],
+    [AUTH_ERRORS['password.breached'].code, 'password'],
+    [AUTH_ERRORS['signup.organization_name_invalid'].code, 'organizationName'],
+    [AUTH_ERRORS['verification.invalid_code'].code, 'code'],
   ])('%s belongs to the %s field', (code, field) => {
     expect(present(new ApiError({ code, status: 422 }), 'sign-up').field).toBe(field)
   })
 
   test('the choice of words follows the code, not the status', () => {
-    const a = present(new ApiError({ code: 'flow.not_found', status: 200 }), 'sign-up')
-    const b = present(new ApiError({ code: 'flow.not_found', status: 500 }), 'sign-up')
+    const a = present(
+      new ApiError({ code: AUTH_ERRORS['flow.not_found'].code, status: 200 }),
+      'sign-up'
+    )
+    const b = present(
+      new ApiError({ code: AUTH_ERRORS['flow.not_found'].code, status: 500 }),
+      'sign-up'
+    )
     expect(a).toEqual(b)
     expect(a.restart).toBe(true)
   })

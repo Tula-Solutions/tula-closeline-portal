@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { type FormEvent, useState } from 'react'
-import { emailSchema } from 'tula-closeline-contract'
+import { AUTH_ERRORS, emailSchema } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS, clientError } from '~/api/errors'
 import { type FieldName, present } from '~/api/messages'
 import { useApp, useSessionState } from '~/app-context'
@@ -11,7 +11,7 @@ import { useFocusOnError } from '~/ui/useFocusOnError'
 import { useSubmit } from '~/ui/useSubmit'
 
 const WRONG_CREDENTIALS = present(
-  new ApiError({ code: 'auth.invalid_credentials', status: 401 }),
+  new ApiError({ code: AUTH_ERRORS['auth.invalid_credentials'].code, status: 401 }),
   'sign-in'
 ).message
 

@@ -1,19 +1,24 @@
 import { describe, expect, test } from 'bun:test'
+import { AUTH_ERRORS, ERRORS } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS, isTransient, parseErrorResponse } from '~/api/errors'
 import { failure, json } from '~/testing/fixtures'
 
 describe('parseErrorResponse', () => {
   test('reads the contract error body into a code and status', async () => {
-    const error = await parseErrorResponse(failure(422, 'verification.invalid_code'))
+    const error = await parseErrorResponse(
+      failure(422, AUTH_ERRORS['verification.invalid_code'].code)
+    )
     expect(error).toBeInstanceOf(ApiError)
-    expect(error.code).toBe('verification.invalid_code')
+    expect(error.code).toBe(AUTH_ERRORS['verification.invalid_code'].code)
     expect(error.status).toBe(422)
     expect(error.retryAfterSeconds).toBeUndefined()
   })
 
   test('never carries the server message, so a message cannot leak into a log or report', async () => {
-    const error = await parseErrorResponse(failure(401, 'auth.invalid_credentials'))
-    expect(error.message).toBe('auth.invalid_credentials')
+    const error = await parseErrorResponse(
+      failure(401, AUTH_ERRORS['auth.invalid_credentials'].code)
+    )
+    expect(error.message).toBe(AUTH_ERRORS['auth.invalid_credentials'].code)
     expect(JSON.stringify(error)).not.toContain('Text the portal never shows')
   })
 
@@ -61,8 +66,8 @@ describe('isTransient', () => {
     [504, 'server.timeout', true],
     [500, 'server.internal', false],
     [429, 'rate.limited', false],
-    [401, 'auth.token_expired', false],
-    [404, 'flow.not_found', false],
+    [401, ERRORS['auth.token_expired'].code, false],
+    [404, AUTH_ERRORS['flow.not_found'].code, false],
     [200, CLIENT_ERRORS.badResponse, false],
     [502, CLIENT_ERRORS.badResponse, true],
   ])('status %d %s -> %p', (status, code, expected) => {

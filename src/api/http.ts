@@ -1,3 +1,4 @@
+import { ERRORS } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS, clientError, isTransient, parseErrorResponse } from '~/api/errors'
 
 /** The session as the HTTP client sees it: a token to send, a way to renew it, and a way to end it. */
@@ -143,7 +144,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
     const sameSession = () => authorizer.epoch() === epoch
     const token = await authorizer.accessToken()
     if (token === null || !sameSession()) {
-      throw new ApiError({ code: 'auth.unauthenticated', status: 401 })
+      throw new ApiError({ code: ERRORS['auth.unauthenticated'].code, status: 401 })
     }
     let result: T
     try {
@@ -153,9 +154,9 @@ export function createHttpClient(config: HttpConfig): HttpClient {
         throw error
       }
       if (!sameSession()) {
-        throw new ApiError({ code: 'auth.unauthenticated', status: 401 })
+        throw new ApiError({ code: ERRORS['auth.unauthenticated'].code, status: 401 })
       }
-      if (error.code !== 'auth.token_expired') {
+      if (error.code !== ERRORS['auth.token_expired'].code) {
         authorizer.rejected(token)
         throw error
       }
@@ -168,7 +169,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
       try {
         const second = await attempt(options, renewed)
         if (!sameSession()) {
-          throw new ApiError({ code: 'auth.unauthenticated', status: 401 })
+          throw new ApiError({ code: ERRORS['auth.unauthenticated'].code, status: 401 })
         }
         return second
       } catch (second) {
@@ -179,7 +180,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
       }
     }
     if (!sameSession()) {
-      throw new ApiError({ code: 'auth.unauthenticated', status: 401 })
+      throw new ApiError({ code: ERRORS['auth.unauthenticated'].code, status: 401 })
     }
     return result
   }
