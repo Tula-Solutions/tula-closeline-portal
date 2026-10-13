@@ -7,7 +7,7 @@ import { useCallback, useRef } from 'react'
  */
 export function useSubmit<Input>(
   run: (input: Input) => Promise<void>,
-  handlers: { readonly onError: (error: unknown) => void; readonly onDone?: () => void }
+  handlers: { readonly onError: (error: unknown) => void }
 ) {
   const busy = useRef(false)
   const mutation = useMutation({ mutationFn: run })
@@ -19,14 +19,13 @@ export function useSubmit<Input>(
       }
       busy.current = true
       mutate(input, {
-        onSuccess: () => handlers.onDone?.(),
         onError: handlers.onError,
         onSettled: () => {
           busy.current = false
         },
       })
     },
-    [mutate, handlers.onDone, handlers.onError]
+    [mutate, handlers.onError]
   )
   return { submit, pending: mutation.isPending }
 }

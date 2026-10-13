@@ -1,4 +1,4 @@
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { type FormEvent, useState } from 'react'
 import { emailSchema } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS, clientError } from '~/api/errors'
@@ -20,7 +20,6 @@ type Errors = { fields: Partial<Record<FieldName, string>>; form?: string }
 /** Sign-in with an email address and password: start the sign-in, then send the password. */
 export function SignInScreen() {
   const app = useApp()
-  const navigate = useNavigate()
   const session = useSessionState()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -54,9 +53,6 @@ export function SignInScreen() {
           setErrors({ fields: {}, form: text })
         }
         focusFirstError()
-      },
-      onDone() {
-        void navigate({ to: '/', replace: true })
       },
     }
   )

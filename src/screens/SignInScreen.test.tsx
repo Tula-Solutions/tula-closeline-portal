@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { failure, type Handler, json, route } from '~/testing/fixtures'
 import { completeBody, renderPortal, startedBody } from '~/testing/render'
 
@@ -223,7 +223,7 @@ describe('sign-in', () => {
     await fill(portal)
     await submit(portal)
     await screen.findByRole('heading', { name: 'Home' })
-    act(() => portal.app.session.rejected())
+    act(() => portal.app.session.rejected('access-1'))
     await screen.findByRole('heading', { name: 'Sign in' })
     expect((await screen.findByRole('status')).textContent).toContain(
       'Your session has ended. Sign in again.'
@@ -235,5 +235,54 @@ describe('sign-in', () => {
     expect(
       (await screen.findByRole('link', { name: 'Create an Organization' })).getAttribute('href')
     ).toBe('/sign-up')
+  })
+})
+
+describe('sign-in: lands on the dashboard whatever happened to the screen', () => {
+  test('a person who clicks the other link while the password is being checked still lands on the dashboard', async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const portal = visit([
+      started,
+      route('POST', PASSWORD, async () => {
+        await gate
+        return json(200, completeBody('sign_in'))
+      }),
+    ])
+    await fill(portal)
+    await submit(portal)
+    await portal.user.click(screen.getByRole('link', { name: 'Create an Organization' }))
+    await screen.findByRole('heading', { name: 'Create your Organization' })
+    release()
+    expect(await screen.findByRole('heading', { name: 'Home' })).toBeTruthy()
+    expect(portal.app.session.getSnapshot().status).toBe('signed_in')
+  })
+})
+
+describe('sign-in: the form', () => {
+  test('tells the browser which field is the account name and which is the current password', async () => {
+    visit([])
+    expect((await screen.findByLabelText('Email address')).getAttribute('autocomplete')).toBe(
+      'username'
+    )
+    expect(screen.getByLabelText('Password').getAttribute('autocomplete')).toBe('current-password')
+  })
+
+  test('two submits fired in the same tick send one sign-in', async () => {
+    const portal = visit([started, signedIn])
+    await fill(portal)
+    const form = screen.getByRole('button', { name: 'Sign in' }).closest('form')
+    if (form === null) {
+      throw new Error('no form')
+    }
+    // Inside one act nothing re-renders between the two, so only the ref guard can stop the second.
+    act(() => {
+      fireEvent.submit(form)
+      fireEvent.submit(form)
+    })
+    await screen.findByRole('heading', { name: 'Home' })
+    expect(portal.calls.filter((call) => call.path === START)).toHaveLength(1)
   })
 })

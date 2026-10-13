@@ -333,12 +333,44 @@ describe('bearer calls', () => {
     const authorizer: Authorizer = {
       accessToken: async () => null,
       refresh: async () => {},
-      rejected: () => rejected.push('rejected'),
+      rejected: (token) => rejected.push(token),
     }
     const { http, calls } = client([route('GET', '/me', json(200, {}))], { authorizer })
     const error = await failureOf(http.request({ path: '/me', auth: true }))
     expect(error.code).toBe('auth.unauthenticated')
     expect(calls).toHaveLength(0)
-    expect(rejected).toEqual(['rejected'])
+    // No token was used, so there is nothing to reject.
+    expect(rejected).toEqual([])
+  })
+
+  test('a 401 for a request sent before sign-out does not end the next session, or rotate it', async () => {
+    let answerA: (response: Response) => void = () => {}
+    const lateA = new Promise<Response>((resolve) => {
+      answerA = resolve
+    })
+    let refreshes = 0
+    const session = createSession({
+      refresh: async () => {
+        refreshes += 1
+        return tokens()
+      },
+      revoke: async () => {},
+    })
+    session.start(tokens({ accessToken: 'access-A', refreshToken: 'refresh-A' }))
+    const { http } = client(
+      [
+        route('GET', '/me', (call) =>
+          call.headers.get('authorization') === 'Bearer access-A' ? lateA : json(200, { ok: true })
+        ),
+      ],
+      { authorizer: session, retries: 0 }
+    )
+    const first = http.request({ path: '/me', auth: true }).catch(() => undefined)
+    await session.signOut()
+    session.start(tokens({ accessToken: 'access-B', refreshToken: 'refresh-B' }))
+    answerA(failure(401, 'auth.token_expired'))
+    await first
+    expect(session.getSnapshot().status).toBe('signed_in')
+    expect(refreshes).toBe(0)
   })
 })

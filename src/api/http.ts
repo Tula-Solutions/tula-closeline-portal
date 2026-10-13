@@ -4,10 +4,10 @@ import { ApiError, CLIENT_ERRORS, clientError, isTransient, parseErrorResponse }
 export type Authorizer = {
   /** A usable access token (renewed first when about to expire), or null when signed out. */
   accessToken(): Promise<string | null>
-  /** Trades the refresh token for new tokens; one call in flight however many ask. Throws on failure. */
-  refresh(): Promise<void>
-  /** Called for a 401 that renewing cannot fix: the session is over. */
-  rejected(): void
+  /** Renews the session whose access token was `token`; does nothing if that token is no longer the held one. Throws on failure. */
+  refresh(token: string): Promise<void>
+  /** Called with the access token that got a 401 renewing cannot fix: ends the session only if that token is still the held one. */
+  rejected(token: string): void
 }
 
 /** The part of `fetch` the client uses; tests pass a double. */
@@ -135,7 +135,6 @@ export function createHttpClient(config: HttpConfig): HttpClient {
     }
     const token = await authorizer.accessToken()
     if (token === null) {
-      authorizer.rejected()
       throw new ApiError({ code: 'auth.unauthenticated', status: 401 })
     }
     try {
@@ -145,11 +144,11 @@ export function createHttpClient(config: HttpConfig): HttpClient {
         throw error
       }
       if (error.code !== 'auth.token_expired') {
-        authorizer.rejected()
+        authorizer.rejected(token)
         throw error
       }
       // One refresh and one retry. A failed refresh ends the session itself and rethrows.
-      await authorizer.refresh()
+      await authorizer.refresh(token)
       const renewed = await authorizer.accessToken()
       if (renewed === null) {
         throw error
@@ -158,7 +157,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
         return await attempt(options, renewed)
       } catch (second) {
         if (second instanceof ApiError && second.status === 401) {
-          authorizer.rejected()
+          authorizer.rejected(renewed)
         }
         throw second
       }

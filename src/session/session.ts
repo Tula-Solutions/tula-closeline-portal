@@ -84,13 +84,14 @@ export function createSession(deps: SessionDeps): Session {
     publish(ended ? ENDED : SIGNED_OUT)
   }
 
-  const refresh = (): Promise<void> => {
+  const refresh = (token: string): Promise<void> => {
+    const current = held
+    // A caller holding a token that has since been replaced (or ended) has nothing to renew.
+    if (current === null || current.tokens.accessToken !== token) {
+      return Promise.resolve()
+    }
     if (inFlight) {
       return inFlight
-    }
-    const current = held
-    if (current === null) {
-      return Promise.reject(new ApiError({ code: 'auth.unauthenticated', status: 401 }))
     }
     const run = (async () => {
       try {
@@ -126,12 +127,12 @@ export function createSession(deps: SessionDeps): Session {
         return null
       }
       if (held.expiresAt - now() <= skewMs) {
-        await refresh()
+        await refresh(held.tokens.accessToken)
       }
       return held?.tokens.accessToken ?? null
     },
-    rejected() {
-      if (held !== null) {
+    rejected(token) {
+      if (held !== null && held.tokens.accessToken === token) {
         clear(true)
       }
     },

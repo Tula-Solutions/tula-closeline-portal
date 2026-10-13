@@ -46,6 +46,40 @@ describe('buildCsp', () => {
     expect(buildCsp(local, { meta: true })).not.toContain('upgrade-insecure-requests')
   })
 
+  test.each([
+    ['default-src', "default-src 'none'"],
+    ['script-src', "script-src 'self'"],
+    ['style-src', "style-src 'self'"],
+    ['img-src', "img-src 'self'"],
+    ['font-src', "font-src 'self'"],
+    ['manifest-src', "manifest-src 'self'"],
+    ['base-uri', "base-uri 'none'"],
+    ['form-action', "form-action 'self'"],
+    ['object-src', "object-src 'none'"],
+    ['upgrade-insecure-requests', 'upgrade-insecure-requests'],
+  ])('outside local the policy carries %s exactly', (name, expected) => {
+    const policy = buildCsp(prod, { meta: true })
+    expect(policy.split('; ')).toContain(expected)
+    expect(policy.split('; ').filter((part) => part.startsWith(name))).toEqual([expected])
+  })
+
+  test('the policy is exactly these directives and no others', () => {
+    expect(buildCsp(prod, { meta: false }).split('; ')).toEqual([
+      "default-src 'none'",
+      "script-src 'self'",
+      "style-src 'self'",
+      "img-src 'self'",
+      "font-src 'self'",
+      "connect-src 'self' https://auth.closeline.example https://core.closeline.example https://o1.ingest.sentry.io",
+      "manifest-src 'self'",
+      "base-uri 'none'",
+      "form-action 'self'",
+      "object-src 'none'",
+      'upgrade-insecure-requests',
+      "frame-ancestors 'none'",
+    ])
+  })
+
   test('the header form adds frame-ancestors, which a meta tag ignores', () => {
     expect(buildCsp(prod, { meta: true })).not.toContain('frame-ancestors')
     expect(buildCsp(prod, { meta: false })).toContain("frame-ancestors 'none'")

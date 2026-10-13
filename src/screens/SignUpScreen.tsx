@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { emailSchema, organizationNameSchema } from 'tula-closeline-contract'
 import { CLIENT_ERRORS, clientError } from '~/api/errors'
@@ -19,7 +19,6 @@ const CODE_PATTERN = /^\d{6}$/
 /** Sign-up in two steps: the details (create an Organization, or accept an Invitation), then the emailed code. */
 export function SignUpScreen() {
   const app = useApp()
-  const navigate = useNavigate()
   const [invitation, setInvitation] = useState(() => app.invitation.current())
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -59,6 +58,8 @@ export function SignUpScreen() {
       setCode('')
     }
     if (shown.invitationRefused) {
+      // Forget it everywhere, so leaving and coming back does not offer the same Invitation again.
+      app.invitation.clear()
       setInvitation({ status: 'malformed' })
     }
     setErrors(
@@ -108,12 +109,7 @@ export function SignUpScreen() {
       app.session.start(response.session)
       app.invitation.clear()
     },
-    {
-      onError: fail,
-      onDone: () => {
-        void navigate({ to: '/', replace: true })
-      },
-    }
+    { onError: fail }
   )
 
   const onDetails = (event: FormEvent) => {

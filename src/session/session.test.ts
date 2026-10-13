@@ -96,7 +96,11 @@ describe('a started session', () => {
     })
     session.start(tokens({ now: T0 }))
     advance(50_000)
-    const answers = Promise.all([session.accessToken(), session.accessToken(), session.refresh()])
+    const answers = Promise.all([
+      session.accessToken(),
+      session.accessToken(),
+      session.refresh('access-1'),
+    ])
     release()
     expect((await answers).slice(0, 2)).toEqual(['access-2', 'access-2'])
     expect(refreshed).toHaveLength(1)
@@ -111,7 +115,7 @@ describe('a started session', () => {
     session.start(tokens({ now: T0 }))
     expect(calls).toBe(1)
     stop()
-    session.rejected()
+    session.rejected('access-1')
     expect(calls).toBe(1)
   })
 })
@@ -187,11 +191,59 @@ describe('signing out', () => {
       },
     })
     session.start(tokens({ now: T0 }))
-    const pending = session.refresh()
+    const pending = session.refresh('access-1')
     await session.signOut()
     release()
     await pending
     expect(session.getSnapshot().status).toBe('signed_out')
     expect(await session.accessToken()).toBeNull()
+  })
+})
+
+describe('a late answer about a token that is no longer held', () => {
+  function signedInAsA() {
+    const made = setup()
+    made.session.start(tokens({ now: T0, accessToken: 'access-A', refreshToken: 'refresh-A' }))
+    return made
+  }
+
+  test('a late rejection of the old session does not end the next one', async () => {
+    const { session, refreshed } = signedInAsA()
+    await session.signOut()
+    session.start(tokens({ now: T0, accessToken: 'access-B', refreshToken: 'refresh-B' }))
+    session.rejected('access-A')
+    expect(session.getSnapshot().status).toBe('signed_in')
+    expect(await session.accessToken()).toBe('access-B')
+    expect(refreshed).toEqual([])
+  })
+
+  test('a rejection of the held token ends the session', () => {
+    const { session } = signedInAsA()
+    session.rejected('access-A')
+    expect(session.getSnapshot()).toEqual({ status: 'signed_out', ended: true })
+  })
+
+  test('a late refresh request for the old session does not rotate the next one', async () => {
+    const { session, refreshed } = signedInAsA()
+    await session.signOut()
+    session.start(tokens({ now: T0, accessToken: 'access-B', refreshToken: 'refresh-B' }))
+    await session.refresh('access-A')
+    expect(refreshed).toEqual([])
+    expect(await session.accessToken()).toBe('access-B')
+  })
+
+  test('a second refresh for a token another caller already replaced does nothing', async () => {
+    const { session, refreshed } = signedInAsA()
+    await session.refresh('access-A')
+    await session.refresh('access-A')
+    expect(refreshed).toEqual(['refresh-A'])
+    expect(await session.accessToken()).toBe('access-2')
+  })
+
+  test('a refresh with nobody signed in does nothing', async () => {
+    const { session, refreshed } = setup()
+    await session.refresh('access-A')
+    expect(refreshed).toEqual([])
+    expect(session.getSnapshot().status).toBe('signed_out')
   })
 })

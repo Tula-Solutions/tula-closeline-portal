@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { HANDLED_CODES } from '~/api/messages'
 import { failure, type Handler, json, route } from '~/testing/fixtures'
 import { completeBody, renderPortal, startedBody } from '~/testing/render'
@@ -477,6 +477,22 @@ describe('sign-up: accept an Invitation', () => {
     ).toBeTruthy()
   })
 
+  test('an Invitation the service refuses is forgotten: leaving and coming back shows the Organization form', async () => {
+    const portal = renderPortal({
+      url: `/sign-up#invitation=${TOKEN}`,
+      handlers: [route('POST', START, failure(422, 'signup.invitation_invalid'))],
+    })
+    await fillDetails(portal, { organization: null })
+    await submitDetails(portal)
+    await screen.findByRole('alert')
+    expect(portal.app.invitation.current()).toEqual({ status: 'none' })
+    await portal.user.click(screen.getByRole('link', { name: 'Sign in instead' }))
+    await screen.findByRole('heading', { name: 'Sign in' })
+    await portal.user.click(screen.getByRole('link', { name: 'Create an Organization' }))
+    expect(await screen.findByRole('heading', { name: 'Create your Organization' })).toBeTruthy()
+    expect(screen.getByLabelText('Organization name')).toBeTruthy()
+  })
+
   test('a fragment that cannot be an Invitation is refused up front, and still removed', async () => {
     const portal = renderPortal({ url: '/sign-up#invitation=short' })
     expect(window.location.hash).toBe('')
@@ -538,5 +554,51 @@ describe('sign-up: fields are labelled for assistive technology', () => {
     const message = errorOf(email)
     expect(within(message).getByText('Error:')).toBeTruthy()
     expect(screen.getByLabelText('Password').getAttribute('aria-describedby')).toContain('-hint')
+  })
+})
+
+describe('sign-up: lands on the dashboard whatever happened to the screen', () => {
+  test('a person who leaves the screen while the code is being checked still lands on the dashboard', async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const portal = await reachCodeStep([
+      route('POST', VERIFY, async () => {
+        await gate
+        return json(200, completeBody('sign_up'))
+      }),
+    ])
+    await enterCode(portal)
+    // Leave the screen (as the back button would) while the code is still being checked.
+    await act(() => portal.router.navigate({ to: '/sign-in' }))
+    await screen.findByRole('heading', { name: 'Sign in' })
+    release()
+    expect(await screen.findByRole('heading', { name: 'Home' })).toBeTruthy()
+  })
+})
+
+describe('sign-up: the form', () => {
+  test('asks the browser for a new password, not the saved one', async () => {
+    renderPortal({ url: '/sign-up' })
+    expect((await screen.findByLabelText('Email address')).getAttribute('autocomplete')).toBe(
+      'email'
+    )
+    expect(screen.getByLabelText('Password').getAttribute('autocomplete')).toBe('new-password')
+  })
+
+  test('two submits of the details fired in the same tick send one sign-up', async () => {
+    const portal = renderPortal({ url: '/sign-up', handlers: [started] })
+    await fillDetails(portal)
+    const form = screen.getByRole('button', { name: 'Email me a code' }).closest('form')
+    if (form === null) {
+      throw new Error('no form')
+    }
+    act(() => {
+      fireEvent.submit(form)
+      fireEvent.submit(form)
+    })
+    await screen.findByRole('heading', { name: 'Check your email' })
+    expect(portal.calls.filter((call) => call.path === START)).toHaveLength(1)
   })
 })
