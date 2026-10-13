@@ -16,6 +16,7 @@ from the hub (`tula-closeline`). This file holds only what is specific to this r
 | `bun test` | tests |
 | `bun run dev` / `bun run build` | dev server / static build into `out/` |
 | `bun run generate:api` | regenerate the auth client types (see `README.md`) |
+| `bun run spec:check` | compare the vendored specs with the sibling clones' `origin/develop` (skipped if absent) |
 
 Other scripts are in `package.json`.
 

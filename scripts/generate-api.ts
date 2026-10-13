@@ -10,11 +10,15 @@
  *                                                              the same for core's OpenAPI document; only its
  *                                                              paths are used (the routing table's test), so no
  *                                                              types are generated from it
+ *   bun run spec:check                                         --check, plus drift against origin/develop of the
+ *                                                              sibling clones ../tula-closeline-auth and
+ *                                                              ../tula-closeline-core; a missing clone is skipped
+ *                                                              with a message (CI has none, so CI skips it)
  *   --check also fails if the committed core copy is not a valid document with a commit hash, and with
  *   --from / --core-from it fails if the committed copy differs from that ref of the checkout.
  */
 import { spawnSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 
 // openapi-typescript drives the JavaScript compiler API, which TypeScript 7 (the native compiler
 // that `tsc` is here) does not ship. Load its modules with their `typescript` import pointed at
@@ -73,13 +77,29 @@ function vendor(directory: string, ref: string, spec: URL, commit: URL, name: st
   writeFileSync(commit, hash)
 }
 
-const from = option('--from')
-if (from !== undefined) {
-  vendor(from, option('--ref') ?? 'HEAD', SPEC, COMMIT, 'auth')
+const siblings = process.argv.includes('--siblings')
+let from = option('--from')
+let coreFrom = option('--core-from')
+if (siblings) {
+  const sibling = (short: string): string | undefined => {
+    const path = new URL(`../tula-closeline-${short}`, ROOT).pathname
+    if (existsSync(path)) {
+      return path
+    }
+    console.log(
+      `skipped: no ${short} clone at ${path}, so openapi/${short}.openapi.json is not compared with its service.`
+    )
+    return undefined
+  }
+  from ??= sibling('auth')
+  coreFrom ??= sibling('core')
 }
-const coreFrom = option('--core-from')
+const defaultRef = siblings ? 'origin/develop' : 'HEAD'
+if (from !== undefined) {
+  vendor(from, option('--ref') ?? defaultRef, SPEC, COMMIT, 'auth')
+}
 if (coreFrom !== undefined) {
-  vendor(coreFrom, option('--core-ref') ?? 'HEAD', CORE_SPEC, CORE_COMMIT, 'core')
+  vendor(coreFrom, option('--core-ref') ?? defaultRef, CORE_SPEC, CORE_COMMIT, 'core')
 }
 if (checking) {
   const core = JSON.parse(readFileSync(CORE_SPEC, 'utf8')) as { paths?: Record<string, unknown> }
