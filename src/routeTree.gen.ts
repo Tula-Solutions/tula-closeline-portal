@@ -19,6 +19,8 @@ import { Route as AppSalesHistoryRouteImport } from './routes/_app/sales-history
 import { Route as AppTeamsRouteImport } from './routes/_app/teams'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
+import { Route as AppPlaybookIndexRouteImport } from './routes/_app/playbook/index'
+import { Route as AppPlaybookSearchRouteImport } from './routes/_app/playbook/search'
 import { Route as AppSalesHistoryIndexRouteImport } from './routes/_app/sales-history/index'
 import { Route as AppSalesHistoryRightsRouteImport } from './routes/_app/sales-history/rights'
 import { Route as AppSalesHistorySearchRouteImport } from './routes/_app/sales-history/search'
@@ -76,6 +78,16 @@ const PublicSignUpRoute = PublicSignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => PublicRoute,
 } as any)
+const AppPlaybookIndexRoute = AppPlaybookIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppPlaybookRoute,
+} as any)
+const AppPlaybookSearchRoute = AppPlaybookSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => AppPlaybookRoute,
+} as any)
 const AppSalesHistoryIndexRoute = AppSalesHistoryIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -126,13 +138,15 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/invitations': typeof AppInvitationsRoute
   '/members': typeof AppMembersRoute
-  '/playbook': typeof AppPlaybookRoute
+  '/playbook': typeof AppPlaybookRouteWithChildren
   '/sales-history': typeof AppSalesHistoryRouteWithChildren
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
+  '/playbook/search': typeof AppPlaybookSearchRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/sales-history/search': typeof AppSalesHistorySearchRoute
+  '/playbook/': typeof AppPlaybookIndexRoute
   '/sales-history/': typeof AppSalesHistoryIndexRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
@@ -144,12 +158,13 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/invitations': typeof AppInvitationsRoute
   '/members': typeof AppMembersRoute
-  '/playbook': typeof AppPlaybookRoute
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
+  '/playbook/search': typeof AppPlaybookSearchRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/sales-history/search': typeof AppSalesHistorySearchRoute
+  '/playbook': typeof AppPlaybookIndexRoute
   '/sales-history': typeof AppSalesHistoryIndexRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
@@ -163,14 +178,16 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_app/invitations': typeof AppInvitationsRoute
   '/_app/members': typeof AppMembersRoute
-  '/_app/playbook': typeof AppPlaybookRoute
+  '/_app/playbook': typeof AppPlaybookRouteWithChildren
   '/_app/sales-history': typeof AppSalesHistoryRouteWithChildren
   '/_app/teams': typeof AppTeamsRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/playbook/search': typeof AppPlaybookSearchRoute
   '/_app/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/_app/sales-history/search': typeof AppSalesHistorySearchRoute
+  '/_app/playbook/': typeof AppPlaybookIndexRoute
   '/_app/sales-history/': typeof AppSalesHistoryIndexRoute
   '/_app/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/_app/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
@@ -189,8 +206,10 @@ export interface FileRouteTypes {
     | '/teams'
     | '/sign-in'
     | '/sign-up'
+    | '/playbook/search'
     | '/sales-history/rights'
     | '/sales-history/search'
+    | '/playbook/'
     | '/sales-history/'
     | '/sales-history/deals/$dealRecordId'
     | '/sales-history/imports/$importId'
@@ -202,12 +221,13 @@ export interface FileRouteTypes {
     | '/'
     | '/invitations'
     | '/members'
-    | '/playbook'
     | '/teams'
     | '/sign-in'
     | '/sign-up'
+    | '/playbook/search'
     | '/sales-history/rights'
     | '/sales-history/search'
+    | '/playbook'
     | '/sales-history'
     | '/sales-history/deals/$dealRecordId'
     | '/sales-history/imports/$importId'
@@ -226,8 +246,10 @@ export interface FileRouteTypes {
     | '/_public/sign-in'
     | '/_public/sign-up'
     | '/_app/'
+    | '/_app/playbook/search'
     | '/_app/sales-history/rights'
     | '/_app/sales-history/search'
+    | '/_app/playbook/'
     | '/_app/sales-history/'
     | '/_app/sales-history/deals/$dealRecordId'
     | '/_app/sales-history/imports/$importId'
@@ -313,6 +335,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicSignUpRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_app/playbook/': {
+      id: '/_app/playbook/'
+      path: '/'
+      fullPath: '/playbook/'
+      preLoaderRoute: typeof AppPlaybookIndexRouteImport
+      parentRoute: typeof AppPlaybookRoute
+    }
+    '/_app/playbook/search': {
+      id: '/_app/playbook/search'
+      path: '/search'
+      fullPath: '/playbook/search'
+      preLoaderRoute: typeof AppPlaybookSearchRouteImport
+      parentRoute: typeof AppPlaybookRoute
+    }
     '/_app/sales-history/': {
       id: '/_app/sales-history/'
       path: '/'
@@ -372,6 +408,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppPlaybookRouteChildren {
+  AppPlaybookSearchRoute: typeof AppPlaybookSearchRoute
+  AppPlaybookIndexRoute: typeof AppPlaybookIndexRoute
+}
+
+const AppPlaybookRouteChildren: AppPlaybookRouteChildren = {
+  AppPlaybookSearchRoute: AppPlaybookSearchRoute,
+  AppPlaybookIndexRoute: AppPlaybookIndexRoute,
+}
+
+const AppPlaybookRouteWithChildren = AppPlaybookRoute._addFileChildren(
+  AppPlaybookRouteChildren,
+)
+
 interface AppSalesHistoryRouteChildren {
   AppSalesHistoryRightsRoute: typeof AppSalesHistoryRightsRoute
   AppSalesHistorySearchRoute: typeof AppSalesHistorySearchRoute
@@ -401,7 +451,7 @@ const AppSalesHistoryRouteWithChildren = AppSalesHistoryRoute._addFileChildren(
 interface AppRouteChildren {
   AppInvitationsRoute: typeof AppInvitationsRoute
   AppMembersRoute: typeof AppMembersRoute
-  AppPlaybookRoute: typeof AppPlaybookRoute
+  AppPlaybookRoute: typeof AppPlaybookRouteWithChildren
   AppSalesHistoryRoute: typeof AppSalesHistoryRouteWithChildren
   AppTeamsRoute: typeof AppTeamsRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -410,7 +460,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppInvitationsRoute: AppInvitationsRoute,
   AppMembersRoute: AppMembersRoute,
-  AppPlaybookRoute: AppPlaybookRoute,
+  AppPlaybookRoute: AppPlaybookRouteWithChildren,
   AppSalesHistoryRoute: AppSalesHistoryRouteWithChildren,
   AppTeamsRoute: AppTeamsRoute,
   AppIndexRoute: AppIndexRoute,

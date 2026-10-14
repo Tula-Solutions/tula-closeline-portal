@@ -1,4 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { DocumentsScreen } from '~/screens/DocumentsScreen'
+import { PlaybookLayout } from '~/screens/PlaybookLayout'
 
-export const Route = createFileRoute('/_app/playbook')({ component: DocumentsScreen })
+export const Route = createFileRoute('/_app/playbook')({ component: PlaybookLayout })

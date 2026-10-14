@@ -5,6 +5,9 @@ import {
   type ListDocumentsResponse,
   listDocumentsResponseSchema,
   type PlaybookDocument,
+  type SearchDocumentsRequest,
+  type SearchDocumentsResponse,
+  searchDocumentsResponseSchema,
   UPLOAD_FILE_FIELD,
 } from 'tula-closeline-contract'
 import { PAGE_SIZE, type PageRequest } from '~/api/core'
@@ -21,6 +24,11 @@ export type DocumentPageRequest = PageRequest & { readonly state?: DocumentState
 
 /** The playbook service routes the portal uses. */
 export type PlaybookApi = {
+  /** Searches the Organization's Documents for text like the conversation so far. The body is conversation text: it is sent, never logged. */
+  searchDocuments(
+    request: SearchDocumentsRequest,
+    signal?: AbortSignal
+  ): Promise<SearchDocumentsResponse>
   /** One page of documents, newest first; without a state, every document that is not deleted. */
   listDocuments(page: DocumentPageRequest): Promise<ListDocumentsResponse>
   /** Uploads one file (Owner, Admin); the key makes a repeat of the same upload store it once. */
@@ -48,6 +56,15 @@ export function onlyStatus<S extends number>(status: number, ...allowed: readonl
 /** Builds the playbook routes over an HTTP client for same-origin paths, which sends the access token. */
 export function createPlaybookApi(http: HttpClient): PlaybookApi {
   return {
+    searchDocuments: (request, signal) =>
+      http.request({
+        method: 'POST',
+        path: '/v1/playbook/search/documents',
+        body: request,
+        auth: true,
+        ...(signal ? { signal } : {}),
+        parse: (json) => searchDocumentsResponseSchema.parse(json),
+      }),
     listDocuments: (page) =>
       http.request({
         path: '/v1/playbook/documents',

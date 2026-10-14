@@ -33,6 +33,8 @@ export const can = {
   manageSalesHistory: (role: Role) => roleAtLeast(role, 'admin'),
   /** The roles the contract gives the search route (Owner and Admin) search the Moments of won Deals. */
   searchWonDeals: (role: Role) => SEARCH_ROUTES.searchMoments.roles.includes(role),
+  /** The roles the contract gives the Document search route (every role) search the Playbook's Documents. */
+  searchDocuments: (role: Role) => SEARCH_ROUTES.searchDocuments.roles.includes(role),
 }
 
 /** The roles an Invitation may offer: an Owner offers Admin, Manager or Rep; an Admin Manager or Rep. */
