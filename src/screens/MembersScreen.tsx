@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import type { Member, Role } from 'tula-closeline-contract'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
+import { PageHeader } from '~/components/app/page-header'
 import { assignableRoles, can, canRemoveMember, ROLE_LABEL } from '~/data/permissions'
 import { refresh, useMembers } from '~/data/queries'
 import { useRole } from '~/data/session-role'
@@ -27,9 +28,12 @@ export function MembersScreen() {
   }
   return (
     <>
-      <h1 tabIndex={-1} ref={headingRef}>
-        Members
-      </h1>
+      <PageHeader
+        title='Members'
+        description='Everyone in your Organization and the role they hold.'
+        headingRef={headingRef}
+        headingProps={{ tabIndex: -1 }}
+      />
       {allowed ? (
         <>
           <p role='status' className='notice'>

@@ -10,6 +10,7 @@ import {
 import { ApiError } from '~/api/errors'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
+import { PageHeader } from '~/components/app/page-header'
 import { useDeals } from '~/data/queries'
 import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
 import { Banner } from '~/ui/Banner'
@@ -47,8 +48,10 @@ export function DealsScreen() {
   const deals = useDeals({ outcome, unseen })
   return (
     <>
-      <h1>Deals</h1>
-      <p>A Deal is a sale. Its Outcome decides whether its Calls are used in search.</p>
+      <PageHeader
+        title='Deals'
+        description='A Deal is a sale. Its Outcome decides whether its Calls are used in search.'
+      />
       <LookupForm />
       <h2>All Deals</h2>
       <SelectField

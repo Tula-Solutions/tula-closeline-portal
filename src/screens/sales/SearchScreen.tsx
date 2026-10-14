@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
 import type { SearchMomentsResponse } from 'tula-closeline-contract'
 import { useApp } from '~/app-context'
+import { PageHeader } from '~/components/app/page-header'
 import { can } from '~/data/permissions'
 import { useRole } from '~/data/session-role'
 import { percent, plural, SearchForm } from '~/screens/search/SearchForm'
@@ -93,15 +94,15 @@ export function SearchScreen() {
   }
   if (!can.searchWonDeals(role)) {
     return (
-      <>
-        <h1>Not allowed</h1>
-        <p>Search is for Owners and Admins. Ask an Owner or Admin of your Organization.</p>
-      </>
+      <PageHeader
+        title='Not allowed'
+        description='Search is for Owners and Admins. Ask an Owner or Admin of your Organization.'
+      />
     )
   }
   return (
     <>
-      <h1>Search won Deals</h1>
+      <PageHeader title='Search won Deals' />
       <SearchForm
         label='Search won Deals'
         intro='Write what was said so far. The search finds Moments from your won Deals that sound like it.'

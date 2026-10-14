@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
 import type { SearchDocumentsResponse } from 'tula-closeline-contract'
 import { useApp } from '~/app-context'
+import { PageHeader } from '~/components/app/page-header'
 import { can } from '~/data/permissions'
 import { useRole } from '~/data/session-role'
 import { plural, SearchForm } from '~/screens/search/SearchForm'
@@ -62,16 +63,11 @@ export function SearchDocumentsScreen() {
     return null
   }
   if (!can.searchDocuments(role)) {
-    return (
-      <>
-        <h1>Not allowed</h1>
-        <p>Your role cannot search Documents.</p>
-      </>
-    )
+    return <PageHeader title='Not allowed' description='Your role cannot search Documents.' />
   }
   return (
     <>
-      <h1>Search Documents</h1>
+      <PageHeader title='Search Documents' />
       <SearchForm
         label='Search Documents'
         intro="Write what was said so far. The search finds text in your Playbook's Documents that sounds like it."

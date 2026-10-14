@@ -8,6 +8,7 @@ import {
 import { dropInvitationKeys, fingerprint } from '~/api/idempotency'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
+import { PageHeader } from '~/components/app/page-header'
 import { can, canRevokeInvitation, invitableRoles, ROLE_LABEL } from '~/data/permissions'
 import { refresh, useInvitations } from '~/data/queries'
 import { useRole } from '~/data/session-role'
@@ -49,9 +50,12 @@ export function InvitationsScreen() {
   }
   return (
     <>
-      <h1 tabIndex={-1} ref={headingRef}>
-        Invitations
-      </h1>
+      <PageHeader
+        title='Invitations'
+        description='Invite people to your Organization and see who has not answered yet.'
+        headingRef={headingRef}
+        headingProps={{ tabIndex: -1 }}
+      />
       {allowed ? (
         <>
           <InviteForm role={role} onSent={feedback.done} onFail={feedback.failed} />

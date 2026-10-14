@@ -7,6 +7,7 @@ import {
 } from 'tula-closeline-contract'
 import { presentDocument } from '~/api/playbook-messages'
 import { useApp } from '~/app-context'
+import { PageHeader } from '~/components/app/page-header'
 import {
   FILTER_LABEL,
   failureWords,
@@ -63,10 +64,12 @@ function DocumentsView(props: { readonly manage: boolean }) {
   )
   return (
     <>
-      <h1 tabIndex={-1} ref={headingRef}>
-        Playbook
-      </h1>
-      <p>The documents your Organization's sales knowledge comes from.</p>
+      <PageHeader
+        title='Playbook'
+        description="The documents your Organization's sales knowledge comes from."
+        headingRef={headingRef}
+        headingProps={{ tabIndex: -1 }}
+      />
       {props.manage ? <UploadSection /> : null}
       <SelectField
         label='Show'
