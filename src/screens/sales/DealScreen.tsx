@@ -102,9 +102,14 @@ function OutcomeForm(props: {
     readAtNow.current = props.readAt
   }, [props.readAt])
   // The Outcome just saved and when the Deal was last read, until a newer read arrives.
-  const [saved, setSaved] = useState<{ outcome: Outcome; readAt: number } | null>(null)
+  const [saved, setSaved] = useState<{
+    outcome: Outcome
+    date: string | null
+    readAt: number
+  } | null>(null)
   useEffect(() => {
     if (saved !== null && props.readAt !== saved.readAt) {
+      setTypedDate((now) => (now === saved.date ? null : now))
       // A read finished after the save: follow what the service now says (another Admin may
       // have changed it too), unless a different choice was made while it was in flight.
       setChosen((now) => (now === saved.outcome ? null : now))
@@ -118,15 +123,19 @@ function OutcomeForm(props: {
   const [dateError, setDateError] = useState<string | undefined>(undefined)
   const { formRef, focusFirstError } = useFocusOnError()
   const date = typedDate ?? props.closedAt ?? ''
-  const save = useSubmit<{ outcome: Outcome; closedAt: string | null | undefined }>(
-    async ({ outcome: chosen, closedAt }) => {
+  const save = useSubmit<{
+    outcome: Outcome
+    closedAt: string | null | undefined
+    typed: string | null
+  }>(
+    async ({ outcome: chosen, closedAt, typed }) => {
       setError(null)
       await app.salesHistory.setDealOutcome(props.id, chosen, closedAt)
       setNotice('Outcome saved.')
       // The select keeps showing what was saved until a read of the Deal succeeds (the effect
       // above). A failed read is the page's own error, not this save's.
       // The read count as the save answers: a read that finished while it was in flight is older than the save.
-      setSaved({ outcome: chosen, readAt: readAtNow.current })
+      setSaved({ outcome: chosen, date: typed, readAt: readAtNow.current })
       await refresh(app, 'deals')
     },
     { onError: (caught) => setError(presentSales(caught, 'outcome').message) }
@@ -140,11 +149,21 @@ function OutcomeForm(props: {
         event.preventDefault()
         setNotice('')
         // The date goes as `YYYY-MM-DD` only; empty sends none, or null to clear one the Deal had.
+        // An untouched date is not sent: it could overwrite one another Admin set since the read.
         let closedAt: string | null | undefined
-        if (date === '') {
+        const field = event.currentTarget.elements.namedItem('closedAt')
+        if (field instanceof HTMLInputElement && field.validity.badInput) {
+          // A half-typed date reads as '' and must not clear the stored one.
+          setDateError('Enter a complete date, or clear the field.')
+          focusFirstError()
+          return
+        }
+        if (typedDate === null) {
+          closedAt = undefined
+        } else if (typedDate === '') {
           closedAt = props.closedAt === null ? undefined : null
         } else {
-          const checked = calendarDateSchema.safeParse(date)
+          const checked = calendarDateSchema.safeParse(typedDate)
           if (!checked.success) {
             setDateError('Enter a real date from 1970 to 2100.')
             focusFirstError()
@@ -153,7 +172,7 @@ function OutcomeForm(props: {
           closedAt = checked.data
         }
         setDateError(undefined)
-        save.submit({ outcome, closedAt })
+        save.submit({ outcome, closedAt, typed: typedDate })
       }}
     >
       <h2 id='outcome-heading'>Set the Outcome</h2>

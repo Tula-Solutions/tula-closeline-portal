@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { callBody, dealBody, page, rightsBody } from '~/testing/core-bodies'
 import { failure, json, route } from '~/testing/fixtures'
 import { visit } from '~/testing/sales'
@@ -80,6 +80,45 @@ describe('the Outcome form takes a date', () => {
     await waitFor(() => expect(field.getAttribute('aria-invalid')).toBe('true'))
     expect(put(portal)).toHaveLength(0)
     expect(document.activeElement).toBe(field)
+  })
+
+  test('a half-typed date is refused and never clears the stored date', async () => {
+    const withDate = dealBody(3, { outcome: 'won', closedAt: '2026-01-31' })
+    const portal = open(withDate)
+    const field = (await screen.findByLabelText(/Closing date/)) as HTMLInputElement
+    // A browser reports a half-typed date as '' with validity.badInput set.
+    Object.defineProperty(field, 'validity', { value: { badInput: true }, configurable: true })
+    fireEvent.change(field, { target: { value: '' } })
+    await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
+    await waitFor(() => expect(field.getAttribute('aria-invalid')).toBe('true'))
+    expect(put(portal)).toHaveLength(0)
+  })
+
+  test('an untouched date is not sent again with an Outcome-only save', async () => {
+    const withDate = dealBody(4, { outcome: 'open', closedAt: '2026-01-31' })
+    const portal = open(withDate)
+    await portal.user.selectOptions(await screen.findByLabelText('Outcome'), 'won')
+    await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
+    await waitFor(() => expect(put(portal)).toHaveLength(1))
+    expect(put(portal)[0]?.body).toEqual({ outcome: 'won' })
+  })
+
+  test('after a save the date follows the service again', async () => {
+    const withDate = dealBody(5, { outcome: 'open', closedAt: '2026-01-31' })
+    let saved = false
+    const portal = visit(`/sales-history/deals/${withDate.id}`, 'owner', [
+      route('GET', `${DEALS}/${withDate.id}`, () =>
+        json(200, saved ? { ...withDate, closedAt: '2026-03-05' } : withDate)
+      ),
+      route('PUT', `${DEALS}/${withDate.id}/outcome`, () => {
+        saved = true
+        return json(200, withDate)
+      }),
+    ])
+    const field = (await screen.findByLabelText(/Closing date/)) as HTMLInputElement
+    fireEvent.change(field, { target: { value: '2026-02-01' } })
+    await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
+    await waitFor(() => expect(field.value).toBe('2026-03-05'))
   })
 
   test('an answer of 422 is shown on the form', async () => {
