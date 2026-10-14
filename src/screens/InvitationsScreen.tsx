@@ -1,3 +1,4 @@
+import { Lock, Mail, MailCheck, Send } from 'lucide-react'
 import { type FormEvent, useCallback, useRef, useState } from 'react'
 import {
   emailSchema,
@@ -8,7 +9,11 @@ import {
 import { dropInvitationKeys, fingerprint } from '~/api/idempotency'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
+import { EmptyState } from '~/components/app/empty-state'
 import { PageHeader } from '~/components/app/page-header'
+import { RoleBadge } from '~/components/app/role-badge'
+import { Section } from '~/components/app/section'
+import { Avatar } from '~/components/ui/avatar'
 import { can, canRevokeInvitation, invitableRoles, ROLE_LABEL } from '~/data/permissions'
 import { refresh, useInvitations } from '~/data/queries'
 import { useRole } from '~/data/session-role'
@@ -51,52 +56,71 @@ export function InvitationsScreen() {
   return (
     <>
       <PageHeader
+        icon={Mail}
         title='Invitations'
         description='Invite people to your Organization and see who has not answered yet.'
         headingRef={headingRef}
         headingProps={{ tabIndex: -1 }}
       />
       {allowed ? (
-        <>
-          <InviteForm role={role} onSent={feedback.done} onFail={feedback.failed} />
-          <p role='status' className='notice'>
-            {feedback.notice}
-          </p>
-          <h2>Pending Invitations</h2>
-          <Paged
-            noun='Invitations'
-            emptyText='No Invitations are pending.'
-            state={invitations.state}
+        <div className='grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]'>
+          <Section
+            id='invite'
+            icon={Send}
+            title='Invite someone'
+            description='They get an email with a link to join.'
+            className='lg:sticky lg:top-6 lg:order-2'
           >
-            <ScrollRegion label='Pending Invitations'>
-              <table>
-                <thead>
-                  <tr>
-                    <th scope='col'>Email address</th>
-                    <th scope='col'>Role offered</th>
-                    <th scope='col'>Expires</th>
-                    <th scope='col'>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invitations.items.map((invitation) => (
-                    <InvitationRow
-                      key={invitation.id}
-                      invitation={invitation}
-                      canRevoke={canRevokeInvitation(role, invitation.role)}
-                      onDone={feedback.done}
-                      onFail={feedback.failed}
-                      serial={feedback.serial}
-                      onRevoked={() => headingRef.current?.focus()}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </ScrollRegion>
-          </Paged>
-        </>
+            <InviteForm role={role} onSent={feedback.done} onFail={feedback.failed} />
+          </Section>
+          <div className='page-stack gap-3 lg:order-1'>
+            <p role='status' className='notice'>
+              {feedback.notice}
+            </p>
+            <h2 className='m-0 text-[0.9375rem] font-semibold tracking-[-0.011em]'>
+              Pending Invitations
+            </h2>
+            <Paged
+              noun='Invitations'
+              emptyText='No Invitations are pending.'
+              emptyIcon={MailCheck}
+              emptyHint='Everyone you invited has answered. Send a new one with the form on this page.'
+              state={invitations.state}
+            >
+              <ScrollRegion label='Pending Invitations'>
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope='col'>Email address</th>
+                      <th scope='col'>Role offered</th>
+                      <th scope='col'>Expires</th>
+                      <th scope='col' className='w-0 text-end'>
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invitations.items.map((invitation) => (
+                      <InvitationRow
+                        key={invitation.id}
+                        invitation={invitation}
+                        canRevoke={canRevokeInvitation(role, invitation.role)}
+                        onDone={feedback.done}
+                        onFail={feedback.failed}
+                        serial={feedback.serial}
+                        onRevoked={() => headingRef.current?.focus()}
+                      />
+                    ))}
+                  </tbody>
+                </table>
+              </ScrollRegion>
+            </Paged>
+          </div>
+        </div>
       ) : (
-        <p>Your role cannot send or see Invitations. Ask an Owner or Admin.</p>
+        <EmptyState icon={Lock} title='Invitations are for Owners and Admins'>
+          Your role cannot send or see Invitations. Ask an Owner or Admin.
+        </EmptyState>
       )}
     </>
   )
@@ -163,8 +187,13 @@ function InviteForm(props: {
   }
 
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate aria-labelledby='invite-heading'>
-      <h2 id='invite-heading'>Invite someone</h2>
+    <form
+      ref={formRef}
+      onSubmit={onSubmit}
+      noValidate
+      aria-labelledby='invite-heading'
+      className='gap-0'
+    >
       {errors.form ? (
         <Banner kind='error' innerRef={bannerRef}>
           {errors.form}
@@ -189,7 +218,7 @@ function InviteForm(props: {
         onChange={(event) => setOfferedRole(event.target.value as InvitableRole)}
       />
       <div>
-        <button type='submit' className='button' aria-disabled={send.pending}>
+        <button type='submit' className='button w-full' aria-disabled={send.pending}>
           {send.pending ? 'Sending...' : 'Send Invitation'}
         </button>
       </div>
@@ -232,15 +261,22 @@ function InvitationRow(props: {
   const expired = Date.parse(invitation.expiresAt) < Date.now()
   return (
     <tr>
-      <th scope='row'>
-        <Untrusted value={invitation.email} />
+      <th scope='row' className='font-medium'>
+        <span className='flex min-w-0 items-center gap-3'>
+          <Avatar name={invitation.email} toneKey={invitation.id} size='sm' />
+          <Untrusted value={invitation.email} />
+        </span>
       </th>
-      <td>{ROLE_LABEL[invitation.role]}</td>
       <td>
-        <When iso={invitation.expiresAt} />
-        {expired ? <strong> (expired)</strong> : null}
+        <RoleBadge role={invitation.role} />
       </td>
-      <td>
+      <td className={expired ? 'text-muted-foreground' : undefined}>
+        <When iso={invitation.expiresAt} />
+        {expired ? (
+          <strong className='ml-1.5 text-xs font-semibold text-danger'> (expired)</strong>
+        ) : null}
+      </td>
+      <td className='text-end'>
         {props.canRevoke ? (
           <Confirm
             label='Revoke'
@@ -253,6 +289,7 @@ function InvitationRow(props: {
                 email stops working.
               </>
             }
+            tone='quiet-destructive'
             confirmLabel='Revoke Invitation'
             pending={revoke.pending}
             describedBy={error ? errorId : undefined}
