@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { FileText } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import type { SearchDocumentsResponse } from 'tula-closeline-contract'
 import { useApp } from '~/app-context'
@@ -25,19 +26,31 @@ function Results(props: { readonly answer: SearchDocumentsResponse }) {
             Based on {plural(evidence.chunks, 'chunk', 'chunks')} across{' '}
             {plural(evidence.documents, 'Document', 'Documents')} in this search
           </p>
-          <ol aria-label='Matching Document text'>
+          <ol aria-label='Matching Document text' className='grid gap-4'>
             {items.map((item, index) => (
-              <li key={`${item.documentId}-${item.page}-${item.snippet}`}>
-                <h3>
-                  <bdi>{item.fileName}</bdi>
-                  {item.page === null ? '' : `, page ${item.page}`}
+              <li
+                key={`${item.documentId}-${item.page}-${item.snippet}`}
+                className='rounded-xl border bg-card p-5 shadow-xs'
+              >
+                <h3 className='mb-3 flex items-center gap-2 text-base font-semibold'>
+                  <FileText aria-hidden='true' className='size-4 shrink-0 text-muted-foreground' />
+                  <span>
+                    <bdi>{item.fileName}</bdi>
+                    {item.page === null ? '' : `, page ${item.page}`}
+                  </span>
                 </h3>
-                <p>
-                  <bdi>{item.snippet}</bdi>
-                </p>
-                <p>
+                <blockquote className='m-0 rounded-lg border-l-4 border-primary bg-primary/10 px-4 py-3'>
+                  <p className='m-0'>
+                    <bdi>{item.snippet}</bdi>
+                  </p>
+                </blockquote>
+                <p className='mt-4 mb-0 text-sm font-medium'>
                   {/* There is no page for one Document: this opens the list of them. */}
-                  <Link to='/playbook' aria-label={`Documents screen, for result ${index + 1}`}>
+                  <Link
+                    to='/playbook'
+                    aria-label={`Documents screen, for result ${index + 1}`}
+                    className='text-primary underline-offset-4 hover:underline'
+                  >
                     Documents screen
                   </Link>
                 </p>

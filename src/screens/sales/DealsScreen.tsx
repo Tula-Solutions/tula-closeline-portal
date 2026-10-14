@@ -11,6 +11,7 @@ import { ApiError } from '~/api/errors'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
+import { StatusBadge } from '~/components/app/status-badge'
 import { useDeals } from '~/data/queries'
 import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
 import { Banner } from '~/ui/Banner'
@@ -104,7 +105,9 @@ export function DealsScreen() {
                     </Link>
                   </th>
                   <td>{deal.name === null ? '-' : <Untrusted value={deal.name} />}</td>
-                  <td>{outcomeLabel(deal.outcome)}</td>
+                  <td>
+                    <StatusBadge state={deal.outcome}>{outcomeLabel(deal.outcome)}</StatusBadge>
+                  </td>
                   <td>{deal.closedAt === null ? '-' : <DateOnly value={deal.closedAt} />}</td>
                   <td>
                     <Money amount={deal.amount} currency={deal.currency} />

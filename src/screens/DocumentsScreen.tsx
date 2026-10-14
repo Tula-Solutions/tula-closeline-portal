@@ -8,6 +8,7 @@ import {
 import { presentDocument } from '~/api/playbook-messages'
 import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
+import { StatusBadge } from '~/components/app/status-badge'
 import {
   FILTER_LABEL,
   failureWords,
@@ -177,7 +178,7 @@ function DocumentRow(props: {
       <td>{typeLabel(document.mediaType)}</td>
       <td>{formatBytes(document.sizeBytes)}</td>
       <td>
-        <span>{stateLabel(document.state)}</span>
+        <StatusBadge state={document.state}>{stateLabel(document.state)}</StatusBadge>
         {document.failureReason === null ? null : (
           <p className='hint'>{failureWords(document.failureReason)}</p>
         )}

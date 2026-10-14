@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { type DragEvent, useState } from 'react'
 import { MAX_DEAL_IMPORT_ROWS } from 'tula-closeline-contract'
 import { PageHeader } from '~/components/app/page-header'
+import { StatusBadge } from '~/components/app/status-badge'
 import { useDealImports } from '~/data/queries'
 import {
   dealImportTemplate,
@@ -68,7 +69,9 @@ export function ImportsScreen() {
                   <th scope='row'>
                     <When iso={item.createdAt} />
                   </th>
-                  <td>{importStateLabel(item.state)}</td>
+                  <td>
+                    <StatusBadge state={item.state}>{importStateLabel(item.state)}</StatusBadge>
+                  </td>
                   <td>{item.rowCount ?? '-'}</td>
                   <td>{item.appliedCount ?? '-'}</td>
                   <td>{item.rejectedCount ?? '-'}</td>

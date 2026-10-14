@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useApp } from '~/app-context'
+import { Button } from '~/components/ui/button'
 import { Logo } from '~/ui/Logo'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 
@@ -12,13 +13,14 @@ export function ErrorScreen(props: { readonly error: unknown }) {
     reporter.report(error)
   }, [reporter, error])
   return (
-    <main className='page-centered' role='alert'>
-      <Logo />
-      <h1>Something went wrong</h1>
+    <main
+      className='mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 px-4 text-center [&_p]:m-0'
+      role='alert'
+    >
+      <Logo className='mb-4 w-40' />
+      <h1 className='text-2xl font-semibold tracking-tight'>Something went wrong</h1>
       <p>We have been told about it. Reload the page to try again.</p>
-      <button type='button' className='button' onClick={() => window.location.reload()}>
-        Reload
-      </button>
+      <Button onClick={() => window.location.reload()}>Reload</Button>
     </main>
   )
 }
