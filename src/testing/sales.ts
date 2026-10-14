@@ -1,3 +1,4 @@
+import type { RightsWording } from 'tula-closeline-contract'
 import { type Handler, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
 
@@ -8,13 +9,19 @@ export function visit(
   url: string,
   role: Role,
   handlers: Handler[],
-  extra: { sleep?: (milliseconds: number) => Promise<void> } = {}
+  extra: {
+    sleep?: (milliseconds: number) => Promise<void>
+    rightsWording?: (version: number) => RightsWording | undefined
+    strict?: boolean
+  } = {}
 ) {
   return renderPortal({
     url,
     signedIn: tokens({ organization: { id: 'org_1', role } }),
     handlers,
     ...(extra.sleep ? { sleep: extra.sleep } : {}),
+    ...(extra.strict ? { strict: true } : {}),
+    ...(extra.rightsWording ? { rightsWording: extra.rightsWording } : {}),
   })
 }
 

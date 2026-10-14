@@ -127,8 +127,8 @@ customer's deal id through `POST /deals/lookup` (the id is in the body, never an
 event) and opens at `/sales-history/deals/deal_…`. An import is a CSV checked in the browser (extension,
 size, the contract's header check) then sent as multipart with an `Idempotency-Key`; its report lists every
 row with the reason in words and can be downloaded as CSV with formula-looking cells made safe. The rights
-confirmation wording is in the portal (`src/data/rights-wording.ts`), not the contract, and is a draft
-pending a lawyer's check.
+confirmation wording is the contract's (`RIGHTS_WORDINGS`, contract v0.9.0): the screen shows the text of the
+version it will send, marked as a draft while the contract says so (pending a lawyer's check).
 
 Calls (`/sales-history/calls`) are uploaded as Transcripts only (no Recording upload): the file, the
 customer's deal id and the Rep's speaker label go in the multipart body with an `Idempotency-Key`. If the

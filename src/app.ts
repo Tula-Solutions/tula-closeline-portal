@@ -1,4 +1,5 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
+import { type RightsWording, rightsWordingFor } from 'tula-closeline-contract'
 import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
 import { type CoreApi, createCoreApi } from '~/api/core'
 import { createHttpClient, type Fetch } from '~/api/http'
@@ -20,6 +21,8 @@ export type App = {
   readonly salesHistory: SalesHistoryApi
   /** The Transcript chosen but not yet sent, held in memory across the rights confirmation. */
   readonly pendingCall: PendingCallHolder
+  /** The text of a rights wording version, from the contract: a version with none cannot be confirmed. */
+  readonly rightsWording: (version: number) => RightsWording | undefined
   /** Waits `milliseconds` (the injected `sleep` in tests): the document poll and a `Retry-After` wait use it. */
   readonly sleep: (milliseconds: number) => Promise<void>
   readonly session: Session
@@ -47,6 +50,8 @@ export type AppInit = {
   readonly channel?: SessionChannel
   /** The holder that already took the Invitation from the address; a new one when omitted. */
   readonly invitation?: InvitationHolder
+  /** The text of a rights wording version; the contract's table when omitted (tests stand in a second version). */
+  readonly rightsWording?: (version: number) => RightsWording | undefined
 }
 
 /** Builds the app: HTTP clients for auth, core and playbook, the session, the query cache and the reporter. */
@@ -127,5 +132,6 @@ export function createApp(init: AppInit): App {
     invitation: init.invitation ?? createInvitationHolder(),
     keys,
     pendingCall,
+    rightsWording: init.rightsWording ?? rightsWordingFor,
   }
 }
