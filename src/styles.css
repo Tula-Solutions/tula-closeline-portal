@@ -56,12 +56,6 @@
     gap: 1rem;
   }
 
-  /* A submit button is as wide as its label, not stretched across a wide page. */
-  form > .button,
-  form > button[type="submit"] {
-    justify-self: start;
-  }
-
   fieldset {
     display: grid;
     min-width: 0;
@@ -167,6 +161,12 @@
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
+  }
+
+  /* A submit button is as wide as its label, not stretched across a wide page. */
+  form > .button,
+  form > button[type="submit"] {
+    justify-self: start;
   }
 
   .button:hover {

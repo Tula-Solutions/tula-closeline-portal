@@ -36,7 +36,7 @@ export function SelectField(
         <p className='flex items-start gap-1.5 text-sm text-danger' id={errorId}>
           <CircleAlert aria-hidden='true' className='mt-0.5 size-4 shrink-0' />
           <span>
-            <strong className='sr-only'>Error:</strong> {error}
+            <strong>Error:</strong> {error}
           </span>
         </p>
       ) : null}

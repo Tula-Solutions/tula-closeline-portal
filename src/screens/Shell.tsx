@@ -12,7 +12,7 @@ import {
   UsersRound,
   X,
 } from 'lucide-react'
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useApp, useSessionState } from '~/app-context'
 import { NavLink, SubNavLink } from '~/components/app/nav-link'
 import { ThemeMenu } from '~/components/app/theme-menu'
@@ -36,14 +36,30 @@ export function Shell() {
   const session = useSessionState()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const [open, setOpen] = useState(false)
+  const toggleRef = useRef<HTMLButtonElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const mainRef = useRef<HTMLElement>(null)
+  const openRef = useRef(open)
+  openRef.current = open
   const organization = useQuery({
     queryKey: ['organization', session.status === 'signed_in' ? session.organization.id : null],
     queryFn: ({ signal }) => app.core.getOrganization(signal),
     enabled: session.status === 'signed_in',
   })
-  // A new page closes the drawer on a narrow screen.
+  // A new page closes the drawer on a narrow screen and, if it was open, puts focus on the page.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the drawer closes when the page changes
-  useEffect(() => setOpen(false), [pathname])
+  useEffect(() => {
+    if (openRef.current) {
+      mainRef.current?.focus()
+    }
+    setOpen(false)
+  }, [pathname])
+  // Opening the drawer moves focus into it, so a keyboard user is not left behind it.
+  useEffect(() => {
+    if (open) {
+      closeRef.current?.focus()
+    }
+  }, [open])
   // Escape closes it too.
   useEffect(() => {
     if (!open) {
@@ -52,6 +68,7 @@ export function Shell() {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setOpen(false)
+        toggleRef.current?.focus()
       }
     }
     document.addEventListener('keydown', onKey)
@@ -77,6 +94,7 @@ export function Shell() {
       </a>
       <div className='sticky top-0 z-30 flex items-center gap-3 border-b bg-background/90 px-4 py-2 backdrop-blur md:hidden'>
         <Button
+          ref={toggleRef}
           variant='ghost'
           size='icon'
           aria-label={open ? 'Close navigation' : 'Open navigation'}
@@ -94,7 +112,10 @@ export function Shell() {
           aria-label='Close the navigation backdrop'
           tabIndex={-1}
           className='fixed inset-0 z-40 bg-foreground/40 md:hidden'
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            setOpen(false)
+            toggleRef.current?.focus()
+          }}
         />
       ) : null}
       <aside
@@ -104,8 +125,21 @@ export function Shell() {
           open ? 'visible translate-x-0' : 'max-md:invisible max-md:-translate-x-full'
         )}
       >
-        <div className='px-2 pt-1'>
+        <div className='flex items-center justify-between px-2 pt-1'>
           <Logo className='w-36' />
+          <Button
+            ref={closeRef}
+            variant='ghost'
+            size='icon'
+            className='md:hidden'
+            aria-label='Close menu'
+            onClick={() => {
+              setOpen(false)
+              toggleRef.current?.focus()
+            }}
+          >
+            <X aria-hidden='true' />
+          </Button>
         </div>
         <nav aria-label='Main' className='flex flex-1 flex-col gap-1 overflow-y-auto'>
           <NavLink to='/' icon={House} exact>
@@ -190,7 +224,12 @@ export function Shell() {
           </div>
         </div>
       </aside>
-      <main id='main' tabIndex={-1} className='min-w-0 px-4 py-8 outline-none md:px-10 md:py-10'>
+      <main
+        ref={mainRef}
+        id='main'
+        tabIndex={-1}
+        className='min-w-0 px-4 py-8 outline-none md:px-10 md:py-10'
+      >
         <div className='mx-auto w-full max-w-6xl'>
           {/* Keyed by Organization: another Organization starts every screen fresh, with no state of the last. */}
           <Fragment key={session.organization.id}>

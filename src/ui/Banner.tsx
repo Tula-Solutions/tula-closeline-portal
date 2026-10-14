@@ -23,7 +23,7 @@ export function Banner(props: {
     >
       <Icon aria-hidden='true' />
       <AlertDescription>
-        {props.kind === 'error' ? <strong className='sr-only'>Error: </strong> : null}
+        {props.kind === 'error' ? <strong>Error: </strong> : null}
         {props.children}
       </AlertDescription>
     </Alert>

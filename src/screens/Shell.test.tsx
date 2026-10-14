@@ -1,5 +1,6 @@
 import { describe, expect, spyOn, test } from 'bun:test'
 import { act, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ERRORS } from 'tula-closeline-contract'
 import { createApp } from '~/app'
 import { AppContext } from '~/app-context'
@@ -204,5 +205,33 @@ describe('a session started over a live one', () => {
     stop()
     expect(paths).not.toContain('/sign-in')
     expect(screen.getByText('Rep')).toBeTruthy()
+  })
+})
+
+describe('the navigation drawer on a narrow screen', () => {
+  test('opening it moves focus into the menu, Escape returns it to the toggle, and a page change lands on the page', async () => {
+    const user = userEvent.setup()
+    renderPortal({ url: '/', signedIn: true })
+    const toggle = await screen.findByRole('button', { name: 'Open navigation' })
+    await user.click(toggle)
+    const sidebar = document.getElementById('app-sidebar')
+    await waitFor(() => expect(sidebar?.contains(document.activeElement)).toBe(true))
+    await user.keyboard('{Escape}')
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Open navigation' }))
+    )
+    await user.click(screen.getByRole('button', { name: 'Open navigation' }))
+    await user.click(screen.getByRole('link', { name: 'Teams' }))
+    await waitFor(() => expect(document.activeElement).toBe(document.getElementById('main')))
+  })
+})
+
+describe('a field error', () => {
+  test('keeps its visible "Error:" prefix', async () => {
+    const user = userEvent.setup()
+    renderPortal({ url: '/sign-in' })
+    await user.click(await screen.findByRole('button', { name: 'Sign in' }))
+    const prefix = (await screen.findAllByText('Error:'))[0]
+    expect(prefix?.className ?? '').not.toContain('sr-only')
   })
 })
