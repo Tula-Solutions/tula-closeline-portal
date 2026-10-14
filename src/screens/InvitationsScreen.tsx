@@ -268,7 +268,7 @@ function InvitationRow(props: {
         </span>
       </th>
       <td>
-        <RoleBadge role={invitation.role} />
+        <RoleBadge value={invitation.role} />
       </td>
       <td className={expired ? 'text-muted-foreground' : undefined}>
         <When iso={invitation.expiresAt} />

@@ -10,6 +10,6 @@ const VARIANT: Record<Role, 'primary' | 'info' | 'outline' | 'neutral'> = {
 }
 
 /** A role as a badge: the word, with a stronger fill the more the role may do. */
-export function RoleBadge(props: { readonly role: Role }) {
-  return <Badge variant={VARIANT[props.role]}>{ROLE_LABEL[props.role]}</Badge>
+export function RoleBadge(props: { readonly value: Role }) {
+  return <Badge variant={VARIANT[props.value]}>{ROLE_LABEL[props.value]}</Badge>
 }

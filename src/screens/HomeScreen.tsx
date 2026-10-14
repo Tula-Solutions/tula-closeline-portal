@@ -1,103 +1,256 @@
-import { Link } from '@tanstack/react-router'
-import { ArrowRight, BookOpen, FileSearch, type LucideIcon, TrendingUp, Users } from 'lucide-react'
-import type { ComponentProps } from 'react'
+import { Link, type LinkProps } from '@tanstack/react-router'
+import {
+  BookOpen,
+  ChevronRight,
+  FileSearch,
+  FileText,
+  House,
+  type LucideIcon,
+  Phone,
+  Trophy,
+  Upload,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import { PageHeader } from '~/components/app/page-header'
-import { Card, CardDescription, CardHeader, CardTitle } from '~/components/ui/card'
+import { Section } from '~/components/app/section'
+import { StatTile, type StatValue } from '~/components/app/stat-tile'
+import { StatusBadge } from '~/components/app/status-badge'
+import { Skeleton } from '~/components/ui/skeleton'
+import { stateLabel } from '~/data/documents'
 import { can } from '~/data/permissions'
+import { useCalls, useDeals, useDocuments, useMembers } from '~/data/queries'
 import { useRole } from '~/data/session-role'
+import type { PagedState } from '~/ui/Paged'
+import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
+import { When } from '~/ui/When'
 
-type Shortcut = {
-  readonly to: ComponentProps<typeof Link>['to']
-  readonly icon: LucideIcon
-  readonly title: string
-  readonly text: string
-  readonly cta: string
+/** A list's first page as a tile count: what was read, and whether more pages exist beyond it. */
+function statOf(state: PagedState, count: number): StatValue {
+  if (state.isPending) {
+    return { kind: 'loading' }
+  }
+  if (state.isError && !state.hasData) {
+    return { kind: 'unavailable' }
+  }
+  return { kind: 'count', count, more: state.hasNextPage }
 }
 
-function ShortcutCard(props: { readonly item: Shortcut }) {
-  const Icon = props.item.icon
+function MembersTile() {
+  const members = useMembers(true)
   return (
-    <Card className='group relative gap-3 transition-shadow hover:shadow-md'>
-      <CardHeader>
-        <span className='mb-2 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary'>
-          <Icon aria-hidden='true' className='size-5' />
-        </span>
-        <CardTitle>
-          <Link
-            to={props.item.to}
-            className='outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-[3px] focus-visible:after:ring-ring'
-          >
-            {props.item.cta}
-          </Link>
-        </CardTitle>
-        <CardDescription>{props.item.text}</CardDescription>
-      </CardHeader>
-      <p
-        className='flex items-center gap-1 px-5 text-sm font-medium text-primary'
-        aria-hidden='true'
-      >
-        {props.item.title}
-        <ArrowRight className='size-4 transition-transform group-hover:translate-x-0.5' />
-      </p>
-    </Card>
+    <StatTile
+      label='Members'
+      icon={Users}
+      value={statOf(members.state, members.items.length)}
+      to='/members'
+      hint='People in your Organization'
+    />
   )
 }
 
-/** The home page of the dashboard: where to go next, by what the signed-in role may do. */
+function WonDealsTile() {
+  const deals = useDeals({ outcome: 'won', unseen: false })
+  return (
+    <StatTile
+      label='Won Deals'
+      icon={Trophy}
+      value={statOf(deals.state, deals.items.length)}
+      to='/sales-history/deals'
+      hint='The Deals search learns from'
+    />
+  )
+}
+
+function CallsTile() {
+  const calls = useCalls({})
+  return (
+    <StatTile
+      label='Calls'
+      icon={Phone}
+      value={statOf(calls.state, calls.items.length)}
+      to='/sales-history/calls'
+      hint='Transcripts and Recordings'
+    />
+  )
+}
+
+type Action = {
+  readonly to: LinkProps['to']
+  readonly icon: LucideIcon
+  readonly title: string
+  readonly text: string
+}
+
+function ActionRow(props: { readonly action: Action }) {
+  const Icon = props.action.icon
+  return (
+    <li>
+      <Link
+        to={props.action.to}
+        className='group flex items-center gap-3 px-5 py-3.5 transition-colors duration-150 outline-none hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-inset'
+      >
+        <span
+          aria-hidden='true'
+          className='flex size-9 shrink-0 items-center justify-center rounded-lg border bg-background text-primary shadow-elev-1'
+        >
+          <Icon className='size-4' />
+        </span>
+        <span className='flex min-w-0 flex-1 flex-col'>
+          <span className='text-sm font-semibold text-foreground'>{props.action.title}</span>
+          <span className='text-[0.8125rem] text-muted-foreground'>{props.action.text}</span>
+        </span>
+        <ChevronRight
+          aria-hidden='true'
+          className='size-4 shrink-0 text-muted-foreground transition-transform duration-200 ease-snappy group-hover:translate-x-0.5 group-hover:text-foreground'
+        />
+      </Link>
+    </li>
+  )
+}
+
+/** The newest documents of the first page the Playbook screen also reads. Names are text only, never links. */
+function RecentDocuments(props: { readonly documents: ReturnType<typeof useDocuments> }) {
+  const { state, items } = props.documents
+  const recent = items.slice(0, 5)
+  return (
+    <Section
+      id='recent-documents'
+      icon={FileText}
+      title='Recent documents'
+      description='The newest sales material in your Playbook.'
+      flush
+      actions={
+        <Link
+          to='/playbook'
+          className='rounded-md px-2 py-1 text-[0.8125rem] font-semibold text-primary outline-none hover:bg-primary/10 focus-visible:ring-[3px] focus-visible:ring-ring'
+        >
+          View all
+        </Link>
+      }
+    >
+      {state.isPending ? (
+        <ul aria-hidden='true' className='m-0 list-none divide-y p-0'>
+          {[0, 1, 2].map((row) => (
+            <li key={row} className='flex items-center gap-3 px-5 py-3.5'>
+              <Skeleton className='size-8 rounded-lg' />
+              <Skeleton className='h-3 flex-1' />
+              <Skeleton className='h-5 w-16 rounded-full' />
+            </li>
+          ))}
+        </ul>
+      ) : recent.length === 0 ? (
+        <p className='m-0 px-5 py-8 text-center text-sm text-muted-foreground'>
+          {state.isError
+            ? 'The documents could not be loaded. Open the Playbook to try again.'
+            : 'No documents yet. Upload your first one from the Playbook.'}
+        </p>
+      ) : (
+        <ul className='m-0 list-none divide-y p-0'>
+          {recent.map((document) => (
+            <li key={document.id} className='flex items-center gap-3 px-5 py-3'>
+              <span
+                aria-hidden='true'
+                className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground'
+              >
+                <FileText className='size-4' />
+              </span>
+              <span className='flex min-w-0 flex-1 flex-col'>
+                <span className='text-sm font-medium'>
+                  <Untrusted value={document.fileName} />
+                </span>
+                <span className='text-xs text-muted-foreground tabular-nums'>
+                  <When iso={document.createdAt} />
+                </span>
+              </span>
+              <StatusBadge state={document.state}>{stateLabel(document.state)}</StatusBadge>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
+  )
+}
+
+/** The home page of the dashboard: the Organization's numbers, the newest documents and what to do next, by role. */
 export function HomeScreen() {
   useDocumentTitle('Home')
   const role = useRole()
-  const shortcuts: Shortcut[] = []
-  if (role !== null) {
-    shortcuts.push({
-      to: '/playbook',
-      icon: BookOpen,
-      title: 'Playbook',
-      cta: 'Open the Playbook documents',
-      text: 'The sales material your Agents and Reps draw on.',
+  const documents = useDocuments(undefined)
+  if (role === null) {
+    return null
+  }
+  const actions: Action[] = []
+  if (can.manageInvitations(role)) {
+    actions.push({
+      to: '/invitations',
+      icon: UserPlus,
+      title: 'Invite people',
+      text: 'Bring your Reps and Managers into Closeline.',
     })
-    if (can.searchDocuments(role)) {
-      shortcuts.push({
-        to: '/playbook/search',
-        icon: FileSearch,
-        title: 'Search',
-        cta: 'Search what the Playbook says',
-        text: 'Type what was said and see the Playbook text that answers it.',
-      })
-    }
-    if (can.manageSalesHistory(role)) {
-      shortcuts.push({
-        to: '/sales-history',
-        icon: TrendingUp,
-        title: 'Sales history',
-        cta: 'Review your sales history',
-        text: 'Deals, Calls and the won Deals that search learns from.',
-      })
-    }
-    if (can.viewMembers(role)) {
-      shortcuts.push({
-        to: '/members',
-        icon: Users,
-        title: 'Members',
-        cta: 'See who is in your Organization',
-        text: 'Roles, Teams and Invitations for the people you work with.',
-      })
-    }
+  }
+  actions.push({
+    to: '/playbook',
+    icon: can.managePlaybook(role) ? Upload : BookOpen,
+    title: can.managePlaybook(role) ? 'Upload documents' : 'Open the Playbook',
+    text: 'The sales material your Agents and Reps draw on.',
+  })
+  if (can.searchDocuments(role)) {
+    actions.push({
+      to: '/playbook/search',
+      icon: FileSearch,
+      title: 'Search the Playbook',
+      text: 'Type what was said and see the text that answers it.',
+    })
+  }
+  if (can.manageSalesHistory(role)) {
+    actions.push({
+      to: '/sales-history/calls',
+      icon: Phone,
+      title: 'Upload a Call',
+      text: 'Add a Transcript or Recording to a Deal.',
+    })
   }
   return (
     <>
       <PageHeader
+        icon={House}
         title='Home'
-        description='You are signed in. Pick up where your Organization needs you.'
+        description='Your Organization at a glance, and where to pick up.'
       />
-      <ul className='grid gap-4 sm:grid-cols-2 xl:grid-cols-3'>
-        {shortcuts.map((item) => (
-          <li key={item.title} className='contents'>
-            <ShortcutCard item={item} />
-          </li>
-        ))}
-      </ul>
+      <div className='flex flex-col gap-6'>
+        <ul
+          aria-label='Your Organization in numbers'
+          className='m-0 grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-4'
+        >
+          {can.viewMembers(role) ? <MembersTile /> : null}
+          <StatTile
+            label='Documents'
+            icon={BookOpen}
+            value={statOf(documents.state, documents.items.length)}
+            to='/playbook'
+            hint='Sales material in the Playbook'
+          />
+          {can.manageSalesHistory(role) ? <WonDealsTile /> : null}
+          {can.manageSalesHistory(role) ? <CallsTile /> : null}
+        </ul>
+        <div className='grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]'>
+          <RecentDocuments documents={documents} />
+          <Section
+            id='quick-actions'
+            title='Quick actions'
+            description='Where your Organization needs you next.'
+            flush
+          >
+            <ul className='m-0 list-none divide-y p-0'>
+              {actions.map((action) => (
+                <ActionRow key={action.title} action={action} />
+              ))}
+            </ul>
+          </Section>
+        </div>
+      </div>
     </>
   )
 }

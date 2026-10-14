@@ -191,7 +191,7 @@ function MemberRow(props: {
           <Untrusted value={member.email} />
         </td>
         <td>
-          <RoleBadge role={member.role} />
+          <RoleBadge value={member.role} />
         </td>
         {manage ? (
           <td>
