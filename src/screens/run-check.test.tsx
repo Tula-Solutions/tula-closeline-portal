@@ -548,3 +548,65 @@ describe('run check 5 (follow-up): a screen notice does not outlive a members pa
     expect(screen.getAllByRole('status')[0]?.textContent).toBe('')
   })
 })
+
+describe('review follow-ups', () => {
+  test('after an explicit sign-out the sign-in page carries no return address', async () => {
+    const portal = renderPortal({
+      url: '/teams',
+      signedIn: tokens({ organization: { id: 'org_1', role: 'owner' } }),
+      handlers: [
+        route('POST', '/v1/client/sessions/sign-out', new Response(null, { status: 204 })),
+        route('GET', '/v1/teams', json(200, page([]))),
+      ],
+    })
+    await screen.findByRole('heading', { name: 'Teams' })
+    await portal.user.click(screen.getByRole('button', { name: 'Sign out' }))
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
+    expect(portal.router.state.location.pathname).toBe('/sign-in')
+    expect(portal.router.state.location.searchStr).toBe('')
+  })
+
+  test('a removal with an unknown outcome, then add, then remove again: the second removal has a new key', async () => {
+    const base = `/v1/teams/${hexId('team', 1)}/members`
+    let removals = 0
+    const portal = renderPortal({
+      url: '/teams',
+      signedIn: tokens({ organization: { id: 'org_1', role: 'owner' } }),
+      handlers: [
+        route('DELETE', `${base}/${hexId('mem', 1)}`, () => {
+          removals += 1
+          if (removals === 1) {
+            throw new TypeError('network down')
+          }
+          return new Response(null, { status: 204 })
+        }),
+        route(
+          'POST',
+          base,
+          json(200, {
+            teamId: hexId('team', 1),
+            membershipId: hexId('mem', 1),
+            createdAt: '2026-10-13T00:00:00Z',
+          })
+        ),
+        route('GET', '/v1/teams', json(200, page([teamBody(1, 'Northern')]))),
+        route('GET', '/v1/members', json(200, page([memberBody(1, { name: 'Maya Chen' })]))),
+      ],
+    })
+    await screen.findByText('Northern')
+    await portal.user.click(screen.getByRole('button', { name: 'Members of Northern' }))
+    await screen.findByLabelText('Member')
+    await portal.user.click(screen.getByRole('button', { name: 'Remove from Team' }))
+    await screen.findByText(/Could not reach Closeline/)
+    await portal.user.click(screen.getByRole('button', { name: 'Add to Team' }))
+    await screen.findByText('Member added to the Team.')
+    await portal.user.click(screen.getByRole('button', { name: 'Remove from Team' }))
+    await waitFor(() =>
+      expect(portal.calls.filter((call) => call.method === 'DELETE')).toHaveLength(2)
+    )
+    const [first, second] = portal.calls
+      .filter((call) => call.method === 'DELETE')
+      .map((call) => call.headers.get('idempotency-key'))
+    expect(second).not.toBe(first)
+  })
+})

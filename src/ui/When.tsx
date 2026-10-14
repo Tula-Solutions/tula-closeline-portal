@@ -23,7 +23,7 @@ export function formatDateOnly(value: string): string {
   return Number.isNaN(time) ? value : DAY.format(time)
 }
 
-/** A date with no time of day (see {@link formatDateOnly}). */
+/** A date with no time of day (see {@link formatDateOnly}). A CSV `closed_at` given with an offset is stored as a UTC instant, so its UTC date can differ from the one typed: that needs a date-only `closedAt` in the contract. */
 export function DateOnly(props: { readonly value: string }) {
   return <time dateTime={props.value}>{formatDateOnly(props.value)}</time>
 }

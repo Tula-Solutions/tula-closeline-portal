@@ -354,6 +354,9 @@ function TeamMembersPanel(props: { readonly team: Team; readonly onFail: () => v
     async (id) => {
       setResult(null)
       props.onFail()
+      // Adding is a new intent after any removal: a removal key left from an unsure removal must
+      // not be reused for the next removal (core would replay the first answer).
+      app.keys.drop(fingerprint.teamMemberRemoval(props.team.id, id))
       const attempt = app.keys.begin(fingerprint.teamMember(props.team.id, id))
       try {
         await app.core.addTeamMember(props.team.id, id, attempt.key)
