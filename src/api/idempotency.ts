@@ -39,6 +39,9 @@ export const fingerprint = {
   /** Uploading a file with this name, size and last-modified time (the same file chosen again is the same intent). */
   document: (name: string, size: number, modified: number) =>
     JSON.stringify(['document', name, size, modified]),
+  /** Uploading a Deal import CSV with this name, size and last-modified time. */
+  dealImport: (name: string, size: number, modified: number) =>
+    JSON.stringify(['deal-import', name, size, modified]),
   /** Adding `membershipId` to the Team `teamId`. */
   teamMember: (teamId: string, membershipId: string) =>
     JSON.stringify(['team-member', teamId, membershipId]),

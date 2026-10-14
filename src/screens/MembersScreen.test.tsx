@@ -305,8 +305,8 @@ describe('members: changing a role and removing', () => {
 
 describe('navigation', () => {
   test.each([
-    ['owner', ['Home', 'Members', 'Invitations', 'Teams', 'Playbook']],
-    ['admin', ['Home', 'Members', 'Invitations', 'Teams', 'Playbook']],
+    ['owner', ['Home', 'Members', 'Invitations', 'Teams', 'Playbook', 'Sales history']],
+    ['admin', ['Home', 'Members', 'Invitations', 'Teams', 'Playbook', 'Sales history']],
     ['manager', ['Home', 'Members', 'Teams', 'Playbook']],
     ['rep', ['Home', 'Teams', 'Playbook']],
   ] as const)('%s sees %j', async (role, links) => {

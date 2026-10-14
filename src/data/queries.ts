@@ -1,10 +1,14 @@
-import { type InfiniteData, useInfiniteQuery } from '@tanstack/react-query'
+import { type InfiniteData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import type {
   DocumentState,
+  ListDealImportRowsResponse,
+  ListDealImportsResponse,
+  ListDealsResponse,
   ListDocumentsResponse,
   ListInvitationsResponse,
   ListMembersResponse,
   ListTeamsResponse,
+  Outcome,
 } from 'tula-closeline-contract'
 import type { App } from '~/app'
 import { useApp, useSessionState } from '~/app-context'
@@ -17,6 +21,12 @@ export const KEYS = {
   teams: (organizationId: string) => [organizationId, 'teams'] as const,
   /** Every list of documents of the Organization, whatever its state filter: invalidate this to refresh them all. */
   documents: (organizationId: string) => [organizationId, 'documents'] as const,
+  /** Every cached read about Deals (lists and single Deals): invalidate this after an Outcome changes. */
+  deals: (organizationId: string) => [organizationId, 'deals'] as const,
+  /** Every cached read about Deal imports (lists, single imports and reports). */
+  dealImports: (organizationId: string) => [organizationId, 'deal-imports'] as const,
+  /** The rights confirmation. */
+  rights: (organizationId: string) => [organizationId, 'rights'] as const,
 }
 
 /** Refetches one list of the Organization the session is in now; resolves when the fresh data is in. */
@@ -30,7 +40,11 @@ export function refresh(app: App, list: keyof typeof KEYS): Promise<void> {
 
 type Page<T> = { readonly items: readonly T[]; readonly nextCursor: string | null }
 
-function pagedState<T extends { readonly id: string }>(query: {
+function pagedState<T extends { readonly id: string }>(query: PagedQuery<T>) {
+  return pagedStateBy(query, (item) => item.id)
+}
+
+type PagedQuery<T> = {
   isPending: boolean
   isError: boolean
   error: unknown
@@ -39,14 +53,20 @@ function pagedState<T extends { readonly id: string }>(query: {
   isFetchingNextPage: boolean
   fetchNextPage: () => unknown
   refetch: () => unknown
-}): { state: PagedState; items: readonly T[] } {
+}
+
+function pagedStateBy<T>(
+  query: PagedQuery<T>,
+  keyOf: (item: T) => string
+): { state: PagedState; items: readonly T[] } {
   // A list can shift between pages (a row added or removed), so a row may come twice: show it once.
   const seen = new Set<string>()
   const items = (query.data?.pages.flatMap((page) => page.items) ?? []).filter((item) => {
-    if (seen.has(item.id)) {
+    const key = keyOf(item)
+    if (seen.has(key)) {
       return false
     }
-    seen.add(item.id)
+    seen.add(key)
     return true
   })
   return {
@@ -149,4 +169,122 @@ export function useDocuments(state: DocumentState | undefined) {
     enabled: organizationId !== '',
   })
   return { ...pagedState(query), refetch: () => query.refetch() }
+}
+
+/** The Organization's rights confirmation and the wording version to show (Owner, Admin). */
+export function useRights(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: KEYS.rights(organizationId),
+    queryFn: ({ signal }) => app.salesHistory.getRights(signal),
+    enabled: enabled && organizationId !== '',
+  })
+}
+
+/** Deals, a page at a time, newest first; with an Outcome only Deals with it, and `unseen` only Deals no CSV has named. */
+export function useDeals(filter: {
+  readonly outcome?: Outcome | undefined
+  readonly unseen: boolean
+}) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListDealsResponse,
+    Error,
+    InfiniteData<ListDealsResponse, string | undefined>,
+    readonly [string, string, string, string, string],
+    string | undefined
+  >({
+    queryKey: [
+      ...KEYS.deals(organizationId),
+      'list',
+      filter.outcome ?? 'any',
+      filter.unseen ? 'unseen' : 'all',
+    ],
+    queryFn: ({ pageParam, signal }) =>
+      app.salesHistory.listDeals({
+        cursor: pageParam,
+        outcome: filter.outcome,
+        appearedInImport: filter.unseen ? false : undefined,
+        signal,
+      }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** One Deal by its opaque id. */
+export function useDeal(dealRecordId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.deals(organizationId), 'one', dealRecordId],
+    queryFn: ({ signal }) => app.salesHistory.getDeal(dealRecordId, signal),
+    enabled: organizationId !== '',
+  })
+}
+
+/** Deal imports, a page at a time, newest first. */
+export function useDealImports() {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListDealImportsResponse,
+    Error,
+    InfiniteData<ListDealImportsResponse, string | undefined>,
+    readonly [string, string, string],
+    string | undefined
+  >({
+    queryKey: [...KEYS.dealImports(organizationId), 'list'],
+    queryFn: ({ pageParam, signal }) =>
+      app.salesHistory.listDealImports({ cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  return { ...pagedState(query), refetch: () => query.refetch() }
+}
+
+/** One import with its state and counts. */
+export function useDealImport(importId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.dealImports(organizationId), 'one', importId],
+    queryFn: ({ signal }) => app.salesHistory.getDealImport(importId, signal),
+    enabled: organizationId !== '',
+  })
+}
+
+/** An import's report, a page at a time; `rejectedOnly` lists only the rows that need fixing. */
+export function useImportRows(importId: string, rejectedOnly: boolean, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListDealImportRowsResponse,
+    Error,
+    InfiniteData<ListDealImportRowsResponse, string | undefined>,
+    readonly [string, string, string, string, string],
+    string | undefined
+  >({
+    queryKey: [
+      ...KEYS.dealImports(organizationId),
+      'rows',
+      importId,
+      rejectedOnly ? 'rejected' : 'all',
+    ],
+    queryFn: ({ pageParam, signal }) =>
+      app.salesHistory.listDealImportRows(importId, {
+        cursor: pageParam,
+        result: rejectedOnly ? 'rejected' : undefined,
+        signal,
+      }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedStateBy(query, (row) => String(row.rowNumber))
 }

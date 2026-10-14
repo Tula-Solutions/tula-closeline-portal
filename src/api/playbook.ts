@@ -38,7 +38,7 @@ const segment = encodeURIComponent
  * proxy, say) is not an answer this client understands, so it throws and the HTTP client turns it
  * into `client.bad_response`, a failure whose outcome is unknown.
  */
-function onlyStatus<S extends number>(status: number, ...allowed: readonly S[]): S {
+export function onlyStatus<S extends number>(status: number, ...allowed: readonly S[]): S {
   if (!allowed.includes(status as S)) {
     throw new Error(`unexpected status ${status}`)
   }

@@ -1,24 +1,21 @@
 import { useEffect, useState } from 'react'
-import type { PlaybookDocument } from 'tula-closeline-contract'
 import { useApp } from '~/app-context'
-import { PENDING_STATES, POLL_SCHEDULE_MS } from '~/data/documents'
+import { POLL_SCHEDULE_MS } from '~/data/documents'
 
 /**
- * Asks again about documents that are still `uploaded` or `processing`, after a wait that grows
+ * Asks again about things (documents, imports, Calls) that are still on their way, given by id, after a wait that grows
  * (`POLL_SCHEDULE_MS`), and stops when nothing is pending, when the screen is left, when the
  * schedule runs out (`paused`; `resume` starts it again) and, while the tab is hidden, until it is
  * shown. A new pending document starts the schedule again from the shortest wait; a document changing state does not.
  */
 export function usePendingPoll(
-  documents: readonly PlaybookDocument[],
-  refetch: () => Promise<unknown>
+  pendingIds: readonly string[],
+  refetch: () => Promise<unknown>,
+  schedule: readonly number[] = POLL_SCHEDULE_MS
 ) {
   const app = useApp()
   const [paused, setPaused] = useState(false)
   const [round, setRound] = useState(0)
-  const pendingIds = documents
-    .filter((document) => PENDING_STATES.includes(document.state))
-    .map((document) => document.id)
   const signature = pendingIds.length === 0 ? '' : 'pending'
   // The waits start again only when a document that was not pending before appears among the
   // pending ones. A document changing state (uploaded to processing) or leaving does not shorten them.
@@ -59,7 +56,7 @@ export function usePendingPoll(
         cleanups.push(() => document.removeEventListener('visibilitychange', onChange))
       })
     void (async () => {
-      for (const delay of POLL_SCHEDULE_MS) {
+      for (const delay of schedule) {
         await app.sleep(delay)
         if (stopped) {
           return
@@ -81,7 +78,7 @@ export function usePendingPoll(
         cleanup()
       }
     }
-  }, [signature, round, seen.round, app, latest])
+  }, [signature, round, seen.round, app, latest, schedule])
 
   return { paused, resume: () => setRound((value) => value + 1) }
 }

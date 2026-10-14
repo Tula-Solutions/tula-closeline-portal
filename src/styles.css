@@ -423,3 +423,15 @@ h2 {
   font-size: 1.25rem;
   margin: 1.5rem 0 0.5rem;
 }
+
+.sub-nav {
+  margin-top: 0;
+}
+
+dl dt {
+  font-weight: 600;
+}
+
+dl dd {
+  margin: 0 0 0.75rem;
+}

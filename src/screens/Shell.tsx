@@ -53,6 +53,9 @@ export function Shell() {
         ) : null}
         <Link to='/teams'>Teams</Link>
         <Link to='/playbook'>Playbook</Link>
+        {can.manageSalesHistory(session.organization.role) ? (
+          <Link to='/sales-history'>Sales history</Link>
+        ) : null}
       </nav>
       <main id='main' tabIndex={-1}>
         {/* Keyed by Organization: another Organization starts every screen fresh, with no state of the last. */}

@@ -1,0 +1,123 @@
+import { getRouteApi, Link } from '@tanstack/react-router'
+import { useState } from 'react'
+import { OUTCOMES, type Outcome, outcomeSchema } from 'tula-closeline-contract'
+import { presentSales } from '~/api/sales-messages'
+import { useApp } from '~/app-context'
+import { refresh, useDeal } from '~/data/queries'
+import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
+import { Money } from '~/screens/sales/DealsScreen'
+import { Banner } from '~/ui/Banner'
+import { SelectField } from '~/ui/SelectField'
+import { Untrusted } from '~/ui/Untrusted'
+import { useDocumentTitle } from '~/ui/useDocumentTitle'
+import { useSubmit } from '~/ui/useSubmit'
+import { When } from '~/ui/When'
+
+const route = getRouteApi('/_app/sales-history/deals/$dealRecordId')
+
+/** One Deal: what the service holds about it, and the form that sets or corrects its Outcome. */
+export function DealScreen() {
+  useDocumentTitle('Deal')
+  const { dealRecordId } = route.useParams()
+  const deal = useDeal(dealRecordId)
+  return (
+    <>
+      <h1>Deal</h1>
+      <p>
+        <Link to='/sales-history/deals'>Back to Deals</Link>
+      </p>
+      {deal.isPending ? (
+        <p role='status' className='hint'>
+          Loading...
+        </p>
+      ) : deal.isError ? (
+        <>
+          <Banner kind='error'>{presentSales(deal.error, 'list').message}</Banner>
+          <p>
+            <button type='button' className='button button-quiet' onClick={() => deal.refetch()}>
+              Try again
+            </button>
+          </p>
+        </>
+      ) : (
+        <>
+          <dl>
+            <dt>Deal id</dt>
+            <dd>
+              <Untrusted value={deal.data.dealId} />
+            </dd>
+            <dt>Name</dt>
+            <dd>{deal.data.name === null ? '-' : <Untrusted value={deal.data.name} />}</dd>
+            <dt>Current Outcome</dt>
+            <dd>{outcomeLabel(deal.data.outcome)}</dd>
+            <dt>Closed</dt>
+            <dd>{deal.data.closedAt === null ? '-' : <When iso={deal.data.closedAt} />}</dd>
+            <dt>Amount</dt>
+            <dd>
+              <Money amount={deal.data.amount} currency={deal.data.currency} />
+            </dd>
+            <dt>Calls</dt>
+            <dd>{deal.data.callCount}</dd>
+          </dl>
+          {deal.data.appearedInImport ? null : (
+            <p className='hint'>No CSV has named it: it was created by a Call upload.</p>
+          )}
+          <OutcomeForm key={deal.data.id} id={deal.data.id} current={deal.data.outcome} />
+        </>
+      )}
+    </>
+  )
+}
+
+function OutcomeForm(props: { readonly id: string; readonly current: string }) {
+  const app = useApp()
+  const parsed = outcomeSchema.safeParse(props.current)
+  const [outcome, setOutcome] = useState<Outcome>(parsed.success ? parsed.data : 'open')
+  const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState('')
+  const save = useSubmit<Outcome>(
+    async (chosen) => {
+      setError(null)
+      await app.salesHistory.setDealOutcome(props.id, chosen)
+      setNotice('Outcome saved.')
+      await refresh(app, 'deals')
+    },
+    { onError: (caught) => setError(presentSales(caught, 'outcome').message) }
+  )
+  return (
+    <form
+      noValidate
+      aria-labelledby='outcome-heading'
+      onSubmit={(event) => {
+        event.preventDefault()
+        setNotice('')
+        save.submit(outcome)
+      }}
+    >
+      <h2 id='outcome-heading'>Set the Outcome</h2>
+      <p className='hint'>
+        Only a won Deal's Calls are used in search. After you change the Outcome, search may lag a
+        little behind while its Calls are updated.
+      </p>
+      {error ? <Banner kind='error'>{error}</Banner> : null}
+      <SelectField
+        label='Outcome'
+        name='outcome'
+        value={outcome}
+        onChange={(event) => {
+          const next = outcomeSchema.safeParse(event.target.value)
+          if (next.success) {
+            setOutcome(next.data)
+          }
+        }}
+        options={OUTCOMES.map((value) => ({ value, text: OUTCOME_LABEL[value] }))}
+      />
+      <button type='submit' className='button' aria-disabled={save.pending}>
+        {save.pending ? 'Saving...' : 'Save Outcome'}
+      </button>
+      <p role='status' aria-label='Notice' className='notice'>
+        {notice}
+      </p>
+    </form>
+  )
+}
