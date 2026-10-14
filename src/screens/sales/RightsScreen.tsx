@@ -1,9 +1,10 @@
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
+import type { RightsWording } from 'tula-closeline-contract'
+import { ApiError, CLIENT_ERRORS } from '~/api/errors'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
 import { refresh, useRights } from '~/data/queries'
-import { type RightsWording, rightsWordingFor } from '~/data/rights-wording'
 import { parseBackPath } from '~/data/sales-history'
 import { Banner } from '~/ui/Banner'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
@@ -24,7 +25,18 @@ export function RightsScreen() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const status = rights.data
-  const wording = status === undefined ? undefined : rightsWordingFor(status.currentWordingVersion)
+  // The contract's own table decides; a text the service sends is only compared with it.
+  const wording = status === undefined ? undefined : app.rightsWording(status.currentWordingVersion)
+  const sent = status?.currentWording
+  const disagrees = wording !== undefined && sent !== undefined && !sameWording(wording, sent)
+  const reported = useRef(false)
+  useEffect(() => {
+    if (disagrees && !reported.current) {
+      reported.current = true
+      // Status and code only: the reporter carries no wording text.
+      app.reporter.report(new ApiError({ code: CLIENT_ERRORS.badResponse, status: 200 }))
+    }
+  }, [disagrees, app])
 
   const confirm = useSubmit<number>(
     async (version) => {
@@ -104,7 +116,7 @@ export function RightsScreen() {
  * under one version is gone when another is current: a confirmation is only ever recorded for
  * wording the person ticked.
  */
-function RightsForm(props: {
+export function RightsForm(props: {
   readonly version: number
   readonly wording: RightsWording
   readonly error: string | null
@@ -174,5 +186,15 @@ function RightsForm(props: {
         {props.pending ? 'Confirming...' : 'Confirm'}
       </button>
     </form>
+  )
+}
+
+function sameWording(a: RightsWording, b: RightsWording): boolean {
+  return (
+    a.heading === b.heading &&
+    a.checkbox === b.checkbox &&
+    a.draft === b.draft &&
+    a.paragraphs.length === b.paragraphs.length &&
+    a.paragraphs.every((paragraph, index) => paragraph === b.paragraphs[index])
   )
 }

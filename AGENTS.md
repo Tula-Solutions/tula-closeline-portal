@@ -80,8 +80,10 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
   deal id travels in request bodies only (`POST /v1/playbook/deals/lookup`, a Call upload's multipart field);
   portal addresses carry the opaque `deal_…` id. Deal ids, names, speaker labels and file names are text only
   (`Untrusted`) and are made safe with `csvCell` in anything exported (a deal id may begin with `=`, `+`, `-`,
-  `@`). The rights wording lives in `src/data/rights-wording.ts` keyed by version (the contract carries only the
-  version); it is PENDING A LAWYER'S CHECK, and a version the portal has no text for cannot be confirmed. The
+  `@`). The rights wording is the contract's (`RIGHTS_WORDINGS`, read with its `rightsWordingFor`, through
+  `app.rightsWording`); the screen shows its `draft` flag ("pending a lawyer's check"), a version the contract has
+  no text for cannot be confirmed, and a `currentWording` sent by the service is only compared with the contract's
+  (a difference is reported once, status and code only, and the contract's text is shown). The
   `from` search param of the rights route is checked against an allowlist (`parseBackPath`), in the route and
   again in the screen (the router hands the raw value through). Polling uses `SALES_POLL_SCHEDULE_MS` (first
   wait 3 s) via `app.sleep`. A Transcript chosen before the rights are confirmed is held by `app.pendingCall`

@@ -2,6 +2,7 @@ import { createMemoryHistory } from '@tanstack/react-router'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StrictMode } from 'react'
+import type { RightsWording } from 'tula-closeline-contract'
 import { AppRoot } from '~/AppRoot'
 import type { SessionTokens } from '~/api/auth'
 import { createApp } from '~/app'
@@ -67,6 +68,8 @@ export function renderPortal(
     channel?: SessionChannel
     /** Replaces the app's wait (a poll delay, a `Retry-After` wait); instant when omitted. */
     sleep?: (milliseconds: number) => Promise<void>
+    /** Stands in the text of a rights wording version (the contract's table has one). */
+    rightsWording?: (version: number) => RightsWording | undefined
     /** Render inside `<StrictMode>`, as `main.tsx` does, so effects run, clean up and run again. */
     strict?: boolean
   } = {}
@@ -79,6 +82,7 @@ export function renderPortal(
     reporter: createReporter((error) => reports.push(error)),
     fetch: double.fetch,
     sleep: options.sleep ?? (async () => {}),
+    ...(options.rightsWording ? { rightsWording: options.rightsWording } : {}),
     random: () => 0,
     ...(options.channel ? { channel: options.channel } : {}),
   })

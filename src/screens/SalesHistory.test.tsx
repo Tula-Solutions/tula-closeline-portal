@@ -1,10 +1,16 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { ERRORS, SALES_HISTORY_ERRORS } from 'tula-closeline-contract'
+import {
+  CURRENT_RIGHTS_WORDING_VERSION,
+  ERRORS,
+  type RightsWording,
+  rightsWordingFor,
+  SALES_HISTORY_ERRORS,
+} from 'tula-closeline-contract'
 import { createApp } from '~/app'
 import { AppContext } from '~/app-context'
-import { RIGHTS_WORDING, type RightsWording } from '~/data/rights-wording'
 import { createReporter } from '~/report/reporter'
+import { RightsForm } from '~/screens/sales/RightsScreen'
 import { SalesLayout } from '~/screens/sales/SalesLayout'
 import { dealBody, hexId, importBody, page, rightsBody, rowBody } from '~/testing/core-bodies'
 import { failure, fakeFetch, json, route, TEST_ENV, tokens } from '~/testing/fixtures'
@@ -817,23 +823,26 @@ describe('Sales history review round 1', () => {
     paragraphs: ['Second wording.'],
     checkbox: 'I confirm the second wording.',
   }
-  const wordings = RIGHTS_WORDING as Record<number, RightsWording>
-  afterEach(() => {
-    delete wordings[2]
-  })
+  // The contract's table is frozen and has one version; a second one is stood in through the app.
+  const lookup = (version: number): RightsWording | undefined =>
+    version === 2 ? WORDING_2 : rightsWordingFor(version)
 
   test('a tick under one wording version is not carried to another', async () => {
-    wordings[2] = WORDING_2
     let current = 1
-    const portal = visit('/sales-history/rights', 'owner', [
-      route('PUT', RIGHTS, () => {
-        current = 2
-        return failure(409, SALES_HISTORY_ERRORS['rights.version_outdated'].code)
-      }),
-      route('GET', RIGHTS, () =>
-        json(200, rightsBody({ currentWordingVersion: current, confirmedVersion: null }))
-      ),
-    ])
+    const portal = visit(
+      '/sales-history/rights',
+      'owner',
+      [
+        route('PUT', RIGHTS, () => {
+          current = 2
+          return failure(409, SALES_HISTORY_ERRORS['rights.version_outdated'].code)
+        }),
+        route('GET', RIGHTS, () =>
+          json(200, rightsBody({ currentWordingVersion: current, confirmedVersion: null }))
+        ),
+      ],
+      { rightsWording: lookup }
+    )
     await portal.user.click(
       await screen.findByRole('checkbox', { name: /I confirm that I am authorised/ })
     )
@@ -1086,5 +1095,133 @@ describe('Sales history review round 1', () => {
     )
     expect(container.textContent).toBe('')
     expect(double.calls).toHaveLength(0)
+  })
+})
+
+describe('Sales history: the wording comes from the contract', () => {
+  const contract = rightsWordingFor(CURRENT_RIGHTS_WORDING_VERSION) as RightsWording
+
+  test('the shown text is the contract text for the version that is sent', async () => {
+    let confirmed = false
+    const portal = visit('/sales-history/rights', 'owner', [
+      route('PUT', RIGHTS, () => {
+        confirmed = true
+        return json(200, rightsBody())
+      }),
+      route('GET', RIGHTS, () =>
+        json(
+          200,
+          rightsBody({ confirmedVersion: confirmed ? CURRENT_RIGHTS_WORDING_VERSION : null })
+        )
+      ),
+    ])
+    expect(await screen.findByRole('heading', { name: contract.heading })).toBeTruthy()
+    for (const paragraph of contract.paragraphs) {
+      expect(screen.getByText(paragraph)).toBeTruthy()
+    }
+    await portal.user.click(await screen.findByRole('checkbox', { name: contract.checkbox }))
+    await portal.user.click(screen.getByRole('button', { name: 'Confirm' }))
+    await waitFor(() => expect(portal.calls.some((call) => call.method === 'PUT')).toBe(true))
+    expect(portal.calls.find((call) => call.method === 'PUT')?.body).toEqual({
+      wordingVersion: CURRENT_RIGHTS_WORDING_VERSION,
+    })
+  })
+
+  test('a version the contract has no text for shows no form', async () => {
+    visit('/sales-history/rights', 'owner', [
+      route(
+        'GET',
+        RIGHTS,
+        json(200, rightsBody({ currentWordingVersion: 99, confirmedVersion: null }))
+      ),
+    ])
+    expect((await screen.findByRole('alert')).textContent).toContain('newer wording')
+    expect(screen.queryByRole('checkbox')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull()
+  })
+
+  test('text sent by the service that differs from the contract is ignored and reported once', async () => {
+    const portal = visit('/sales-history/rights', 'owner', [
+      route(
+        'GET',
+        RIGHTS,
+        json(200, {
+          ...rightsBody({ confirmedVersion: null }),
+          currentWording: {
+            heading: 'Another heading',
+            paragraphs: ['Other.'],
+            checkbox: 'Other.',
+          },
+        })
+      ),
+    ])
+    expect(await screen.findByRole('heading', { name: contract.heading })).toBeTruthy()
+    expect(screen.queryByText('Another heading')).toBeNull()
+    expect(portal.reports).toHaveLength(1)
+    expect(portal.reports[0]?.message).toBe('API 200 client.bad_response')
+  })
+
+  test('under StrictMode a differing text is still reported once', async () => {
+    const portal = visit(
+      '/sales-history/rights',
+      'owner',
+      [
+        route(
+          'GET',
+          RIGHTS,
+          json(200, {
+            ...rightsBody({ confirmedVersion: null }),
+            currentWording: { heading: 'Another', paragraphs: ['Other.'], checkbox: 'Other.' },
+          })
+        ),
+      ],
+      { strict: true }
+    )
+    expect(await screen.findByRole('heading', { name: contract.heading })).toBeTruthy()
+    expect(portal.reports).toHaveLength(1)
+  })
+
+  test('a stand-in text without the draft flag shows no draft marking on the screen', async () => {
+    const { draft: _draft, ...checked } = contract
+    visit(
+      '/sales-history/rights',
+      'owner',
+      [route('GET', RIGHTS, json(200, rightsBody({ confirmedVersion: null })))],
+      { rightsWording: () => checked }
+    )
+    expect(await screen.findByRole('heading', { name: contract.heading })).toBeTruthy()
+    expect(screen.queryByText(/pending legal review/)).toBeNull()
+  })
+
+  test('text sent by the service that equals the contract text is not reported', async () => {
+    const portal = visit('/sales-history/rights', 'owner', [
+      route(
+        'GET',
+        RIGHTS,
+        json(200, { ...rightsBody({ confirmedVersion: null }), currentWording: contract })
+      ),
+    ])
+    expect(await screen.findByRole('heading', { name: contract.heading })).toBeTruthy()
+    expect(portal.reports).toHaveLength(0)
+  })
+
+  test('the draft marking follows the contract flag', () => {
+    const shown = (wording: RightsWording) => {
+      const view = render(
+        <RightsForm
+          version={1}
+          wording={wording}
+          error={null}
+          pending={false}
+          onConfirm={() => {}}
+        />
+      )
+      const text = view.container.textContent ?? ''
+      view.unmount()
+      return text
+    }
+    expect(shown({ ...contract, draft: true })).toContain('pending legal review')
+    const { draft: _draft, ...checked } = contract
+    expect(shown(checked)).not.toContain('pending legal review')
   })
 })

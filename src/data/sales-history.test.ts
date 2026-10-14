@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
+  CURRENT_RIGHTS_WORDING_VERSION,
   checkDealImportHeaderText,
   DEAL_IMPORT_FAILURE_REASONS,
   DEAL_IMPORT_HEADER_PROBLEMS,
@@ -8,8 +9,8 @@ import {
   DEAL_IMPORT_STATES,
   MAX_CALL_SPEAKERS,
   OUTCOMES,
+  rightsWordingFor,
 } from 'tula-closeline-contract'
-import { rightsWordingFor } from '~/data/rights-wording'
 import {
   callFailureWords,
   callStateLabel,
@@ -93,8 +94,8 @@ describe('polling and the way back', () => {
 
 describe('the rights wording', () => {
   test('version 1 exists, a version this build lacks does not, and prototype names are not versions', () => {
-    expect(rightsWordingFor(1)).toBeDefined()
-    expect(rightsWordingFor(2)).toBeUndefined()
+    expect(rightsWordingFor(CURRENT_RIGHTS_WORDING_VERSION)).toBeDefined()
+    expect(rightsWordingFor(CURRENT_RIGHTS_WORDING_VERSION + 1)).toBeUndefined()
     expect(rightsWordingFor(Number.NaN)).toBeUndefined()
   })
 })
