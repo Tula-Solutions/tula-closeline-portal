@@ -1,15 +1,17 @@
 import { getRouteApi, Link } from '@tanstack/react-router'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { OUTCOMES, type Outcome, outcomeSchema } from 'tula-closeline-contract'
+import { calendarDateSchema, OUTCOMES, type Outcome, outcomeSchema } from 'tula-closeline-contract'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
 import { refresh, useDeal } from '~/data/queries'
 import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
 import { Money } from '~/screens/sales/DealsScreen'
 import { Banner } from '~/ui/Banner'
+import { Field } from '~/ui/Field'
 import { SelectField } from '~/ui/SelectField'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
+import { useFocusOnError } from '~/ui/useFocusOnError'
 import { useSubmit } from '~/ui/useSubmit'
 import { DateOnly } from '~/ui/When'
 
@@ -71,6 +73,7 @@ export function DealScreen() {
             key={deal.data.id}
             id={deal.data.id}
             current={deal.data.outcome}
+            closedAt={deal.data.closedAt}
             readAt={deal.dataUpdatedAt}
           />
         </>
@@ -82,6 +85,8 @@ export function DealScreen() {
 function OutcomeForm(props: {
   readonly id: string
   readonly current: string
+  /** The Deal's closing date as the service has it (`YYYY-MM-DD`), or null. */
+  readonly closedAt: string | null
   /** When the Deal was last read successfully: a newer value means a read finished. */
   readonly readAt: number
 }) {
@@ -108,10 +113,15 @@ function OutcomeForm(props: {
   }, [props.readAt, saved])
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
-  const save = useSubmit<Outcome>(
-    async (chosen) => {
+  // The closing date as typed (`YYYY-MM-DD`, from a date input); null until touched, then it follows the Deal.
+  const [typedDate, setTypedDate] = useState<string | null>(null)
+  const [dateError, setDateError] = useState<string | undefined>(undefined)
+  const { formRef, focusFirstError } = useFocusOnError()
+  const date = typedDate ?? props.closedAt ?? ''
+  const save = useSubmit<{ outcome: Outcome; closedAt: string | null | undefined }>(
+    async ({ outcome: chosen, closedAt }) => {
       setError(null)
-      await app.salesHistory.setDealOutcome(props.id, chosen)
+      await app.salesHistory.setDealOutcome(props.id, chosen, closedAt)
       setNotice('Outcome saved.')
       // The select keeps showing what was saved until a read of the Deal succeeds (the effect
       // above). A failed read is the page's own error, not this save's.
@@ -123,12 +133,27 @@ function OutcomeForm(props: {
   )
   return (
     <form
+      ref={formRef}
       noValidate
       aria-labelledby='outcome-heading'
       onSubmit={(event) => {
         event.preventDefault()
         setNotice('')
-        save.submit(outcome)
+        // The date goes as `YYYY-MM-DD` only; empty sends none, or null to clear one the Deal had.
+        let closedAt: string | null | undefined
+        if (date === '') {
+          closedAt = props.closedAt === null ? undefined : null
+        } else {
+          const checked = calendarDateSchema.safeParse(date)
+          if (!checked.success) {
+            setDateError('Enter a real date from 1970 to 2100.')
+            focusFirstError()
+            return
+          }
+          closedAt = checked.data
+        }
+        setDateError(undefined)
+        save.submit({ outcome, closedAt })
       }}
     >
       <h2 id='outcome-heading'>Set the Outcome</h2>
@@ -148,6 +173,18 @@ function OutcomeForm(props: {
           }
         }}
         options={OUTCOMES.map((value) => ({ value, text: OUTCOME_LABEL[value] }))}
+      />
+      <Field
+        type='date'
+        label='Closing date (optional)'
+        name='closedAt'
+        value={date}
+        error={dateError}
+        hint='The day the Deal was won or lost, or is expected to close. It has no time of day.'
+        onChange={(event) => {
+          setTypedDate(event.target.value)
+          setDateError(undefined)
+        }}
       />
       <button type='submit' className='button' aria-disabled={save.pending}>
         {save.pending ? 'Saving...' : 'Save Outcome'}

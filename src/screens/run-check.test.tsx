@@ -35,7 +35,7 @@ describe('run check 1: a date without a time is a date', () => {
     'the Deals list and a Deal show 2026-01-31 as 31 January in %s',
     async (zone) => {
       process.env.TZ = zone
-      const deal = dealBody(1, { outcome: 'won', closedAt: '2026-01-31T00:00:00.000Z' })
+      const deal = dealBody(1, { outcome: 'won', closedAt: '2026-01-31' })
       visit('/sales-history/deals', 'owner', [
         route('GET', DEALS, json(200, page([deal]))),
         route('GET', `${DEALS}/${deal.id}`, json(200, deal)),
@@ -43,31 +43,17 @@ describe('run check 1: a date without a time is a date', () => {
       const row = (await screen.findByText('D-1')).closest('tr') as HTMLElement
       expect(row.textContent).toContain('Jan 31, 2026')
       expect(row.textContent).not.toMatch(/Jan 30|Feb 1/)
-      expect(row.querySelector('time')?.getAttribute('datetime')).toBe('2026-01-31T00:00:00.000Z')
+      expect(row.querySelector('time')?.getAttribute('datetime')).toBe('2026-01-31')
     }
   )
 
   test('a Deal page shows the same date', async () => {
     process.env.TZ = 'America/Chicago'
-    const deal = dealBody(1, { outcome: 'won', closedAt: '2026-01-31T00:00:00.000Z' })
+    const deal = dealBody(1, { outcome: 'won', closedAt: '2026-01-31' })
     visit(`/sales-history/deals/${deal.id}`, 'owner', [
       route('GET', `${DEALS}/${deal.id}`, json(200, deal)),
     ])
     expect((await screen.findByText('Jan 31, 2026')).tagName).toBe('TIME')
-  })
-
-  test('every closedAt is its UTC calendar date with no time, whatever the time of day', async () => {
-    process.env.TZ = 'America/Chicago'
-    visit('/sales-history/deals', 'owner', [
-      route(
-        'GET',
-        DEALS,
-        json(200, page([dealBody(1, { outcome: 'won', closedAt: '2026-01-31T15:30:00Z' })]))
-      ),
-    ])
-    const row = (await screen.findByText('D-1')).closest('tr') as HTMLElement
-    expect(row.textContent).toContain('Jan 31, 2026')
-    expect(row.textContent).not.toMatch(/3:30|9:30/)
   })
 
   test('any other timestamp, even at exactly midnight UTC, shows local date and time', () => {

@@ -120,8 +120,8 @@ export type SalesHistoryApi = {
   getDeal(dealRecordId: DealRecordId | string, signal?: AbortSignal): Promise<Deal>
   /** Finds a Deal by the customer's deal id, which travels in the body only. */
   lookupDeal(customerDealId: string): Promise<Deal>
-  /** Sets or corrects a Deal's Outcome. */
-  setDealOutcome(dealRecordId: string, outcome: Outcome): Promise<Deal>
+  /** Sets or corrects a Deal's Outcome, with its closing date (`YYYY-MM-DD`) when given; `null` clears the date. */
+  setDealOutcome(dealRecordId: string, outcome: Outcome, closedAt?: string | null): Promise<Deal>
   /** One page of Deal imports, newest first. */
   listDealImports(page: PageRequest): Promise<ListDealImportsResponse>
   /** One import with its state and counts. */
@@ -131,6 +131,8 @@ export type SalesHistoryApi = {
     importId: string,
     page: ImportRowPageRequest
   ): Promise<ListDealImportRowsResponse>
+  /** One Call by its id, with the short excerpt per speaker that a page of Calls does not carry. */
+  getCall(callId: string, signal?: AbortSignal): Promise<Call>
   /** One page of Calls, newest first. */
   listCalls(page: CallPageRequest): Promise<CallsPage>
   /** Uploads a Transcript or Recording for a Deal; the key makes a repeat of the same request answer with the stored Call. `onProgress` is told how much has gone out. */
@@ -209,11 +211,11 @@ export function createSalesHistoryApi(
         auth: true,
         parse: (json) => dealSchema.parse(json),
       }),
-    setDealOutcome: (dealRecordId, outcome) =>
+    setDealOutcome: (dealRecordId, outcome, closedAt) =>
       http.request({
         method: 'PUT',
         path: `${BASE}/deals/${segment(dealRecordId)}/outcome`,
-        body: { outcome },
+        body: closedAt === undefined ? { outcome } : { outcome, closedAt },
         auth: true,
         parse: (json) => dealSchema.parse(json),
       }),
@@ -257,6 +259,13 @@ export function createSalesHistoryApi(
         },
       })
     },
+    getCall: (callId, signal) =>
+      http.request({
+        path: `${BASE}/calls/${segment(callId)}`,
+        auth: true,
+        ...signalOf(signal),
+        parse: (json) => callSchema.parse(json),
+      }),
     listCalls: (page) =>
       http.request({
         path: `${BASE}/calls`,

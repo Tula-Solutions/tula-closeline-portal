@@ -12,7 +12,7 @@ import {
 import { isUnreadable } from '~/api/sales-history'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
-import { refresh, useCalls, useDeal, useRights } from '~/data/queries'
+import { refresh, useCallSpeakers, useCalls, useDeal, useRights } from '~/data/queries'
 import {
   CALL_FILTER_LABEL,
   CALL_PENDING_STATES,
@@ -186,6 +186,8 @@ function CallRow(props: {
   const preset = currentRep !== null && call.speakerLabels.includes(currentRep) ? currentRep : ''
   const chosen = pick !== null && call.speakerLabels.includes(pick) ? pick : preset
   const canChange = repChangeAllowed(call.state, call.failureReason)
+  // What each speaker said comes from reading this one Call (a page of Calls does not carry it), only while the picker is open.
+  const speakers = useCallSpeakers(call.id, editing && canChange).data?.speakers
 
   const remove = useSubmit<void>(
     async () => {
@@ -307,6 +309,20 @@ function CallRow(props: {
                   changeRep.submit(chosen)
                 }}
               >
+                {speakers === undefined || speakers.length === 0 ? null : (
+                  <ul className='plain-list' aria-label='What each speaker said'>
+                    {speakers.map((speaker) => (
+                      <li key={speaker.label}>
+                        <strong>
+                          <Untrusted value={speaker.label} />
+                        </strong>
+                        {': '}
+                        {/* Transcript text: shown as text only, whole, never as markup. */}
+                        <bdi>{speaker.excerpt}</bdi>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <SelectField
                   label={`Rep for ${label}`}
                   name='rep'
