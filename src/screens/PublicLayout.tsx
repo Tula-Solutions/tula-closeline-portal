@@ -57,23 +57,6 @@ export function PublicLayout() {
         aria-label='About Closeline'
       >
         <Logo className='w-40 text-[#f1efe8]' />
-        <svg
-          aria-hidden='true'
-          viewBox='-80 -80 160 160'
-          className='pointer-events-none absolute -right-28 -bottom-28 -z-10 size-[30rem] text-[#f1efe8] opacity-[0.07]'
-          fill='none'
-          stroke='currentColor'
-          strokeWidth='3'
-          strokeLinecap='round'
-        >
-          <line x1='0' y1='-52' x2='0' y2='56' />
-          <line x1='-60' y1='-34' x2='60' y2='-34' />
-          <line x1='-26' y1='56' x2='26' y2='56' />
-          <line x1='-60' y1='-34' x2='-60' y2='-10' />
-          <line x1='60' y1='-34' x2='60' y2='-10' />
-          <circle cx='-60' cy='4' r='15' fill='currentColor' />
-          <circle cx='60' cy='4' r='15' />
-        </svg>
         <div className='relative max-w-md motion-safe:animate-rise'>
           <p className='m-0 text-[2rem] leading-[1.15] font-semibold tracking-[-0.025em] text-balance'>
             Live guidance for every Rep. Agents for the rest.

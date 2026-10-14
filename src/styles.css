@@ -338,6 +338,9 @@
     border-block-end: 1px solid var(--border);
     text-align: start;
     vertical-align: middle;
+    /* The body's `anywhere` lets a cell shrink to one letter wide ("In sear / h"); `break-word`
+       keeps whole words in the column width and the scroll box takes the overflow instead. */
+    overflow-wrap: break-word;
   }
 
   thead th {
@@ -418,6 +421,7 @@
 
   .drop-area {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     min-width: 0;
     justify-items: center;
     gap: 0.625rem;
@@ -436,6 +440,10 @@
     transition:
       background-color 150ms var(--ease),
       border-color 150ms var(--ease);
+  }
+
+  .drop-area > * {
+    max-width: 100%;
   }
 
   .drop-area-over {
@@ -508,7 +516,7 @@
     isolation: isolate;
     overflow: hidden;
     background:
-      radial-gradient(70% 55% at 100% 0%, rgb(31 79 199 / 0.55), transparent 70%),
+      radial-gradient(80% 60% at 75% -10%, rgb(31 79 199 / 0.5), transparent 70%),
       radial-gradient(55% 45% at 0% 100%, rgb(141 174 255 / 0.16), transparent 70%),
       linear-gradient(180deg, #1d1d1b, #151514);
     color: #f1efe8;
@@ -539,13 +547,7 @@
   }
 
   .auth-backdrop {
-    background:
-      radial-gradient(
-        60% 40% at 50% 0%,
-        color-mix(in oklab, var(--primary) 7%, transparent),
-        transparent 70%
-      ),
-      var(--background);
+    background: var(--background);
   }
 
   .plain-list {

@@ -222,7 +222,7 @@ export function HomeScreen() {
       <div className='flex flex-col gap-6'>
         <ul
           aria-label='Your Organization in numbers'
-          className='m-0 grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-4'
+          className='m-0 grid list-none grid-cols-2 gap-3 p-0 sm:gap-4 xl:grid-cols-4'
         >
           {can.viewMembers(role) ? <MembersTile /> : null}
           <StatTile

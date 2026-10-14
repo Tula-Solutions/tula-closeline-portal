@@ -30,7 +30,7 @@ export function StatTile(props: {
   const Icon = props.icon
   const text = statText(props.value)
   return (
-    <li className='group relative flex min-w-0 flex-col gap-4 rounded-xl border bg-card p-5 shadow-elev-1 transition-[box-shadow,border-color,transform] duration-200 ease-snappy hover:border-border-strong hover:shadow-elev-2 motion-safe:hover:-translate-y-px'>
+    <li className='group relative flex min-w-0 flex-col gap-3 rounded-xl border bg-card p-4 shadow-elev-1 sm:gap-4 sm:p-5 transition-[box-shadow,border-color,transform] duration-200 ease-snappy hover:border-border-strong hover:shadow-elev-2 motion-safe:hover:-translate-y-px'>
       <div className='flex items-center justify-between gap-3'>
         <span className='flex items-center gap-2 text-[0.8125rem] font-medium text-muted-foreground'>
           <span

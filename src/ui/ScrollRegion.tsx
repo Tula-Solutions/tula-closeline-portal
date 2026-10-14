@@ -14,7 +14,9 @@ export function ScrollRegion(props: {
     // biome-ignore lint/a11y/useSemanticElements: a div with a region role is how a scroll box is named
     <div
       className={cn(
-        'table-scroll motion-safe:animate-fade',
+        // `relative` makes the box the containing block of sr-only cells, so they scroll with it
+        // instead of widening the page on a phone.
+        'table-scroll relative motion-safe:animate-fade',
         props.bare ? null : 'rounded-xl border bg-card shadow-elev-1'
       )}
       role='region'
