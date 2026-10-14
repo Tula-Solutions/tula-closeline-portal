@@ -23,7 +23,11 @@ export function ThemeMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant='ghost' size='sm' className='justify-start'>
+        <Button
+          variant='ghost'
+          size='sm'
+          className='justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent'
+        >
           <Icon aria-hidden='true' />
           Appearance
         </Button>

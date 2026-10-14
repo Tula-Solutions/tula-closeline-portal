@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useApp, useSessionState } from '~/app-context'
-import { NavLink, SubNavLink } from '~/components/app/nav-link'
+import { NavGroup, NavLink, SubNavLink } from '~/components/app/nav-link'
 import { ThemeMenu } from '~/components/app/theme-menu'
 import { Button } from '~/components/ui/button'
 import { Separator } from '~/components/ui/separator'
@@ -135,7 +135,7 @@ export function Shell() {
   const inPlaybook = pathname === '/playbook' || pathname.startsWith('/playbook/')
   const inSales = pathname === '/sales-history' || pathname.startsWith('/sales-history/')
   return (
-    <div className='min-h-dvh md:grid md:grid-cols-[17rem_minmax(0,1fr)]'>
+    <div className='min-h-dvh md:grid md:grid-cols-[15.5rem_minmax(0,1fr)]'>
       <a
         inert={open}
         className='sr-only z-[60] rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3'
@@ -145,7 +145,7 @@ export function Shell() {
       </a>
       <div
         inert={open}
-        className='sticky top-0 z-30 flex items-center gap-3 border-b bg-background/90 px-4 py-2 backdrop-blur md:hidden'
+        className='sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur-md backdrop-saturate-150 md:hidden'
       >
         <Button
           ref={toggleRef}
@@ -158,7 +158,7 @@ export function Shell() {
         >
           {open ? <X aria-hidden='true' /> : <Menu aria-hidden='true' />}
         </Button>
-        <span className='text-sm font-semibold'>Closeline</span>
+        <span className='text-sm font-semibold tracking-[-0.011em]'>Closeline</span>
       </div>
       {open ? (
         <button
@@ -173,16 +173,16 @@ export function Shell() {
         ref={asideRef}
         id='app-sidebar'
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-4 border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-[transform,visibility] duration-200 md:sticky md:top-0 md:z-auto md:h-dvh md:w-auto md:max-w-none md:translate-x-0 md:visible',
+          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-3 border-r border-sidebar-border bg-sidebar px-3 py-4 text-sidebar-foreground shadow-elev-3 transition-[transform,visibility] duration-200 ease-snappy md:sticky md:top-0 md:z-auto md:h-dvh md:w-auto md:max-w-none md:translate-x-0 md:shadow-none md:visible',
           open ? 'visible translate-x-0' : 'max-md:invisible max-md:-translate-x-full'
         )}
       >
-        <div className='flex items-center justify-between px-2 pt-1'>
-          <Logo className='w-36' />
+        <div className='flex items-center justify-between px-2.5 pt-1 pb-1'>
+          <Logo className='w-32' />
           <Button
             ref={closeRef}
             variant='ghost'
-            size='icon'
+            size='icon-sm'
             className='md:hidden'
             aria-label='Close menu'
             onClick={() => close('toggle')}
@@ -190,45 +190,69 @@ export function Shell() {
             <X aria-hidden='true' />
           </Button>
         </div>
-        <nav aria-label='Main' className='flex flex-1 flex-col gap-1 overflow-y-auto'>
-          <NavLink to='/' icon={House} exact>
-            Home
-          </NavLink>
-          {can.viewMembers(role) ? (
-            <NavLink to='/members' icon={Users}>
-              Members
+        <div className='flex items-center gap-2.5 rounded-lg border border-sidebar-border bg-card/70 px-2.5 py-2 shadow-elev-1'>
+          <span
+            aria-hidden='true'
+            className='flex size-8 shrink-0 items-center justify-center rounded-md bg-foreground text-background'
+          >
+            <Building2 className='size-4' />
+          </span>
+          <div className='min-w-0 leading-tight'>
+            {/* An Organization's name is untrusted text: <bdi> keeps a direction override from leaking out. */}
+            <bdi className='block truncate text-[0.8125rem] font-semibold'>
+              {organization.data?.name ?? 'Your Organization'}
+            </bdi>
+            <span className='text-xs text-muted-foreground'>{ROLE_LABEL[role]}</span>
+          </div>
+        </div>
+        <nav aria-label='Main' className='-mx-1 flex flex-1 flex-col overflow-y-auto px-1 pb-2'>
+          <div className='flex flex-col gap-0.5 pt-2'>
+            <NavLink to='/' icon={House} exact>
+              Home
             </NavLink>
-          ) : null}
-          {can.manageInvitations(role) ? (
-            <NavLink to='/invitations' icon={Mail}>
-              Invitations
+          </div>
+          <NavGroup id='organization' label='Organization'>
+            {can.viewMembers(role) ? (
+              <NavLink to='/members' icon={Users}>
+                Members
+              </NavLink>
+            ) : null}
+            {can.manageInvitations(role) ? (
+              <NavLink to='/invitations' icon={Mail}>
+                Invitations
+              </NavLink>
+            ) : null}
+            <NavLink to='/teams' icon={UsersRound}>
+              Teams
             </NavLink>
-          ) : null}
-          <NavLink to='/teams' icon={UsersRound}>
-            Teams
-          </NavLink>
-          <NavLink to='/playbook' icon={BookOpen}>
-            Playbook
-          </NavLink>
-          {inPlaybook ? (
-            <nav aria-label='Playbook' className='mb-1 ml-5 flex flex-col gap-0.5 border-l pl-2'>
-              <SubNavLink to='/playbook' exact>
-                Documents
-              </SubNavLink>
-              {can.searchDocuments(role) ? (
-                <SubNavLink to='/playbook/search'>Search</SubNavLink>
-              ) : null}
-            </nav>
-          ) : null}
+          </NavGroup>
+          <NavGroup id='knowledge' label='Knowledge'>
+            <NavLink to='/playbook' icon={BookOpen}>
+              Playbook
+            </NavLink>
+            {inPlaybook ? (
+              <nav
+                aria-label='Playbook'
+                className='my-0.5 ml-[1.1rem] flex flex-col gap-0.5 border-l border-sidebar-border pl-2 motion-safe:animate-fade'
+              >
+                <SubNavLink to='/playbook' exact>
+                  Documents
+                </SubNavLink>
+                {can.searchDocuments(role) ? (
+                  <SubNavLink to='/playbook/search'>Search</SubNavLink>
+                ) : null}
+              </nav>
+            ) : null}
+          </NavGroup>
           {can.manageSalesHistory(role) ? (
-            <>
+            <NavGroup id='sales' label='Sales'>
               <NavLink to='/sales-history' icon={TrendingUp}>
                 Sales history
               </NavLink>
               {inSales ? (
                 <nav
                   aria-label='Sales history'
-                  className='mb-1 ml-5 flex flex-col gap-0.5 border-l pl-2'
+                  className='my-0.5 ml-[1.1rem] flex flex-col gap-0.5 border-l border-sidebar-border pl-2 motion-safe:animate-fade'
                 >
                   <SubNavLink to='/sales-history' exact>
                     Overview
@@ -242,35 +266,21 @@ export function Shell() {
                   ) : null}
                 </nav>
               ) : null}
-            </>
+            </NavGroup>
           ) : null}
         </nav>
-        <Separator />
-        <div className='flex flex-col gap-3'>
-          <div className='flex items-center gap-3 px-2'>
-            <span className='flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary'>
-              <Building2 aria-hidden='true' className='size-[18px]' />
-            </span>
-            <div className='min-w-0'>
-              {/* An Organization's name is untrusted text: <bdi> keeps a direction override from leaking out. */}
-              <bdi className='block truncate text-sm font-semibold'>
-                {organization.data?.name ?? 'Your Organization'}
-              </bdi>
-              <span className='text-xs text-muted-foreground'>{ROLE_LABEL[role]}</span>
-            </div>
-          </div>
-          <div className='flex flex-col'>
-            <ThemeMenu />
-            <Button
-              variant='ghost'
-              size='sm'
-              className='justify-start'
-              onClick={() => app.session.signOut()}
-            >
-              <LogOut aria-hidden='true' />
-              Sign out
-            </Button>
-          </div>
+        <Separator className='bg-sidebar-border' />
+        <div className='flex flex-col gap-0.5'>
+          <ThemeMenu />
+          <Button
+            variant='ghost'
+            size='sm'
+            className='justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent'
+            onClick={() => app.session.signOut()}
+          >
+            <LogOut aria-hidden='true' />
+            Sign out
+          </Button>
         </div>
       </aside>
       <main
@@ -278,7 +288,7 @@ export function Shell() {
         inert={open}
         id='main'
         tabIndex={-1}
-        className='min-w-0 px-4 py-8 outline-none md:px-10 md:py-10'
+        className='relative min-w-0 px-4 py-8 outline-none md:px-10 md:py-10 xl:px-12'
       >
         <div className='mx-auto w-full max-w-6xl'>
           {/* Keyed by Organization: another Organization starts every screen fresh, with no state of the last. */}

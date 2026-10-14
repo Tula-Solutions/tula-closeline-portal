@@ -2,7 +2,10 @@ import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { cn } from '~/lib/utils'
 
-/** What a list shows when it has nothing yet: an icon, what is missing, and what to do about it. */
+/**
+ * What a list shows when it has nothing yet: an icon on a soft halo, what is missing, one line of
+ * help, and the action that adds the first one.
+ */
 export function EmptyState(props: {
   readonly icon: LucideIcon
   readonly title: string
@@ -13,19 +16,23 @@ export function EmptyState(props: {
   const Icon = props.icon
   return (
     <div
+      data-slot='empty-state'
       className={cn(
-        'flex flex-col items-center gap-3 rounded-xl border border-dashed bg-card/60 px-6 py-12 text-center',
+        'relative flex flex-col items-center gap-2 overflow-hidden rounded-xl border border-dashed border-border-strong bg-card/70 px-6 py-14 text-center motion-safe:animate-fade',
         props.className
       )}
     >
-      <span className='flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground'>
-        <Icon aria-hidden='true' className='size-6' />
+      <span aria-hidden='true' className='relative mb-2 flex size-14 items-center justify-center'>
+        <span className='absolute inset-0 rounded-2xl bg-primary/8 ring-1 ring-primary/10 -rotate-6' />
+        <span className='relative flex size-12 items-center justify-center rounded-xl border bg-card text-primary shadow-elev-2'>
+          <Icon className='size-5' strokeWidth={1.75} />
+        </span>
       </span>
-      <p className='text-base font-semibold'>{props.title}</p>
+      <p className='m-0 text-[0.9375rem] font-semibold tracking-[-0.011em]'>{props.title}</p>
       {props.children ? (
-        <p className='max-w-md text-sm text-muted-foreground'>{props.children}</p>
+        <p className='m-0 max-w-sm text-sm text-muted-foreground'>{props.children}</p>
       ) : null}
-      {props.action ? <div className='mt-1'>{props.action}</div> : null}
+      {props.action ? <div className='mt-3'>{props.action}</div> : null}
     </div>
   )
 }

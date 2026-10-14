@@ -1,43 +1,32 @@
-import {
-  CheckCircle2,
-  CircleDashed,
-  CircleX,
-  Clock,
-  Loader,
-  type LucideIcon,
-  Trash2,
-  Trophy,
-  UserRoundSearch,
-} from 'lucide-react'
-import { Badge } from '~/components/ui/badge'
+import { Badge, BadgeDot } from '~/components/ui/badge'
 
 type Tone = {
   readonly variant: 'neutral' | 'success' | 'warning' | 'danger' | 'info'
-  readonly icon: LucideIcon
+  /** A state that is still moving: its dot pulses. */
+  readonly live?: boolean
 }
 
-/** The colour and icon of each state or Outcome word; colour is never the only signal because the label is always shown. */
+/** The colour of each state or Outcome word; colour is never the only signal because the label is always shown. */
 const TONES: Record<string, Tone> = {
-  ready: { variant: 'success', icon: CheckCircle2 },
-  completed: { variant: 'success', icon: CheckCircle2 },
-  won: { variant: 'success', icon: Trophy },
-  failed: { variant: 'danger', icon: CircleX },
-  lost: { variant: 'danger', icon: CircleX },
-  processing: { variant: 'info', icon: Loader },
-  transcribing: { variant: 'info', icon: Loader },
-  uploaded: { variant: 'info', icon: Clock },
-  awaiting_rep: { variant: 'warning', icon: UserRoundSearch },
-  open: { variant: 'neutral', icon: CircleDashed },
-  deleted: { variant: 'neutral', icon: Trash2 },
+  ready: { variant: 'success' },
+  completed: { variant: 'success' },
+  won: { variant: 'success' },
+  failed: { variant: 'danger' },
+  lost: { variant: 'danger' },
+  processing: { variant: 'info', live: true },
+  transcribing: { variant: 'info', live: true },
+  uploaded: { variant: 'info' },
+  awaiting_rep: { variant: 'warning' },
+  open: { variant: 'neutral' },
+  deleted: { variant: 'neutral' },
 }
 
-/** A state or Outcome as a badge: an icon and the words. A state this build does not know is neutral. */
+/** A state or Outcome as a badge: a dot and the words. A state this build does not know is neutral. */
 export function StatusBadge(props: { readonly state: string; readonly children: string }) {
   const tone = Object.hasOwn(TONES, props.state) ? TONES[props.state] : undefined
-  const Icon = tone?.icon ?? CircleDashed
   return (
-    <Badge variant={tone?.variant ?? 'neutral'}>
-      <Icon aria-hidden='true' />
+    <Badge variant={tone?.variant ?? 'neutral'} data-state={props.state}>
+      <BadgeDot live={tone?.live === true} />
       {props.children}
     </Badge>
   )

@@ -44,6 +44,21 @@
   --sidebar-foreground: #1a1a18;
   --sidebar-accent: #dedbcd;
   --sidebar-border: #d6d2c4;
+  /* A control's quiet edge (an outline button): softer than --input, which fields keep for 3:1. */
+  --border-strong: #c4bfae;
+  /* Elevation, tinted with ink so a shadow never reads as grey on paper. */
+  --elev-1: 0 1px 2px rgb(26 26 24 / 0.05), 0 1px 1px rgb(26 26 24 / 0.03);
+  --elev-2: 0 1px 2px rgb(26 26 24 / 0.04), 0 4px 12px -2px rgb(26 26 24 / 0.08);
+  --elev-3: 0 2px 4px rgb(26 26 24 / 0.04), 0 12px 32px -6px rgb(26 26 24 / 0.16);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.6);
+  /* Member avatars: soft fills that tell people apart; the initials stay ink (AA on each). */
+  --avatar-1: #dfe6f8;
+  --avatar-2: #dcefe2;
+  --avatar-3: #f8e7bf;
+  --avatar-4: #f3dcd6;
+  --avatar-5: #e4def3;
+  --avatar-6: #d9ebef;
+  --avatar-foreground: #1a1a18;
   color-scheme: light;
 }
 
@@ -79,6 +94,18 @@
   --sidebar-foreground: #f1efe8;
   --sidebar-accent: #2a2a27;
   --sidebar-border: #33322e;
+  --border-strong: #4a4944;
+  --elev-1: 0 1px 2px rgb(0 0 0 / 0.3);
+  --elev-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px -4px rgb(0 0 0 / 0.4);
+  --elev-3: 0 2px 6px rgb(0 0 0 / 0.35), 0 16px 40px -8px rgb(0 0 0 / 0.55);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --avatar-1: #26324f;
+  --avatar-2: #1f3a2a;
+  --avatar-3: #43361a;
+  --avatar-4: #48271f;
+  --avatar-5: #33294a;
+  --avatar-6: #1d3a42;
+  --avatar-foreground: #f1efe8;
   color-scheme: dark;
 }
 
@@ -120,6 +147,45 @@
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-border: var(--sidebar-border);
+  --color-border-strong: var(--border-strong);
+  --color-avatar-foreground: var(--avatar-foreground);
+  --shadow-elev-1: var(--elev-1);
+  --shadow-elev-2: var(--elev-2);
+  --shadow-elev-3: var(--elev-3);
+  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+  --animate-rise: rise 180ms var(--ease-snappy) both;
+  --animate-fade: fade 160ms ease-out both;
+  --animate-ping-soft: ping-soft 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes ping-soft {
+    0% {
+      transform: scale(1);
+      opacity: 0.6;
+    }
+    80%,
+    100% {
+      transform: scale(2.2);
+      opacity: 0;
+    }
+  }
 }
 
 @layer base {
@@ -132,6 +198,13 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     overflow-wrap: anywhere;
+    font-feature-settings: "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
   }
   :focus-visible {
     outline: 2px solid var(--ring);
@@ -146,5 +219,6 @@
     animation-duration: 0.01ms;
     animation-iteration-count: 1;
     transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 }

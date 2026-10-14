@@ -29,6 +29,8 @@ export function Paged(props: {
   readonly state: PagedState
   readonly children: ReactNode
   readonly emptyIcon?: LucideIcon
+  /** One line under the empty title: why it is empty or how to fill it. */
+  readonly emptyHint?: ReactNode
   /** What to do about an empty list, such as the button that adds the first one. */
   readonly emptyAction?: ReactNode
 }) {
@@ -39,11 +41,25 @@ export function Paged(props: {
         <p role='status' className='sr-only'>
           Loading {noun}...
         </p>
-        <div aria-hidden='true' className='flex flex-col gap-3 rounded-xl border bg-card p-4'>
-          <Skeleton className='h-5 w-1/3' />
-          <Skeleton className='h-10 w-full' />
-          <Skeleton className='h-10 w-full' />
-          <Skeleton className='h-10 w-5/6' />
+        <div
+          aria-hidden='true'
+          className='flex flex-col overflow-hidden rounded-xl border bg-card shadow-elev-1'
+        >
+          <div className='flex gap-6 border-b bg-muted/40 px-4 py-3'>
+            <Skeleton className='h-3 w-24' />
+            <Skeleton className='h-3 w-16' />
+            <Skeleton className='h-3 w-20' />
+          </div>
+          {[0, 1, 2, 3].map((row) => (
+            <div key={row} className='flex items-center gap-3 border-b px-4 py-3 last:border-b-0'>
+              <Skeleton className='size-8 rounded-full' />
+              <div className='flex flex-1 flex-col gap-1.5'>
+                <Skeleton className='h-3 w-1/3' />
+                <Skeleton className='h-3 w-1/4' />
+              </div>
+              <Skeleton className='h-5 w-16 rounded-full' />
+            </div>
+          ))}
         </div>
       </div>
     )
@@ -65,7 +81,9 @@ export function Paged(props: {
         icon={props.emptyIcon ?? Inbox}
         title={props.emptyText}
         action={props.emptyAction}
-      />
+      >
+        {props.emptyHint}
+      </EmptyState>
     )
   }
   return (
