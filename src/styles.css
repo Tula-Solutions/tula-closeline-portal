@@ -499,6 +499,55 @@
     }
   }
 
+  /*
+   * The ink panel beside sign-in and sign-up: a cobalt glow from the top corner, a faint grid that
+   * fades out from the middle, and paper text. Ink in both themes; CSS only.
+   */
+  .brand-panel {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+      radial-gradient(70% 55% at 100% 0%, rgb(31 79 199 / 0.55), transparent 70%),
+      radial-gradient(55% 45% at 0% 100%, rgb(141 174 255 / 0.16), transparent 70%),
+      linear-gradient(180deg, #1d1d1b, #151514);
+    color: #f1efe8;
+  }
+
+  .brand-panel::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background-image:
+      linear-gradient(rgb(241 239 232 / 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(241 239 232 / 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    content: "";
+    mask-image: radial-gradient(75% 65% at 55% 45%, #000 20%, transparent 80%);
+  }
+
+  .brand-panel::after {
+    position: absolute;
+    z-index: -1;
+    inset: auto -20% -30% auto;
+    width: 32rem;
+    height: 32rem;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgb(141 174 255 / 0.12), transparent);
+    content: "";
+    filter: blur(8px);
+  }
+
+  .auth-backdrop {
+    background:
+      radial-gradient(
+        60% 40% at 50% 0%,
+        color-mix(in oklab, var(--primary) 7%, transparent),
+        transparent 70%
+      ),
+      var(--background);
+  }
+
   .plain-list {
     display: grid;
     gap: 0.75rem;
