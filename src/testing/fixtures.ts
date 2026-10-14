@@ -1,5 +1,5 @@
 import type { SessionTokens } from '~/api/auth'
-import type { Fetch } from '~/api/http'
+import type { Fetch, UploadProgress } from '~/api/http'
 import { parseEnv } from '~/env'
 
 /** The configuration the tests run with. */
@@ -55,6 +55,8 @@ export type Call = {
   readonly headers: Headers
   readonly body: unknown
   readonly init: RequestInit
+  /** Given only for an upload that reports progress; a handler may call it to simulate bytes going out. */
+  readonly progress: UploadProgress | undefined
 }
 
 /** A handler answers a call with a Response, or null to say it has no route for it. */
@@ -63,7 +65,7 @@ export type Handler = (call: Call) => Response | Promise<Response> | null
 /** A fetch double that records every call and answers with the first handler that claims it. */
 export function fakeFetch(...handlers: Handler[]) {
   const calls: Call[] = []
-  const fetchDouble: Fetch = async (input, init) => {
+  const fetchDouble: Fetch = async (input, init, onProgress) => {
     // Like the real fetch: a request whose signal is already aborted never goes out.
     if (init.signal?.aborted) {
       throw new DOMException('The operation was aborted.', 'AbortError')
@@ -75,6 +77,7 @@ export function fakeFetch(...handlers: Handler[]) {
       headers: new Headers(init.headers),
       body: typeof init.body === 'string' ? JSON.parse(init.body) : undefined,
       init,
+      progress: onProgress,
     }
     calls.push(call)
     for (const handler of handlers) {

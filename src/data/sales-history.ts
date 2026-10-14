@@ -13,6 +13,8 @@ import {
   MAX_CALL_SPEAKERS,
   MAX_DEAL_IMPORT_BYTES,
   MAX_DEAL_IMPORT_ROWS,
+  MAX_RECORDING_BYTES,
+  MAX_RECORDING_SECONDS,
   MAX_TRANSCRIPT_BYTES,
   type Outcome,
 } from 'tula-closeline-contract'
@@ -163,10 +165,13 @@ export const CALL_FAILURE_WORDS: Record<CallFailureReason, string> = {
   too_few_speakers: 'The file has fewer than two speakers.',
   too_many_speakers: `The file has more than ${MAX_CALL_SPEAKERS} speakers.`,
   rep_label_not_found: "The Rep's name does not match any speaker in the file.",
-  not_per_side: 'The Recording does not have exactly two sides.',
-  too_long: 'The Call is longer than the limit.',
-  transcription_failed: 'The Recording could not be transcribed.',
-  transcription_timed_out: 'Transcribing the Recording took too long.',
+  not_per_side:
+    'The Recording does not have one side per channel, so a channel cannot name the Rep.',
+  too_long: `The Recording is longer than ${MAX_RECORDING_SECONDS / 3600} hours. Closeline cannot transcribe it.`,
+  transcription_failed:
+    'The Recording could not be transcribed. The audio may be damaged or silent; this can also be a passing problem.',
+  transcription_timed_out:
+    'Transcribing the Recording took too long. This is usually a passing problem.',
   unreadable: 'The file could not be read.',
   processing_failed: 'Something went wrong while processing the Call.',
 }
@@ -176,6 +181,11 @@ export const CALL_FIX_WORDS: Record<CallFailureFix, string> = {
   change_rep: 'Pick a different Rep.',
   reupload: 'Upload the same file again.',
   delete_and_upload: 'Delete this Call and upload a corrected file.',
+}
+
+/** A fix sentence that says more than the contract's generic one for the same fix. */
+const CALL_FIX_OVERRIDES: Partial<Record<CallFailureReason, string>> = {
+  not_per_side: 'Pick a speaker as the Rep to fix this.',
 }
 
 /** The words for a Call state, with a default for one this build does not know. */
@@ -191,7 +201,7 @@ export function callFailureWords(reason: string): string {
     return 'The Call did not finish. Delete it and upload the file again.'
   }
   const known = reason as CallFailureReason
-  return `${CALL_FAILURE_WORDS[known]} ${CALL_FIX_WORDS[CALL_FAILURE_FIXES[known]]}`
+  return `${CALL_FAILURE_WORDS[known]} ${CALL_FIX_OVERRIDES[known] ?? CALL_FIX_WORDS[CALL_FAILURE_FIXES[known]]}`
 }
 
 /**
@@ -224,6 +234,9 @@ export function inSearchWords(call: Pick<Call, 'inSearch' | 'state' | 'dealOutco
   }
   return "Not in search yet: the Deal's Outcome is still being applied."
 }
+
+/** The limit on a Recording in the words used in messages ("500 MB"). */
+export const MAX_RECORDING_WORDS = `${MAX_RECORDING_BYTES / (1024 * 1024)} MB`
 
 /** The limit on a Transcript in the words used in messages ("5 MB"). */
 export const MAX_TRANSCRIPT_WORDS = `${MAX_TRANSCRIPT_BYTES / (1024 * 1024)} MB`

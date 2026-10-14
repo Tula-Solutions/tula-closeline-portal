@@ -18,7 +18,9 @@ import {
   listDealsResponseSchema,
   MAX_CURSOR_LENGTH,
   MAX_PAGE_SIZE,
+  MAX_TRANSCRIPT_BYTES,
   type Outcome,
+  type RepChoice,
   type RightsStatus,
   rightsStatusSchema,
   UPLOAD_FILE_FIELD,
@@ -26,7 +28,7 @@ import {
 import { z } from 'zod'
 import { PAGE_SIZE, type PageRequest } from '~/api/core'
 import { ApiError, CLIENT_ERRORS } from '~/api/errors'
-import type { HttpClient } from '~/api/http'
+import type { HttpClient, UploadProgress } from '~/api/http'
 import { onlyStatus, UPLOAD_TIMEOUT_MS } from '~/api/playbook'
 
 /** One page request for Deals: with an Outcome, only Deals with it; `appearedInImport: false` lists Deals no CSV has named. */
@@ -93,11 +95,14 @@ export type CallPageRequest = PageRequest & {
   readonly dealRecordId?: string | undefined
 }
 
-/** A Call upload: the Transcript, the customer's deal id and the Rep's speaker label. The deal id travels in the multipart body. */
+/**
+ * A Call upload: the Transcript or Recording, the customer's deal id and the Rep (a speaker label
+ * for a Transcript, a channel or nothing for a Recording). The deal id travels in the multipart body.
+ */
 export type CallUpload = {
   readonly file: File
   readonly dealId: string
-  readonly repLabel: string
+  readonly rep: RepChoice | null
 }
 
 /** The answer to a Call upload: `duplicate` when the service already had this content for this Deal (HTTP 200). */
@@ -128,11 +133,12 @@ export type SalesHistoryApi = {
   ): Promise<ListDealImportRowsResponse>
   /** One page of Calls, newest first. */
   listCalls(page: CallPageRequest): Promise<CallsPage>
-  /** Uploads a Transcript for a Deal; the key makes a repeat of the same request answer with the stored Call. */
+  /** Uploads a Transcript or Recording for a Deal; the key makes a repeat of the same request answer with the stored Call. `onProgress` is told how much has gone out. */
   uploadCall(
     upload: CallUpload,
     idempotencyKey: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    onProgress?: UploadProgress
   ): Promise<CallUploadResult>
   /** Picks or changes the Rep of a Call by one of its speaker labels. */
   setCallRep(callId: string, label: string): Promise<Call>
@@ -143,6 +149,9 @@ export type SalesHistoryApi = {
   /** Uploads a CSV; the key makes a repeat of the same request answer with the stored import. */
   uploadDealImport(file: File, idempotencyKey: string, signal?: AbortSignal): Promise<DealImport>
 }
+
+/** An upload of up to 500 MB on a slow line: thirty minutes, instead of the two minutes of a small file. */
+const RECORDING_UPLOAD_TIMEOUT_MS = 30 * 60_000
 
 const segment = encodeURIComponent
 const BASE = '/v1/playbook'
@@ -265,18 +274,24 @@ export function createSalesHistoryApi(
             report(new ApiError({ code: CLIENT_ERRORS.badResponse, status }))
           ),
       }),
-    uploadCall: (upload, idempotencyKey, signal) => {
+    uploadCall: (upload, idempotencyKey, signal, onProgress) => {
       const form = new FormData()
-      form.set(UPLOAD_FILE_FIELD, upload.file, upload.file.name)
-      // The customer's deal id is a body field, never part of the address.
+      // Order matters: the service streams a Recording to storage, so it reads `dealId` and `rep`
+      // before `file`, and nothing may follow the file. The customer's deal id is a body field,
+      // never part of the address.
       form.set('dealId', upload.dealId)
-      form.set('rep', JSON.stringify({ by: 'speaker', label: upload.repLabel }))
+      if (upload.rep !== null) {
+        form.set('rep', JSON.stringify(upload.rep))
+      }
+      form.set(UPLOAD_FILE_FIELD, upload.file, upload.file.name)
       return http.request({
         method: 'POST',
         path: `${BASE}/calls`,
         body: form,
         headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
-        timeoutMs: UPLOAD_TIMEOUT_MS,
+        timeoutMs:
+          upload.file.size > MAX_TRANSCRIPT_BYTES ? RECORDING_UPLOAD_TIMEOUT_MS : UPLOAD_TIMEOUT_MS,
+        ...(onProgress ? { onUploadProgress: onProgress } : {}),
         auth: true,
         ...signalOf(signal),
         parse: (json, status) => ({

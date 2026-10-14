@@ -42,9 +42,9 @@ export const fingerprint = {
   /** Uploading a Deal import CSV with this name, size and last-modified time. */
   dealImport: (name: string, size: number, modified: number) =>
     JSON.stringify(['deal-import', name, size, modified]),
-  /** Uploading a Transcript: the file (name, size, modified time), the deal id and the Rep label, which together are one intent. */
-  call: (name: string, size: number, modified: number, dealId: string, repLabel: string) =>
-    JSON.stringify(['call', name, size, modified, dealId, repLabel]),
+  /** Uploading a Transcript or Recording: the file (name, size, modified time), the deal id and the Rep choice as JSON text (empty for none), which together are one intent. */
+  call: (name: string, size: number, modified: number, dealId: string, rep: string) =>
+    JSON.stringify(['call', name, size, modified, dealId, rep]),
   /** Adding `membershipId` to the Team `teamId`. */
   teamMember: (teamId: string, membershipId: string) =>
     JSON.stringify(['team-member', teamId, membershipId]),

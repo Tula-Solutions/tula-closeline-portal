@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { AUTH_ERRORS, ERRORS } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS } from '~/api/errors'
-import { type Authorizer, createHttpClient } from '~/api/http'
+import { type Authorizer, createHttpClient, sendWithProgress } from '~/api/http'
 import { createApp } from '~/app'
 import { noopReporter } from '~/report/reporter'
 import { createSession } from '~/session/session'
@@ -690,5 +690,100 @@ describe('uploads and per-call options', () => {
     expect(signal?.aborted).toBe(false)
     const error = await failureOf(http.request({ path: '/slow' }))
     expect(error.code).toBe(CLIENT_ERRORS.timeout)
+  })
+})
+
+describe('sendWithProgress', () => {
+  class FakeXhr {
+    static last: FakeXhr
+    static sends = 0
+    upload: { onprogress: ((event: ProgressEvent) => void) | null } = { onprogress: null }
+    status = 201
+    responseText = '{"ok":true}'
+    responseURL = new URL('/v1/x', location.href).href
+    responseType = ''
+    withCredentials = true
+    headers: Record<string, string> = {}
+    body: unknown
+    onload: (() => void) | null = null
+    onerror: (() => void) | null = null
+    onabort: (() => void) | null = null
+    constructor() {
+      FakeXhr.last = this
+    }
+    open() {}
+    setRequestHeader(name: string, value: string) {
+      this.headers[name] = value
+    }
+    getAllResponseHeaders() {
+      return 'content-type: application/json\r\n'
+    }
+    send(body: unknown) {
+      FakeXhr.sends += 1
+      this.body = body
+    }
+    abort() {
+      this.onabort?.()
+    }
+  }
+  const original = globalThis.XMLHttpRequest
+  beforeEach(() => {
+    FakeXhr.sends = 0
+    globalThis.XMLHttpRequest = FakeXhr as unknown as typeof XMLHttpRequest
+  })
+  afterEach(() => {
+    globalThis.XMLHttpRequest = original
+  })
+
+  test('hands the FormData over as it is, reports progress and answers like fetch', async () => {
+    const form = new FormData()
+    const seen: number[] = []
+    const answer = sendWithProgress(
+      '/v1/x',
+      { method: 'POST', body: form, headers: { a: 'b' } },
+      (sent) => seen.push(sent)
+    )
+    FakeXhr.last.upload.onprogress?.({
+      lengthComputable: true,
+      loaded: 5,
+      total: 10,
+    } as ProgressEvent)
+    FakeXhr.last.onload?.()
+    const response = await answer
+    expect(FakeXhr.last.body).toBe(form)
+    expect(FakeXhr.last.headers).toEqual({ a: 'b' })
+    expect(seen).toEqual([5])
+    expect(response.status).toBe(201)
+    expect(await response.json()).toEqual({ ok: true })
+  })
+
+  test('an answer from another address (a redirect) is refused', async () => {
+    const answer = sendWithProgress('/v1/x', { method: 'POST' }, () => undefined)
+    FakeXhr.last.responseURL = 'http://elsewhere.test/v1/x'
+    FakeXhr.last.onload?.()
+    await expect(answer).rejects.toThrow()
+  })
+
+  test('an already-aborted signal rejects at once and sends nothing', async () => {
+    const controller = new AbortController()
+    controller.abort()
+    const answer = sendWithProgress(
+      '/v1/x',
+      { method: 'POST', body: new FormData(), signal: controller.signal },
+      () => undefined
+    )
+    await expect(answer).rejects.toMatchObject({ name: 'AbortError' })
+    expect(FakeXhr.sends).toBe(0)
+  })
+
+  test('an abort rejects with AbortError', async () => {
+    const controller = new AbortController()
+    const answer = sendWithProgress(
+      '/v1/x',
+      { method: 'POST', signal: controller.signal },
+      () => undefined
+    )
+    controller.abort()
+    await expect(answer).rejects.toMatchObject({ name: 'AbortError' })
   })
 })

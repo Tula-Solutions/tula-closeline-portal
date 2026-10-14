@@ -21,7 +21,7 @@ const EXTENSIONS = ACCEPTED_TRANSCRIPT_EXTENSIONS.join(', ')
 
 type Problems = { file?: string; dealId?: string; rep?: string }
 
-/** What is wrong with the chosen file before anything is sent, or null. Recordings are not uploaded from here. */
+/** What is wrong with the chosen file before anything is sent, or null. A Recording is uploaded with the other form. */
 function fileProblem(file: File): string | null {
   const checked = checkCallFile({
     fileName: file.name,
@@ -39,7 +39,7 @@ function fileProblem(file: File): string | null {
   }
   return checked.kind === 'transcript'
     ? null
-    : `Recordings cannot be uploaded here yet. Upload a Transcript: ${EXTENSIONS}.`
+    : `That is a Recording. Upload it with "Upload a Recording" below, or choose a Transcript: ${EXTENSIONS}.`
 }
 
 /**
@@ -55,7 +55,10 @@ export function CallUpload() {
   const rights = useRights(true)
   const upload = useCallUpload()
   // Read once, then forgotten: the held file refills the form on the return trip only.
-  const [draft] = useState(() => app.pendingCall.peek(organizationId))
+  const [draft] = useState(() => {
+    const held = app.pendingCall.peek(organizationId)
+    return held?.recording === undefined ? held : null
+  })
   useEffect(() => {
     app.pendingCall.clear()
   }, [app])
@@ -94,12 +97,13 @@ export function CallUpload() {
       return
     }
     const call = { file, dealId: deal.data, repLabel: label.data }
+    const toSend = { file, dealId: deal.data, rep: { by: 'speaker', label: label.data } } as const
     // Known to be unconfirmed: do not send the file only to be refused.
     if (rights.data !== undefined && !rights.data.confirmed) {
       goToRights(call)
       return
     }
-    const result = await upload.send(call)
+    const result = await upload.send(toSend)
     if (result === 'rights') {
       goToRights(call)
     } else if (result === 'accepted') {
@@ -127,7 +131,7 @@ export function CallUpload() {
           label='Choose a Transcript to upload'
           accept={ACCEPT}
           error={problems.file}
-          hint={`${EXTENSIONS}, up to ${MAX_TRANSCRIPT_WORDS}. Recordings are not uploaded here.`}
+          hint={`${EXTENSIONS}, up to ${MAX_TRANSCRIPT_WORDS}. For a Recording, use the form below.`}
           onChange={(event) => {
             setFile(event.target.files?.[0] ?? null)
             setProblems((now) => ({ ...now, file: undefined }))
@@ -171,7 +175,11 @@ export function CallUpload() {
   )
 }
 
-function UploadResult(props: { readonly state: CallUploadState; readonly onRetry: () => void }) {
+/** What an upload is doing now and how it ended, with a retry when trying again is safe. */
+export function UploadResult(props: {
+  readonly state: CallUploadState
+  readonly onRetry: () => void
+}) {
   const { state } = props
   if (state.kind === 'idle') {
     return null
@@ -181,14 +189,17 @@ function UploadResult(props: { readonly state: CallUploadState; readonly onRetry
       <p>
         Uploading <Untrusted value={state.name} />
         ...
+        {state.progress === null || state.progress.total === 0
+          ? ''
+          : ` ${Math.min(100, Math.floor((state.progress.sent / state.progress.total) * 100))}% sent`}
       </p>
     )
   }
   if (state.kind === 'stored') {
     return (
       <p>
-        Uploaded <Untrusted value={state.name} />. It appears in the list below and is read in the
-        background.
+        Uploaded <Untrusted value={state.name} />. It appears in the list below and is processed in
+        the background.
       </p>
     )
   }

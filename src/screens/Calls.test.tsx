@@ -219,7 +219,8 @@ describe('Calls: failures say what to do', () => {
       ])
       const row = (await screen.findByText('call-1.txt')).closest('tr') as HTMLElement
       const fix = {
-        change_rep: /Pick a different Rep/,
+        change_rep:
+          reason === 'not_per_side' ? /Pick a speaker as the Rep/ : /Pick a different Rep/,
         reupload: /Upload the same file again/,
         delete_and_upload: /Delete this Call and upload a corrected/,
       }[CALL_FAILURE_FIXES[reason]]
@@ -516,7 +517,7 @@ describe('Calls: uploading a Transcript', () => {
     await portal.user.type(screen.getByLabelText("Rep's speaker label"), 'Sam')
   }
 
-  test('the limits are shown before anything is chosen, and there is no Recording upload', async () => {
+  test('the limits are shown before anything is chosen', async () => {
     visit('/sales-history/calls', 'owner', [listOf(), confirmed])
     const hint = await screen.findByText(/5 MB/)
     expect(hint.textContent).toMatch(/\.txt, \.vtt, \.srt, \.json/)
@@ -555,7 +556,7 @@ describe('Calls: uploading a Transcript', () => {
   })
 
   test.each([
-    ['song.mp3', /Recordings/],
+    ['song.mp3', /That is a Recording/],
     ['notes.pdf', /Transcript/],
   ])('%s is stopped in the browser', async (name, words) => {
     const portal = visit('/sales-history/calls', 'owner', [listOf(), confirmed])
@@ -627,6 +628,252 @@ describe('Calls: uploading a Transcript', () => {
     await waitFor(() => expect(status().textContent).toMatch(/Uploaded call\.txt/))
     const [first, second] = posts(portal)
     expect(first?.headers.get(IDEMPOTENCY)).toBe(second?.headers.get(IDEMPOTENCY))
+  })
+})
+
+describe('Calls: uploading a Recording', () => {
+  const audio = (name = 'call.mp3') => new File(['ID3'], name, { type: 'audio/mpeg' })
+  const status = () => screen.getByRole('status', { name: 'Recording upload' })
+  const posts = (portal: ReturnType<typeof visit>) =>
+    portal.calls.filter((made) => made.method === 'POST' && made.path === CALLS)
+  const confirmed = route('GET', RIGHTS, json(200, rightsBody()))
+  const ready = async (portal: ReturnType<typeof visit>, file = audio()) => {
+    await screen.findByLabelText(/choose a recording/i)
+    fireEvent.change(screen.getByLabelText(/choose a recording/i), { target: { files: [file] } })
+    await portal.user.type(screen.getByLabelText(/deal id for the Recording/), 'D-REC')
+  }
+  const send = (portal: ReturnType<typeof visit>) =>
+    portal.user.click(screen.getByRole('button', { name: 'Upload Recording' }))
+
+  test('accepts audio, with the limit shown', async () => {
+    visit('/sales-history/calls', 'owner', [listOf(), confirmed])
+    const hint = await screen.findByText(/500 MB/)
+    expect(hint.textContent).toMatch(/\.mp3, \.m4a, \.wav, \.ogg, \.webm, \.flac/)
+    expect(screen.getByLabelText(/choose a recording/i).getAttribute('accept')).toBe(
+      '.mp3,.m4a,.wav,.ogg,.webm,.flac'
+    )
+  })
+
+  test('sends dealId, then rep, then the file last, and nothing after the file', async () => {
+    const portal = visit('/sales-history/calls', 'owner', [
+      route(
+        'POST',
+        CALLS,
+        json(201, recording({ state: 'uploaded', rep: null, inSearch: false, speakerLabels: [] }))
+      ),
+      listOf(),
+      confirmed,
+    ])
+    await ready(portal)
+    await portal.user.selectOptions(screen.getByLabelText('Which channel is the Rep?'), 'left')
+    await send(portal)
+    await waitFor(() => expect(status().textContent).toMatch(/Uploaded call\.mp3/))
+    const form = posts(portal)[0]?.init.body as FormData
+    expect([...form.keys()]).toEqual(['dealId', 'rep', 'file'])
+    expect(form.get('dealId')).toBe('D-REC')
+    expect(JSON.parse(String(form.get('rep')))).toEqual({ by: 'channel', channel: 'left' })
+    expect((form.get('file') as File).name).toBe('call.mp3')
+    expect(portal.calls.every((call) => !call.url.includes('D-REC'))).toBe(true)
+  })
+
+  test('with no channel there is no rep field, and the file still comes last', async () => {
+    const portal = visit('/sales-history/calls', 'owner', [
+      route(
+        'POST',
+        CALLS,
+        json(201, recording({ state: 'uploaded', rep: null, inSearch: false, speakerLabels: [] }))
+      ),
+      listOf(),
+      confirmed,
+    ])
+    await ready(portal)
+    await send(portal)
+    await waitFor(() => expect(status().textContent).toMatch(/Uploaded call\.mp3/))
+    const form = posts(portal)[0]?.init.body as FormData
+    expect([...form.keys()]).toEqual(['dealId', 'file'])
+  })
+
+  test('a Recording over 500 MB is stopped in the browser, and the file is never read', async () => {
+    const portal = visit('/sales-history/calls', 'owner', [listOf(), confirmed])
+    const big = audio()
+    Object.defineProperty(big, 'size', { value: 500 * 1024 * 1024 + 1 })
+    let read = false
+    big.arrayBuffer = async () => {
+      read = true
+      return new ArrayBuffer(0)
+    }
+    await ready(portal, big)
+    await send(portal)
+    expect((await screen.findAllByText(/larger than 500 MB/)).length).toBeGreaterThan(0)
+    expect(posts(portal)).toHaveLength(0)
+    expect(read).toBe(false)
+  })
+
+  test('exactly 500 MB is allowed', async () => {
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('POST', CALLS, json(201, recording())),
+      listOf(),
+      confirmed,
+    ])
+    const edge = audio()
+    Object.defineProperty(edge, 'size', { value: 500 * 1024 * 1024 })
+    await ready(portal, edge)
+    await send(portal)
+    await waitFor(() => expect(posts(portal)).toHaveLength(1))
+  })
+
+  test('a Transcript or another type is stopped in the browser', async () => {
+    const portal = visit('/sales-history/calls', 'owner', [listOf(), confirmed])
+    await ready(portal, new File(['x'], 'notes.txt', { type: 'text/plain' }))
+    await send(portal)
+    expect((await screen.findAllByText(/That is a Transcript/)).length).toBeGreaterThan(0)
+    expect(posts(portal)).toHaveLength(0)
+  })
+
+  test('shows upload progress while the body goes out', async () => {
+    let finish: () => void = () => undefined
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('POST', CALLS, (made) => {
+        made.progress?.(25, 100)
+        return new Promise<Response>((resolve) => {
+          finish = () => resolve(json(201, recording()))
+        })
+      }),
+      listOf(),
+      confirmed,
+    ])
+    await ready(portal)
+    await send(portal)
+    await waitFor(() => expect(status().textContent).toMatch(/25% sent/))
+    finish()
+    await waitFor(() => expect(status().textContent).toMatch(/Uploaded call\.mp3/))
+  })
+
+  test('413 call.too_large from the service is explained with the Recording limit', async () => {
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('POST', CALLS, failure(413, SALES_HISTORY_ERRORS['call.too_large'].code)),
+      listOf(),
+      confirmed,
+    ])
+    await ready(portal)
+    await send(portal)
+    await waitFor(() => expect(status().textContent).toMatch(/larger than 500 MB/))
+  })
+
+  test('call.rep_invalid is shown', async () => {
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('POST', CALLS, failure(422, SALES_HISTORY_ERRORS['call.rep_invalid'].code)),
+      listOf(),
+      confirmed,
+    ])
+    await ready(portal)
+    await send(portal)
+    await waitFor(() => expect(status().textContent).toMatch(/does not match the Call/))
+  })
+
+  test('with no confirmation nothing is sent and the Rep channel is restored on return', async () => {
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('GET', RIGHTS, json(200, rightsBody({ confirmedVersion: null }))),
+      listOf(),
+    ])
+    await waitFor(() =>
+      expect(portal.app.queryClient.getQueryData(['org_1', 'rights'])).toBeDefined()
+    )
+    await ready(portal)
+    await portal.user.selectOptions(screen.getByLabelText('Which channel is the Rep?'), 'right')
+    await send(portal)
+    await screen.findByRole('heading', { name: 'Rights confirmation' })
+    expect(posts(portal)).toHaveLength(0)
+  })
+})
+
+describe('Calls: picking the Rep of a transcribed Recording', () => {
+  const REP = (id: string) => `${CALLS}/${id}/rep`
+
+  test('awaiting_rep says what to do, and the picker lists speakers A and B and sends the choice', async () => {
+    const call = recording({
+      state: 'awaiting_rep',
+      rep: null,
+      inSearch: false,
+      speakerLabels: ['A', 'B'],
+    })
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('GET', RIGHTS, json(200, rightsBody())),
+      route('PUT', REP(call.id), json(200, { ...call, state: 'processing' })),
+      listOf(call),
+    ])
+    const row = (await screen.findByText('call-1.txt')).closest('tr') as HTMLElement
+    expect(row.textContent).toMatch(/Waiting for a Rep/)
+    expect(row.textContent).toMatch(/Choose which speaker is the Rep/)
+    await portal.user.click(screen.getByRole('button', { name: 'Change Rep of call-1.txt' }))
+    const select = screen.getByLabelText('Rep for call-1.txt')
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+    ).toEqual(['Choose a speaker', 'A', 'B'])
+    await portal.user.selectOptions(select, 'B')
+    await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
+    await waitFor(() => expect(portal.calls.some((made) => made.method === 'PUT')).toBe(true))
+    expect(portal.calls.find((made) => made.method === 'PUT')?.body).toEqual({
+      rep: { by: 'speaker', label: 'B' },
+    })
+  })
+
+  test('call.rep_invalid is shown next to the row', async () => {
+    const call = recording({
+      state: 'awaiting_rep',
+      rep: null,
+      inSearch: false,
+      speakerLabels: ['A', 'B'],
+    })
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('GET', RIGHTS, json(200, rightsBody())),
+      route('PUT', REP(call.id), failure(422, SALES_HISTORY_ERRORS['call.rep_invalid'].code)),
+      listOf(call),
+    ])
+    await portal.user.click(await screen.findByRole('button', { name: 'Change Rep of call-1.txt' }))
+    await portal.user.selectOptions(screen.getByLabelText('Rep for call-1.txt'), 'A')
+    await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
+    expect((await screen.findByRole('alert')).textContent).toMatch(/does not match the Call/)
+  })
+})
+
+describe('Calls: Recording states and failures', () => {
+  test.each([
+    ['transcribing', /Transcribing/],
+    ['awaiting_rep', /Waiting for a Rep/],
+  ])('%s is shown in words', async (state, words) => {
+    visit('/sales-history/calls', 'owner', [
+      listOf(recording({ state, rep: null, inSearch: false, speakerLabels: [] })),
+    ])
+    const row = (await screen.findByText('call-1.txt')).closest('tr') as HTMLElement
+    expect(row.textContent).toMatch(words)
+  })
+
+  test.each([
+    ['not_per_side', /Pick a speaker as the Rep/],
+    ['too_long', /longer than 3 hours/],
+    ['transcription_failed', /could not be transcribed/],
+    ['transcription_timed_out', /took too long/],
+  ])('%s is explained', async (reason, words) => {
+    visit('/sales-history/calls', 'owner', [
+      listOf(recording({ state: 'failed', failureReason: reason, inSearch: false })),
+    ])
+    const row = (await screen.findByText('call-1.txt')).closest('tr') as HTMLElement
+    expect(row.textContent).toMatch(words)
+  })
+
+  test('an unknown state and an unknown failure reason are placeholders, and the page still shows', async () => {
+    visit('/sales-history/calls', 'owner', [
+      listOf(
+        recording({ state: 'quarantined', inSearch: false }),
+        callBody(2, { state: 'failed', failureReason: 'brand_new_reason', inSearch: false }),
+        callBody(3)
+      ),
+    ])
+    expect(await screen.findByText('call-3.txt')).toBeTruthy()
+    expect(screen.getAllByText(/This Call cannot be shown/)).toHaveLength(2)
   })
 })
 
