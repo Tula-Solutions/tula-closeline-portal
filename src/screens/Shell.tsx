@@ -74,6 +74,20 @@ export function Shell() {
     }
     returnFocus.current = null
   }, [open])
+  // Growing to a wide screen turns the drawer into the fixed column: it is no longer modal.
+  useEffect(() => {
+    if (!open || typeof window.matchMedia !== 'function') {
+      return undefined
+    }
+    const wide = window.matchMedia('(min-width: 768px)')
+    const onChange = (event: { matches: boolean }) => {
+      if (event.matches) {
+        setOpen(false)
+      }
+    }
+    wide.addEventListener('change', onChange)
+    return () => wide.removeEventListener('change', onChange)
+  }, [open])
   // Escape closes it, and Tab wraps inside it.
   // biome-ignore lint/correctness/useExhaustiveDependencies: close only sets a ref and state
   useEffect(() => {

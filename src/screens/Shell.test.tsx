@@ -246,3 +246,32 @@ describe('a field error', () => {
     expect(prefix?.className ?? '').not.toContain('sr-only')
   })
 })
+
+describe('the drawer when the screen grows', () => {
+  test('growing to a wide screen closes it so the page is not left inert', async () => {
+    const listeners: ((event: { matches: boolean }) => void)[] = []
+    const original = window.matchMedia
+    window.matchMedia = ((query: string) => ({
+      matches: false,
+      media: query,
+      addEventListener: (_: string, listener: (event: { matches: boolean }) => void) =>
+        listeners.push(listener),
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia
+    try {
+      const user = userEvent.setup()
+      renderPortal({ url: '/', signedIn: true })
+      await user.click(await screen.findByRole('button', { name: 'Navigation menu' }))
+      const main = document.getElementById('main')
+      expect(main?.hasAttribute('inert')).toBe(true)
+      act(() => {
+        for (const listener of listeners) {
+          listener({ matches: true })
+        }
+      })
+      await waitFor(() => expect(main?.hasAttribute('inert')).toBe(false))
+    } finally {
+      window.matchMedia = original
+    }
+  })
+})
