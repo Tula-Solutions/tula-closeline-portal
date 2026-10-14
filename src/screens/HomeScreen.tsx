@@ -26,7 +26,7 @@ function ShortcutCard(props: { readonly item: Shortcut }) {
         <CardTitle>
           <Link
             to={props.item.to}
-            className='outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50'
+            className='outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-[3px] focus-visible:after:ring-ring'
           >
             {props.item.cta}
           </Link>
