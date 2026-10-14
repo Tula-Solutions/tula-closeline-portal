@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { hexId } from '~/testing/core-bodies'
-import { failure, json, route } from '~/testing/fixtures'
+import { failure, json, route, tokens } from '~/testing/fixtures'
 import { visit } from '~/testing/sales'
 
 const SEARCH = '/v1/playbook/search/moments'
@@ -55,7 +55,7 @@ describe('search over won Deals: the request', () => {
     await portal.user.selectOptions(screen.getByLabelText('Role, turn 1'), 'prospect')
     await portal.user.click(screen.getByRole('button', { name: 'Add a turn' }))
     await portal.user.type(screen.getByLabelText('What was said, turn 2'), 'Let me check')
-    await portal.user.selectOptions(screen.getByLabelText('Results'), '10')
+    await portal.user.selectOptions(screen.getByLabelText('Number of results'), '10')
     await submit(portal)
     await waitFor(() => expect(searches(portal)).toHaveLength(1))
     expect(searches(portal)[0]?.body).toEqual({
@@ -69,7 +69,7 @@ describe('search over won Deals: the request', () => {
 
   test('offers a limit of 5, 10 or 20, starting at 5', async () => {
     open('owner')
-    const select = (await screen.findByLabelText('Results')) as HTMLSelectElement
+    const select = (await screen.findByLabelText('Number of results')) as HTMLSelectElement
     expect(select.value).toBe('5')
     expect([...select.options].map((option) => option.value)).toEqual(['5', '10', '20'])
   })
@@ -119,7 +119,6 @@ describe('search over won Deals: the request', () => {
   test('more than 2000 characters in all is refused before anything is sent', async () => {
     const portal = open('owner')
     await screen.findByLabelText('What was said, turn 1')
-    const { fireEvent } = await import('@testing-library/react')
     fireEvent.change(screen.getByLabelText('What was said, turn 1'), {
       target: { value: 'a'.repeat(1500) },
     })
@@ -132,9 +131,53 @@ describe('search over won Deals: the request', () => {
     expect(searches(portal)).toHaveLength(0)
   })
 
+  test('one turn of 3000 characters gets the character-limit message', async () => {
+    const portal = open('owner')
+    await screen.findByLabelText('What was said, turn 1')
+    fireEvent.change(screen.getByLabelText('What was said, turn 1'), {
+      target: { value: 'a'.repeat(3000) },
+    })
+    await submit(portal)
+    const field = screen.getByLabelText('What was said, turn 1')
+    await waitFor(() => expect(field.getAttribute('aria-invalid')).toBe('true'))
+    const text = document.getElementById(field.getAttribute('aria-describedby') ?? '')?.textContent
+    expect(text).toContain('2000 characters')
+    expect(text).not.toContain('spaces')
+    expect(searches(portal)).toHaveLength(0)
+  })
+
+  test('a turn with characters that cannot be read says so', async () => {
+    const portal = open('owner')
+    await screen.findByLabelText('What was said, turn 1')
+    fireEvent.change(screen.getByLabelText('What was said, turn 1'), {
+      target: { value: 'broken \uD800 text' },
+    })
+    await submit(portal)
+    const field = screen.getByLabelText('What was said, turn 1')
+    await waitFor(() => expect(field.getAttribute('aria-invalid')).toBe('true'))
+    const text = document.getElementById(field.getAttribute('aria-describedby') ?? '')?.textContent
+    expect(text).toContain("characters we can't read")
+    expect(searches(portal)).toHaveLength(0)
+  })
+
+  test('one submit reports every turn that needs fixing', async () => {
+    const portal = open('owner')
+    await screen.findByLabelText('What was said, turn 1')
+    fireEvent.change(screen.getByLabelText('What was said, turn 1'), {
+      target: { value: 'a'.repeat(3000) },
+    })
+    await portal.user.click(screen.getByRole('button', { name: 'Add a turn' }))
+    await submit(portal)
+    await waitFor(() =>
+      expect(screen.getByLabelText('What was said, turn 1').getAttribute('aria-invalid')).toBe(
+        'true'
+      )
+    )
+    expect(screen.getByLabelText('What was said, turn 2').getAttribute('aria-invalid')).toBe('true')
+  })
+
   test('exactly 2000 characters is sent', async () => {
     const portal = open('owner')
-    const { fireEvent } = await import('@testing-library/react')
     await screen.findByLabelText('What was said, turn 1')
     fireEvent.change(screen.getByLabelText('What was said, turn 1'), {
       target: { value: 'a'.repeat(2000) },
@@ -156,7 +199,7 @@ describe('search over won Deals: the answer', () => {
       answer([match(1), match(2, { score: 0.5 })], { moments: 12, deals: 4 })
     )
     await ask(portal)
-    const list = await screen.findByRole('list', { name: 'Matching moments' })
+    const list = await screen.findByRole('list', { name: 'Matching Moments' })
     const rows = within(list).getAllByRole('listitem')
     expect(rows).toHaveLength(2)
     const first = rows[0] as HTMLElement
@@ -166,12 +209,12 @@ describe('search over won Deals: the answer', () => {
     expect(within(first).getByText('Rep line 1')).toBeTruthy()
     expect(first.textContent).toContain('83%')
     expect((rows[1] as HTMLElement).textContent).toContain('50%')
-    const deal = within(first).getByRole('link', { name: 'Deal' })
+    const deal = within(first).getByRole('link', { name: 'Deal for Moment 1' })
     expect(deal.getAttribute('href')).toBe(`/sales-history/deals/${hexId('deal', 1)}`)
-    const call = within(first).getByRole('link', { name: 'Call' })
+    const call = within(first).getByRole('link', { name: 'Calls of this Deal for Moment 1' })
     expect(call.getAttribute('href')).toContain(`deal=${hexId('deal', 1)}`)
     expect(
-      screen.getByText('Based on 12 won-deal moments across 4 deals in this search')
+      screen.getByText('Based on 12 Moments from won Deals across 4 Deals in this search')
     ).toBeTruthy()
   })
 
@@ -179,7 +222,7 @@ describe('search over won Deals: the answer', () => {
     const portal = open('owner', answer([match(1)], { moments: 1, deals: 1 }))
     await ask(portal)
     const text = (
-      await screen.findByText(/Based on 1 won-deal moment across 1 deal in this search/)
+      await screen.findByText(/Based on 1 Moment from won Deals across 1 Deal in this search/)
     ).textContent
     expect(text).not.toMatch(/all|every|whole|entire/i)
   })
@@ -197,6 +240,95 @@ describe('search over won Deals: the answer', () => {
     expect(document.querySelector('main script, main b')).toBeNull()
   })
 
+  test('the links of each result have names of their own', async () => {
+    const portal = open('owner', answer([match(1), match(2)]))
+    await ask(portal)
+    await screen.findByRole('list', { name: 'Matching Moments' })
+    const names = within(screen.getByRole('list', { name: 'Matching Moments' }))
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('aria-label') ?? link.textContent)
+    expect(new Set(names).size).toBe(names.length)
+    expect(names).toContain('Deal for Moment 2')
+    expect(names).toContain('Calls of this Deal for Moment 2')
+  })
+
+  test('a failed search moves focus to the error', async () => {
+    const portal = open('owner', failure(504, 'server.timeout'))
+    await ask(portal)
+    const alert = await screen.findByRole('alert')
+    await waitFor(() => expect(document.activeElement).toBe(alert))
+  })
+
+  test('editing the turns or the limit clears the old results', async () => {
+    const portal = open('owner', answer([match(1)]))
+    await ask(portal)
+    await screen.findByRole('list', { name: 'Matching Moments' })
+    await portal.user.type(screen.getByLabelText('What was said, turn 1'), 'x')
+    expect(screen.queryByRole('list', { name: 'Matching Moments' })).toBeNull()
+    await ask(portal)
+    await screen.findByRole('list', { name: 'Matching Moments' })
+    await portal.user.selectOptions(screen.getByLabelText('Number of results'), '10')
+    expect(screen.queryByRole('list', { name: 'Matching Moments' })).toBeNull()
+  })
+
+  test('an answer that arrives after an edit is not shown', async () => {
+    let release: (response: Response) => void = () => undefined
+    const late = new Promise<Response>((resolve) => {
+      release = resolve
+    })
+    const portal = visit(URL, 'owner', [route('POST', SEARCH, () => late)])
+    await ask(portal)
+    await portal.user.type(screen.getByLabelText('What was said, turn 1'), ' and more')
+    release(answer([match(1)]))
+    await new Promise((done) => setTimeout(done, 100))
+    expect(screen.queryByRole('list', { name: 'Matching Moments' })).toBeNull()
+  })
+
+  test('a reply the portal cannot read shows a plain message', async () => {
+    const portal = open('owner', json(200, { unexpected: true }))
+    await ask(portal)
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).not.toMatch(/client\.|bad_response|undefined|ZodError/)
+    expect(alert.textContent?.length).toBeGreaterThan(20)
+  })
+
+  test('a 503 is asked once: search is never retried by itself', async () => {
+    const portal = open(
+      'owner',
+      failure(503, 'server.unavailable', undefined, { 'retry-after': '1' })
+    )
+    await ask(portal)
+    await screen.findByRole('alert')
+    await new Promise((done) => setTimeout(done, 200))
+    expect(searches(portal)).toHaveLength(1)
+  })
+
+  test('another Organization sees neither the old turns nor the old results', async () => {
+    const portal = visit(URL, 'owner', [
+      route('POST', SEARCH, answer([match(1)])),
+      route('POST', '/v1/client/sessions/refresh', () =>
+        json(200, tokens({ accessToken: 'access-2', organization: { id: 'org_2', role: 'owner' } }))
+      ),
+    ])
+    await ask(portal)
+    await screen.findByRole('list', { name: 'Matching Moments' })
+    await act(() => portal.app.session.refresh('access-1'))
+    await waitFor(() => expect(screen.queryByRole('list', { name: 'Matching Moments' })).toBeNull())
+    expect((screen.getByLabelText('What was said, turn 1') as HTMLTextAreaElement).value).toBe('')
+  })
+
+  test('after sign-out the results and turns are gone', async () => {
+    const portal = visit(URL, 'owner', [
+      route('POST', SEARCH, answer([match(1)])),
+      route('POST', '/v1/client/sessions/sign-out', json(204)),
+    ])
+    await ask(portal)
+    await screen.findByRole('list', { name: 'Matching Moments' })
+    await act(() => portal.app.session.signOut())
+    await waitFor(() => expect(screen.queryByLabelText('What was said, turn 1')).toBeNull())
+    expect(screen.queryByText('Prospect line 1')).toBeNull()
+  })
+
   test('a score that is not between 0 and 1 is left out', async () => {
     const portal = open('owner', answer([match(1, { score: 7.4 })]))
     await ask(portal)
@@ -209,8 +341,8 @@ describe('search over won Deals: the answer', () => {
   test('an empty result has its own message and no list', async () => {
     const portal = open('owner', answer([], { moments: 0, deals: 0 }))
     await ask(portal)
-    expect(await screen.findByText(/No moments from won Deals matched/)).toBeTruthy()
-    expect(screen.queryByRole('list', { name: 'Matching moments' })).toBeNull()
+    expect(await screen.findByText(/No Moments from won Deals matched/)).toBeTruthy()
+    expect(screen.queryByRole('list', { name: 'Matching Moments' })).toBeNull()
     expect(screen.queryByText(/Based on/)).toBeNull()
   })
 
@@ -254,7 +386,7 @@ describe('search over won Deals: the answer', () => {
     await ask(portal)
     await screen.findByRole('alert')
     await portal.user.click(screen.getByRole('button', { name: 'Search' }))
-    await screen.findByRole('list', { name: 'Matching moments' })
+    await screen.findByRole('list', { name: 'Matching Moments' })
     expect(screen.queryByRole('alert')).toBeNull()
   })
 })

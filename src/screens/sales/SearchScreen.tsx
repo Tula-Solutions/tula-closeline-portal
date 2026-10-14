@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import {
   DEFAULT_SEARCH_LIMIT,
+  isWellFormedText,
   MAX_SEARCH_LIMIT,
   MAX_SEARCH_TEXT_CHARACTERS,
   MAX_SEARCH_TURNS,
@@ -43,8 +44,8 @@ function Evidence(props: { readonly evidence: SearchMomentsResponse['evidence'] 
   const { moments, deals } = props.evidence
   return (
     <p className='hint'>
-      Based on {plural(moments, 'won-deal moment', 'won-deal moments')} across{' '}
-      {plural(deals, 'deal', 'deals')} in this search
+      Based on {plural(moments, 'Moment from won Deals', 'Moments from won Deals')} across{' '}
+      {plural(deals, 'Deal', 'Deals')} in this search
     </p>
   )
 }
@@ -59,17 +60,17 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
         Results
       </h2>
       {items.length === 0 ? (
-        <p>No moments from won Deals matched this conversation. Try other words, or add a turn.</p>
+        <p>No Moments from won Deals matched this conversation. Try other words, or add a turn.</p>
       ) : (
         <>
           <Evidence evidence={evidence} />
-          <ol aria-label='Matching moments'>
+          <ol aria-label='Matching Moments'>
             {items.map((item, index) => {
               const score = percent(item.score)
               return (
                 <li key={`${item.callId}-${item.score}-${item.prospect}-${item.repNext}`}>
                   <h3>
-                    Match {index + 1}
+                    Moment {index + 1}
                     {score === null ? '' : ` (${score}% similar)`}
                   </h3>
                   <p>
@@ -85,10 +86,15 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
                   </p>
                   <p>
                     {/* There is no page for one Call: this lists the Calls of its Deal. */}
-                    <Link to='/sales-history/calls' search={{ deal: item.dealRecordId }}>
-                      Call
+                    <Link
+                      to='/sales-history/calls'
+                      search={{ deal: item.dealRecordId }}
+                      aria-label={`Calls of this Deal for Moment ${index + 1}`}
+                    >
+                      Calls of this Deal
                     </Link>{' '}
                     <Link
+                      aria-label={`Deal for Moment ${index + 1}`}
                       to='/sales-history/deals/$dealRecordId'
                       params={{ dealRecordId: item.dealRecordId }}
                     >
@@ -129,11 +135,26 @@ export function SearchScreen() {
       fields.current.get(focusKey)?.focus()
     }
   }, [focusKey])
+  const generation = useRef(0)
+  const drop = () => {
+    generation.current += 1
+    setAnswer(null)
+  }
   const search = useSubmit<ReturnType<typeof searchMomentsRequestSchema.parse>>(
     async (request) => {
-      setAnswer(await app.salesHistory.searchMoments(request))
+      const asked = generation.current
+      const reply = await app.salesHistory.searchMoments(request)
+      // An edit made while it was running means the answer is for words no longer on screen.
+      if (asked === generation.current) {
+        setAnswer(reply)
+      }
     },
-    { onError: (caught) => setFailure(presentSales(caught, 'search').message) }
+    {
+      onError: (caught) => {
+        setFailure(presentSales(caught, 'search').message)
+        focusFirstError()
+      },
+    }
   )
   if (role === null) {
     return null
@@ -147,13 +168,16 @@ export function SearchScreen() {
     )
   }
   const used = turns.reduce((sum, turn) => sum + [...turn.text].length, 0)
-  const change = (key: number, edit: Partial<Turn>) =>
+  const change = (key: number, edit: Partial<Turn>) => {
+    // The answer belongs to the words it was asked with: any edit drops it.
+    drop()
     setTurns((all) => all.map((turn) => (turn.key === key ? { ...turn, ...edit } : turn)))
+  }
   return (
     <>
       <h1>Search won Deals</h1>
       <p>
-        Write what was said so far. The search finds moments from your won Deals that sound like it.
+        Write what was said so far. The search finds Moments from your won Deals that sound like it.
       </p>
       <form
         ref={formRef}
@@ -162,26 +186,46 @@ export function SearchScreen() {
         onSubmit={(event) => {
           event.preventDefault()
           setFailure(null)
-          setAnswer(null)
+          drop()
+          const errors: Record<number, string> = {}
+          let form: string | null = null
+          const limitMessage = `Keep what was said within ${MAX_SEARCH_TEXT_CHARACTERS} characters in all.`
+          for (const turn of turns) {
+            if (!isWellFormedText(turn.text)) {
+              errors[turn.key] =
+                "This turn has characters we can't read. Remove them and try again."
+            }
+          }
+          const total = turns.reduce((sum, turn) => sum + [...turn.text].length, 0)
+          if (total > MAX_SEARCH_TEXT_CHARACTERS) {
+            // A turn that is too long by itself carries the message; otherwise the whole is too long.
+            const long = turns.filter((turn) => [...turn.text].length > MAX_SEARCH_TEXT_CHARACTERS)
+            for (const turn of long) {
+              errors[turn.key] ??= limitMessage
+            }
+            if (long.length === 0) {
+              form = limitMessage
+            }
+          }
           const checked = searchMomentsRequestSchema.safeParse({
             turns: turns.map(({ role: who, text }) => ({ role: who, text })),
             limit,
           })
           if (!checked.success) {
-            const errors: Record<number, string> = {}
-            let form: string | null = null
             for (const issue of checked.error.issues) {
               const [head, index] = issue.path
               const turn = head === 'turns' && typeof index === 'number' ? turns[index] : undefined
               if (turn === undefined) {
-                form = `Keep what was said within ${MAX_SEARCH_TEXT_CHARACTERS} characters in all, with at least one turn of words.`
+                form ??= 'Write what was said, with at least one turn.'
               } else {
-                errors[turn.key] =
+                errors[turn.key] ??=
                   turn.text === ''
                     ? 'Write some words in this turn, or remove it.'
                     : 'Write some words: a turn of only spaces cannot be searched.'
               }
             }
+          }
+          if (!checked.success || form !== null || Object.keys(errors).length > 0) {
             setTurnErrors(errors)
             setFormError(form)
             focusFirstError()
@@ -246,6 +290,7 @@ export function SearchScreen() {
                   type='button'
                   className='button button-secondary'
                   onClick={() => {
+                    drop()
                     setTurns((all) => all.filter((other) => other.key !== turn.key))
                     setFocusKey(turns[index === 0 ? 1 : index - 1]?.key ?? null)
                   }}
@@ -267,6 +312,7 @@ export function SearchScreen() {
               onClick={() => {
                 const key = nextKey.current
                 nextKey.current += 1
+                drop()
                 setTurns((all) => [
                   ...all,
                   { key, role: all.at(-1)?.role === 'rep' ? 'prospect' : 'rep', text: '' },
@@ -279,17 +325,24 @@ export function SearchScreen() {
           </p>
         ) : null}
         <SelectField
-          label='Results'
+          label='Number of results'
           name='limit'
           value={String(limit)}
-          onChange={(event) => setLimit(Number(event.target.value))}
+          onChange={(event) => {
+            drop()
+            setLimit(Number(event.target.value))
+          }}
           options={LIMITS.map((value) => ({ value: String(value), text: String(value) }))}
         />
         <button type='submit' className='button' aria-disabled={search.pending}>
           {search.pending ? 'Searching...' : 'Search'}
         </button>
       </form>
-      {failure ? <Banner kind='error'>{failure}</Banner> : null}
+      {failure ? (
+        <Banner kind='error' innerRef={bannerRef}>
+          {failure}
+        </Banner>
+      ) : null}
       {answer ? <Results answer={answer} /> : null}
     </>
   )
