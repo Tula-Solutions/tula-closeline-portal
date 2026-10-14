@@ -505,6 +505,11 @@ describe('Sales history: Deal imports', () => {
     [415, SALES_HISTORY_ERRORS['deal_import.unsupported_type'].code, /not supported/],
     [422, SALES_HISTORY_ERRORS['deal_import.header_invalid'].code, /first row does not match/],
     [403, ERRORS['auth.forbidden'].code, /role does not allow/],
+    [
+      429,
+      SALES_HISTORY_ERRORS['deal_import.busy'].code,
+      /Up to 5 imports can wait at once\. Try again when one finishes\./,
+    ],
   ] as const)('%s %s is explained', async (code, name, words) => {
     visit('/sales-history/imports', 'owner', [
       route('POST', IMPORTS, failure(code, name)),

@@ -44,6 +44,8 @@ export const IMPORT_FAILURE_WORDS: Record<DealImportFailureReason, string> = {
 /** Why a row was rejected, with what to do about it. The report never echoes a cell, so these say what to check. */
 export const ROW_REASON_WORDS: Record<DealImportRowReason, string> = {
   wrong_column_count: 'The row has a different number of cells from the header.',
+  blank_row:
+    'The row is a blank line in the middle of the file. Delete it; blank lines at the end are ignored.',
   invalid_deal_id:
     'The deal id is empty, too long (over 128 characters) or holds a control or invisible character.',
   duplicate_in_file: 'This deal id appeared earlier in the file; only its first row counts.',
