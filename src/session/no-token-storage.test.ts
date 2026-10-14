@@ -46,8 +46,19 @@ describe('the tokens live in memory only', () => {
     ['the Cache API', /\bcaches\s*\.|\bCacheStorage\b/],
     ['history state', /history\.(replaceState|pushState)\([^)]*(token|Token)/],
   ])('no portal source uses %s', (_name, pattern) => {
-    const used = files.filter((file) => pattern.test(file.text)).map((file) => file.path)
+    // The one exception: the theme choice (light, dark or system) is kept in localStorage by
+    // ui/theme.ts, which holds nothing else (the next test checks that it names no token).
+    const used = files
+      .filter((file) => pattern.test(file.text))
+      .filter((file) => !(_name === 'localStorage' && file.path === 'ui/theme.ts'))
+      .map((file) => file.path)
     expect(used).toEqual([])
+  })
+
+  test('the theme module keeps only the theme choice', () => {
+    const theme = files.find((file) => file.path === 'ui/theme.ts')?.text ?? ''
+    expect(theme).toMatch(/localStorage/)
+    expect(theme).not.toMatch(/token|session|password|email/i)
   })
 
   test('the refresh token appears nowhere in portal code', () => {

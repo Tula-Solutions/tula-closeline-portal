@@ -1,21 +1,16 @@
-/* Two colours only: ink and paper. Tints are ink through opacity. */
+/*
+ * Legacy rules for screens not yet moved to the component library. Colours come from the tokens
+ * in index.css, so light, dark and the theme toggle apply here too. Removed as screens move.
+ */
 :root {
   --ink: #1a1a18;
   --paper: #f1efe8;
-  --bg: var(--paper);
-  --fg: var(--ink);
-  --fg-muted: color-mix(in srgb, var(--fg) 72%, transparent);
-  --line: color-mix(in srgb, var(--fg) 45%, transparent);
-  --wash: color-mix(in srgb, var(--fg) 8%, transparent);
+  --bg: var(--background);
+  --fg: var(--foreground);
+  --fg-muted: var(--muted-foreground);
+  --line: var(--input);
+  --wash: var(--muted);
   --gutter: 16px;
-  color-scheme: light dark;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: var(--ink);
-    --fg: var(--paper);
-  }
 }
 
 *,
@@ -32,14 +27,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font:
-    1rem / 1.5 system-ui,
-    -apple-system,
-    "Segoe UI",
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
+  font: 1rem / 1.5 var(--font-sans);
   overflow-wrap: anywhere;
 }
 
