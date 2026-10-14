@@ -18,7 +18,7 @@ import { plain } from '~/ui/plain'
 import { ScrollRegion } from '~/ui/ScrollRegion'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
-import { When } from '~/ui/When'
+import { formatWhen, When } from '~/ui/When'
 
 const TEMPLATE = dealImportTemplate()
 
@@ -75,7 +75,10 @@ export function ImportsScreen() {
                   <td>
                     <Link to='/sales-history/imports/$importId' params={{ importId: item.id }}>
                       Report
-                      <span className='sr-only'> for the import of {item.createdAt}</span>
+                      <span className='sr-only'>
+                        {' '}
+                        for the import of {formatWhen(item.createdAt)}
+                      </span>
                     </Link>
                   </td>
                 </tr>
@@ -175,6 +178,13 @@ function UploadResult(props: { readonly state: ImportUploadState; readonly onRet
       <p className='field-error'>
         <strong>Error:</strong> <Untrusted value={state.name} />: {state.message}
       </p>
+      {state.rights ? (
+        <p>
+          <Link to='/sales-history/rights' search={{ from: '/sales-history/imports' }}>
+            Confirm the rights wording
+          </Link>
+        </p>
+      ) : null}
       {state.retry ? (
         <button
           type='button'

@@ -30,7 +30,7 @@ export function DealScreen() {
         <p role='status' className='hint'>
           Loading...
         </p>
-      ) : deal.isError ? (
+      ) : deal.data === undefined ? (
         <>
           <Banner kind='error'>{presentSales(deal.error, 'list').message}</Banner>
           <p>
@@ -72,7 +72,10 @@ export function DealScreen() {
 function OutcomeForm(props: { readonly id: string; readonly current: string }) {
   const app = useApp()
   const parsed = outcomeSchema.safeParse(props.current)
-  const [outcome, setOutcome] = useState<Outcome>(parsed.success ? parsed.data : 'open')
+  const current: Outcome = parsed.success ? parsed.data : 'open'
+  // Null until the person touches the select: it then follows the Outcome as the service has it.
+  const [chosen, setChosen] = useState<Outcome | null>(null)
+  const outcome = chosen ?? current
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const save = useSubmit<Outcome>(
@@ -80,7 +83,14 @@ function OutcomeForm(props: { readonly id: string; readonly current: string }) {
       setError(null)
       await app.salesHistory.setDealOutcome(props.id, chosen)
       setNotice('Outcome saved.')
-      await refresh(app, 'deals')
+      // Saved whatever happens to this read: a failed refresh is the page's own error, and the
+      // select keeps showing what was saved until the read succeeds.
+      try {
+        await refresh(app, 'deals')
+        setChosen(null)
+      } catch {
+        // The page shows the last Deal it read.
+      }
     },
     { onError: (caught) => setError(presentSales(caught, 'outcome').message) }
   )
@@ -107,7 +117,7 @@ function OutcomeForm(props: { readonly id: string; readonly current: string }) {
         onChange={(event) => {
           const next = outcomeSchema.safeParse(event.target.value)
           if (next.success) {
-            setOutcome(next.data)
+            setChosen(next.data)
           }
         }}
         options={OUTCOMES.map((value) => ({ value, text: OUTCOME_LABEL[value] }))}

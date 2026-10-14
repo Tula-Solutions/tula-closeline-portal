@@ -4,6 +4,7 @@ import {
   DEAL_IMPORT_HEADER_PREFIX_CHARS,
   MAX_DEAL_IMPORT_BYTES,
   MAX_UTF8_BYTES_PER_CODE_POINT,
+  SALES_HISTORY_ERRORS,
 } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import { fingerprint } from '~/api/idempotency'
@@ -26,6 +27,8 @@ export type ImportUploadState =
       readonly retry: boolean
       /** A `Retry-After` wait is still running, so a retry is not offered yet. */
       readonly waiting: boolean
+      /** The service wants the rights wording confirmed first: the screen links to it. */
+      readonly rights: boolean
     }
 
 /** What is wrong with a chosen file before anything is sent, or null when it looks right. */
@@ -102,6 +105,9 @@ export function useImportUpload() {
           message: presentSales(error, 'import-upload').message,
           retry,
           waiting,
+          rights:
+            error instanceof ApiError &&
+            error.code === SALES_HISTORY_ERRORS['rights.confirmation_required'].code,
         })
         if (waiting) {
           void app.sleep(wait * 1000).then(() => {
@@ -145,6 +151,7 @@ export function useImportUpload() {
           message: problem,
           retry: false,
           waiting: false,
+          rights: false,
         })
         return
       }

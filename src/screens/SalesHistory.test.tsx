@@ -1,8 +1,13 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { ERRORS, SALES_HISTORY_ERRORS } from 'tula-closeline-contract'
+import { createApp } from '~/app'
+import { AppContext } from '~/app-context'
+import { RIGHTS_WORDING, type RightsWording } from '~/data/rights-wording'
+import { createReporter } from '~/report/reporter'
+import { SalesLayout } from '~/screens/sales/SalesLayout'
 import { dealBody, hexId, importBody, page, rightsBody, rowBody } from '~/testing/core-bodies'
-import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
+import { failure, fakeFetch, type Handler, json, route, TEST_ENV, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
 
 const PB = '/v1/playbook'
@@ -835,4 +840,167 @@ describe('Sales history: forms are accessible', () => {
       }
     }
   )
+})
+
+describe('Sales history review round 1', () => {
+  const WORDING_2: RightsWording = {
+    heading: 'Confirm version two',
+    paragraphs: ['Second wording.'],
+    checkbox: 'I confirm the second wording.',
+  }
+  const wordings = RIGHTS_WORDING as Record<number, RightsWording>
+  afterEach(() => {
+    delete wordings[2]
+  })
+
+  test('a tick under one wording version is not carried to another', async () => {
+    wordings[2] = WORDING_2
+    let current = 1
+    const portal = visit('/sales-history/rights', 'owner', [
+      route('PUT', RIGHTS, () => {
+        current = 2
+        return failure(409, SALES_HISTORY_ERRORS['rights.version_outdated'].code)
+      }),
+      route('GET', RIGHTS, () =>
+        json(200, rightsBody({ currentWordingVersion: current, confirmedVersion: null }))
+      ),
+    ])
+    await portal.user.click(
+      await screen.findByRole('checkbox', { name: /I confirm that I am authorised/ })
+    )
+    await portal.user.click(screen.getByRole('button', { name: 'Confirm' }))
+    const second = await screen.findByRole('checkbox', { name: /I confirm the second wording/ })
+    expect((second as HTMLInputElement).checked).toBe(false)
+    await portal.user.click(screen.getByRole('button', { name: 'Confirm' }))
+    expect(second.getAttribute('aria-invalid')).toBe('true')
+    expect(portal.calls.filter((call) => call.method === 'PUT')).toHaveLength(1)
+  })
+
+  test('a recorded confirmation stays recorded when the read after it fails', async () => {
+    let confirmed = false
+    const portal = visit('/sales-history/rights', 'owner', [
+      route('PUT', RIGHTS, () => {
+        confirmed = true
+        return json(200, rightsBody())
+      }),
+      route('GET', RIGHTS, () =>
+        confirmed
+          ? failure(500, ERRORS['server.unavailable'].code)
+          : json(200, rightsBody({ confirmedVersion: null }))
+      ),
+    ])
+    await portal.user.click(
+      await screen.findByRole('checkbox', { name: /I confirm that I am authorised/ })
+    )
+    await portal.user.click(screen.getByRole('button', { name: 'Confirm' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status', { name: 'Notice' }).textContent).toContain('recorded')
+    )
+  })
+
+  test('an import refused for want of a confirmation links to it and comes back to the imports', async () => {
+    let confirmed = false
+    const portal = visit('/sales-history/imports', 'owner', [
+      route(
+        'POST',
+        IMPORTS,
+        failure(403, SALES_HISTORY_ERRORS['rights.confirmation_required'].code, {
+          wordingVersion: 1,
+        })
+      ),
+      route('PUT', RIGHTS, () => {
+        confirmed = true
+        return json(200, rightsBody())
+      }),
+      route('GET', RIGHTS, () => json(200, rightsBody({ confirmedVersion: confirmed ? 1 : null }))),
+      route('GET', IMPORTS, json(200, page([]))),
+    ])
+    await screen.findByLabelText(/choose a csv/i)
+    fireEvent.change(screen.getByLabelText(/choose a csv/i), {
+      target: {
+        files: [
+          new File(
+            ['deal_id,outcome,closed_at,amount,currency,name\r\nD-1,won,,,,\r\n'],
+            'deals.csv'
+          ),
+        ],
+      },
+    })
+    const link = await screen.findByRole('link', { name: 'Confirm the rights wording' })
+    expect(link.getAttribute('href')).toContain('from=%2Fsales-history%2Fimports')
+    await portal.user.click(link)
+    await portal.user.click(
+      await screen.findByRole('checkbox', { name: /I confirm that I am authorised/ })
+    )
+    await portal.user.click(screen.getByRole('button', { name: 'Confirm' }))
+    expect(await screen.findByRole('heading', { name: 'Deal imports' })).toBeTruthy()
+  })
+
+  test('an Outcome that was saved is not reported as failed when the read after it fails', async () => {
+    const deal = dealBody(1)
+    let saved = false
+    visit(`/sales-history/deals/${deal.id}`, 'owner', [
+      route('PUT', `${DEALS}/${deal.id}/outcome`, () => {
+        saved = true
+        return json(200, { ...deal, outcome: 'won' })
+      }),
+      route('GET', `${DEALS}/${deal.id}`, () =>
+        saved ? failure(500, ERRORS['server.unavailable'].code) : json(200, deal)
+      ),
+    ])
+    const user = (await import('@testing-library/user-event')).default.setup()
+    await user.selectOptions(await screen.findByLabelText('Outcome'), 'won')
+    await user.click(screen.getByRole('button', { name: 'Save Outcome' }))
+    await waitFor(() =>
+      expect(screen.getByRole('status', { name: 'Notice' }).textContent).toContain('Outcome saved')
+    )
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  test('the Outcome select follows a change made elsewhere until the person touches it', async () => {
+    const deal = dealBody(1, { outcome: 'open' })
+    let outcome = 'open'
+    const portal = visit(`/sales-history/deals/${deal.id}`, 'owner', [
+      route('GET', `${DEALS}/${deal.id}`, () => json(200, { ...deal, outcome })),
+    ])
+    const select = (await screen.findByLabelText('Outcome')) as HTMLSelectElement
+    expect(select.value).toBe('open')
+    outcome = 'lost'
+    await act(() => portal.app.queryClient.invalidateQueries())
+    await waitFor(() => expect(select.value).toBe('lost'))
+    await portal.user.selectOptions(select, 'won')
+    outcome = 'open'
+    await act(() => portal.app.queryClient.invalidateQueries())
+    await waitFor(() => expect(screen.getAllByText('Open').length).toBeGreaterThan(0))
+    expect(select.value).toBe('won')
+  })
+
+  test('the screen-reader text of an import link has the date as it is shown, not the raw time', async () => {
+    visit('/sales-history/imports', 'owner', [
+      route('GET', IMPORTS, json(200, page([importBody(1)]))),
+    ])
+    const link = await screen.findByRole('link', { name: /^Report/ })
+    expect(link.textContent).not.toContain('2026-10-13T')
+    expect(link.textContent).toContain(
+      new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
+        Date.parse('2026-10-13T09:30:00Z')
+      )
+    )
+  })
+
+  test('before the role is known nothing mounts and nothing is requested', () => {
+    const double = fakeFetch()
+    const app = createApp({
+      env: TEST_ENV,
+      reporter: createReporter(() => {}),
+      fetch: double.fetch,
+    })
+    const { container } = render(
+      <AppContext.Provider value={app}>
+        <SalesLayout />
+      </AppContext.Provider>
+    )
+    expect(container.textContent).toBe('')
+    expect(double.calls).toHaveLength(0)
+  })
 })
