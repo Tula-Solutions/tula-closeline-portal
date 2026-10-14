@@ -1,3 +1,4 @@
+import { BookOpen, CloudUpload, FileText, Upload } from 'lucide-react'
 import { type DragEvent, type RefObject, useRef, useState } from 'react'
 import {
   ACCEPTED_DOCUMENT_EXTENSIONS,
@@ -8,6 +9,7 @@ import {
 import { presentDocument } from '~/api/playbook-messages'
 import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
+import { Section } from '~/components/app/section'
 import { StatusBadge } from '~/components/app/status-badge'
 import {
   FILTER_LABEL,
@@ -66,68 +68,93 @@ function DocumentsView(props: { readonly manage: boolean }) {
   return (
     <>
       <PageHeader
+        icon={BookOpen}
         title='Playbook'
         description="The documents your Organization's sales knowledge comes from."
         headingRef={headingRef}
         headingProps={{ tabIndex: -1 }}
       />
-      {props.manage ? <UploadSection /> : null}
-      <SelectField
-        label='Show'
-        name='state'
-        value={filter ?? ''}
-        onChange={(event) => {
-          const parsed = documentStateSchema.safeParse(event.target.value)
-          setFilter(parsed.success ? parsed.data : undefined)
-          setNotice('')
-        }}
-        options={[
-          { value: '', text: 'All current documents' },
-          ...documentStateSchema.options.map((state) => ({
-            value: state,
-            text: FILTER_LABEL[state],
-          })),
-        ]}
-      />
-      <p role='status' aria-label='Notice' className='notice'>
-        {notice}
-      </p>
-      {poll.paused ? (
-        <Banner kind='info'>
-          Some documents are still being processed, but we stopped checking for updates.{' '}
-          <button type='button' className='button button-quiet' onClick={poll.resume}>
-            Check again
-          </button>
-        </Banner>
-      ) : null}
-      <Paged noun='documents' emptyText='There are no documents to show.' state={documents.state}>
-        <ScrollRegion label='Documents'>
-          <table>
-            <thead>
-              <tr>
-                <th scope='col'>Name</th>
-                <th scope='col'>Type</th>
-                <th scope='col'>Size</th>
-                <th scope='col'>Status</th>
-                <th scope='col'>Pages</th>
-                <th scope='col'>Added</th>
-                {props.manage ? <th scope='col'>Actions</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {documents.items.map((document) => (
-                <DocumentRow
-                  key={document.id}
-                  document={document}
-                  manage={props.manage}
-                  onDone={setNotice}
-                  heading={headingRef}
-                />
-              ))}
-            </tbody>
-          </table>
-        </ScrollRegion>
-      </Paged>
+      <div className='page-stack'>
+        {props.manage ? <UploadSection /> : null}
+        <div className='flex flex-wrap items-center justify-between gap-3'>
+          <h2 className='m-0 text-[0.9375rem] font-semibold tracking-[-0.011em]'>Documents</h2>
+          <SelectField
+            inline
+            label='Show'
+            name='state'
+            value={filter ?? ''}
+            onChange={(event) => {
+              const parsed = documentStateSchema.safeParse(event.target.value)
+              setFilter(parsed.success ? parsed.data : undefined)
+              setNotice('')
+            }}
+            options={[
+              { value: '', text: 'All current documents' },
+              ...documentStateSchema.options.map((state) => ({
+                value: state,
+                text: FILTER_LABEL[state],
+              })),
+            ]}
+          />
+        </div>
+        <p role='status' aria-label='Notice' className='notice'>
+          {notice}
+        </p>
+        {poll.paused ? (
+          <Banner kind='info'>
+            Some documents are still being processed, but we stopped checking for updates.{' '}
+            <button type='button' className='button button-quiet' onClick={poll.resume}>
+              Check again
+            </button>
+          </Banner>
+        ) : null}
+        <Paged
+          noun='documents'
+          emptyText='There are no documents to show.'
+          emptyIcon={FileText}
+          emptyHint={
+            props.manage
+              ? 'Upload a deck, a pricing sheet or a call script above to start the Playbook.'
+              : 'An Owner or Admin uploads the Playbook documents.'
+          }
+          state={documents.state}
+        >
+          <ScrollRegion label='Documents'>
+            <table>
+              <thead>
+                <tr>
+                  <th scope='col'>Name</th>
+                  <th scope='col'>Type</th>
+                  <th scope='col' className='num'>
+                    Size
+                  </th>
+                  <th scope='col'>Status</th>
+                  <th scope='col' className='num'>
+                    Pages
+                  </th>
+                  <th scope='col'>Added</th>
+                  {props.manage ? (
+                    <th scope='col' className='w-0 text-end'>
+                      Actions
+                    </th>
+                  ) : null}
+                </tr>
+              </thead>
+              <tbody>
+                {documents.items.map((document) => (
+                  <DocumentRow
+                    key={document.id}
+                    document={document}
+                    manage={props.manage}
+                    onDone={setNotice}
+                    heading={headingRef}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </ScrollRegion>
+        </Paged>
+      </div>
     </>
   )
 }
@@ -172,11 +199,14 @@ function DocumentRow(props: {
 
   return (
     <tr>
-      <th scope='row'>
-        <Untrusted value={document.fileName} />
+      <th scope='row' className='font-medium'>
+        <span className='flex min-w-0 items-center gap-2.5'>
+          <FileText aria-hidden='true' className='size-4 shrink-0 text-muted-foreground' />
+          <Untrusted value={document.fileName} />
+        </span>
       </th>
-      <td>{typeLabel(document.mediaType)}</td>
-      <td>{formatBytes(document.sizeBytes)}</td>
+      <td className='text-muted-foreground'>{typeLabel(document.mediaType)}</td>
+      <td className='num'>{formatBytes(document.sizeBytes)}</td>
       <td>
         <StatusBadge state={document.state}>{stateLabel(document.state)}</StatusBadge>
         {document.failureReason === null ? null : (
@@ -188,12 +218,12 @@ function DocumentRow(props: {
           </p>
         ) : null}
       </td>
-      <td>{document.pageCount ?? '-'}</td>
-      <td>
+      <td className='num'>{document.pageCount ?? '-'}</td>
+      <td className='text-muted-foreground'>
         <When iso={document.createdAt} />
       </td>
       {props.manage ? (
-        <td>
+        <td className='text-end'>
           {document.state === 'deleted' ? (
             <button
               type='button'
@@ -217,6 +247,7 @@ function DocumentRow(props: {
                   restored for a while before it is removed for good.
                 </>
               }
+              tone='quiet-destructive'
               confirmLabel='Delete document'
               pending={remove.pending}
               describedBy={error ? errorId : undefined}
@@ -249,11 +280,15 @@ function UploadSection() {
     take(event.dataTransfer.files)
   }
   return (
-    <section aria-labelledby='upload-heading'>
-      <h2 id='upload-heading'>Upload documents</h2>
+    <Section
+      id='upload'
+      icon={Upload}
+      title='Upload documents'
+      description='Decks, pricing sheets and call scripts your Agents and Reps draw on.'
+    >
       <fieldset
         data-testid='drop-area'
-        className={over ? 'drop-area drop-area-over' : 'drop-area'}
+        className={over ? 'drop-area drop-area-over mb-0' : 'drop-area mb-0'}
         onDragOver={(event) => {
           event.preventDefault()
           setOver(true)
@@ -262,6 +297,12 @@ function UploadSection() {
         onDrop={onDrop}
       >
         <legend className='sr-only'>Files to upload</legend>
+        <span
+          aria-hidden='true'
+          className='flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary'
+        >
+          <CloudUpload className='size-5' />
+        </span>
         <label htmlFor='playbook-files'>Choose files to upload</label>
         <input
           id='playbook-files'
@@ -281,7 +322,7 @@ function UploadSection() {
         </p>
       </fieldset>
       <div role='status' aria-label='Uploads'>
-        <ul className='plain-list'>
+        <ul className='plain-list mt-3 mb-0 gap-2 empty:hidden'>
           {uploads.entries.map((entry) => (
             <UploadItem
               key={entry.id}
@@ -292,7 +333,7 @@ function UploadSection() {
           ))}
         </ul>
       </div>
-    </section>
+    </Section>
   )
 }
 
@@ -305,7 +346,7 @@ function UploadItem(props: {
   const { outcome } = entry
   const label = plain(entry.name, 'file')
   return (
-    <li>
+    <li className='flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border bg-background/60 px-3 py-2 text-sm motion-safe:animate-rise'>
       {outcome.kind === 'queued' ? (
         <span>
           <Untrusted value={entry.name} /> is waiting to upload.

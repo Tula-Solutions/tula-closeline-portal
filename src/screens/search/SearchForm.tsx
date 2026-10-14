@@ -1,3 +1,4 @@
+import { Loader2, MessagesSquare, Plus, Search, X } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import {
   DEFAULT_SEARCH_LIMIT,
@@ -9,6 +10,9 @@ import {
   searchMomentsRequestSchema,
 } from 'tula-closeline-contract'
 import { presentSales } from '~/api/sales-messages'
+import { EmptyState } from '~/components/app/empty-state'
+import { Button } from '~/components/ui/button'
+import { cn } from '~/lib/utils'
 import { Banner } from '~/ui/Banner'
 import { SelectField } from '~/ui/SelectField'
 import { useFocusOnError } from '~/ui/useFocusOnError'
@@ -90,173 +94,225 @@ export function SearchForm<Answer>(props: {
     setTurns((all) => all.map((turn) => (turn.key === key ? { ...turn, ...edit } : turn)))
   }
   return (
-    <>
-      <p className='mb-6 max-w-prose text-muted-foreground'>{props.intro}</p>
-      <form
-        ref={formRef}
-        noValidate
-        aria-label={props.label}
-        onSubmit={(event) => {
-          event.preventDefault()
-          setFailure(null)
-          drop()
-          const errors: Record<number, string> = {}
-          let form: string | null = null
-          const limitMessage = `Keep what was said within ${MAX_SEARCH_TEXT_CHARACTERS} characters in all.`
-          for (const turn of turns) {
-            if (!isWellFormedText(turn.text)) {
-              errors[turn.key] =
-                "This turn has characters we can't read. Remove them and try again."
-            }
-          }
-          const total = turns.reduce((sum, turn) => sum + [...turn.text].length, 0)
-          if (total > MAX_SEARCH_TEXT_CHARACTERS) {
-            // A turn that is too long by itself carries the message; otherwise the whole is too long.
-            const long = turns.filter((turn) => [...turn.text].length > MAX_SEARCH_TEXT_CHARACTERS)
-            for (const turn of long) {
-              errors[turn.key] ??= limitMessage
-            }
-            if (long.length === 0) {
-              form = limitMessage
-            }
-          }
-          const checked = searchMomentsRequestSchema.safeParse({
-            turns: turns.map(({ role: who, text }) => ({ role: who, text })),
-            limit,
-          })
-          if (!checked.success) {
-            for (const issue of checked.error.issues) {
-              const [head, index] = issue.path
-              const turn = head === 'turns' && typeof index === 'number' ? turns[index] : undefined
-              if (turn === undefined) {
-                form ??= 'Write what was said, with at least one turn.'
-              } else {
-                errors[turn.key] ??=
-                  turn.text === ''
-                    ? 'Write some words in this turn, or remove it.'
-                    : 'Write some words: a turn of only spaces cannot be searched.'
+    <div className='grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]'>
+      <div className='flex min-w-0 flex-col gap-4 lg:sticky lg:top-6'>
+        <p className='m-0 max-w-prose text-sm text-muted-foreground'>{props.intro}</p>
+        <form
+          ref={formRef}
+          noValidate
+          aria-label={props.label}
+          className='max-w-none gap-3 rounded-xl border bg-card p-4 shadow-elev-1 sm:p-5'
+          onSubmit={(event) => {
+            event.preventDefault()
+            setFailure(null)
+            drop()
+            const errors: Record<number, string> = {}
+            let form: string | null = null
+            const limitMessage = `Keep what was said within ${MAX_SEARCH_TEXT_CHARACTERS} characters in all.`
+            for (const turn of turns) {
+              if (!isWellFormedText(turn.text)) {
+                errors[turn.key] =
+                  "This turn has characters we can't read. Remove them and try again."
               }
             }
-          }
-          if (!checked.success || form !== null || Object.keys(errors).length > 0) {
-            setTurnErrors(errors)
-            setFormError(form)
-            focusFirstError()
-            return
-          }
-          setTurnErrors({})
-          setFormError(null)
-          search.submit(checked.data)
-        }}
-      >
-        {formError ? (
-          <Banner kind='error' innerRef={bannerRef}>
-            {formError}
+            const total = turns.reduce((sum, turn) => sum + [...turn.text].length, 0)
+            if (total > MAX_SEARCH_TEXT_CHARACTERS) {
+              // A turn that is too long by itself carries the message; otherwise the whole is too long.
+              const long = turns.filter(
+                (turn) => [...turn.text].length > MAX_SEARCH_TEXT_CHARACTERS
+              )
+              for (const turn of long) {
+                errors[turn.key] ??= limitMessage
+              }
+              if (long.length === 0) {
+                form = limitMessage
+              }
+            }
+            const checked = searchMomentsRequestSchema.safeParse({
+              turns: turns.map(({ role: who, text }) => ({ role: who, text })),
+              limit,
+            })
+            if (!checked.success) {
+              for (const issue of checked.error.issues) {
+                const [head, index] = issue.path
+                const turn =
+                  head === 'turns' && typeof index === 'number' ? turns[index] : undefined
+                if (turn === undefined) {
+                  form ??= 'Write what was said, with at least one turn.'
+                } else {
+                  errors[turn.key] ??=
+                    turn.text === ''
+                      ? 'Write some words in this turn, or remove it.'
+                      : 'Write some words: a turn of only spaces cannot be searched.'
+                }
+              }
+            }
+            if (!checked.success || form !== null || Object.keys(errors).length > 0) {
+              setTurnErrors(errors)
+              setFormError(form)
+              focusFirstError()
+              return
+            }
+            setTurnErrors({})
+            setFormError(null)
+            search.submit(checked.data)
+          }}
+        >
+          {formError ? (
+            <Banner kind='error' innerRef={bannerRef}>
+              {formError}
+            </Banner>
+          ) : null}
+          {turns.map((turn, index) => {
+            const n = index + 1
+            const error = turnErrors[turn.key]
+            const errorId = `turn-${turn.key}-error`
+            return (
+              <fieldset
+                key={turn.key}
+                className={cn(
+                  'gap-2.5 rounded-lg border bg-background/50 p-3 motion-safe:animate-rise',
+                  turn.role === 'rep'
+                    ? 'border-l-[3px] border-l-primary'
+                    : 'border-l-[3px] border-l-border-strong'
+                )}
+              >
+                <legend className='float-left mb-0 text-xs font-semibold text-muted-foreground'>
+                  Turn {n}
+                </legend>
+                <div className='clear-left flex flex-wrap items-center justify-between gap-2'>
+                  <SelectField
+                    inline
+                    label={`Role, turn ${n}`}
+                    name={`role-${turn.key}`}
+                    value={turn.role}
+                    onChange={(event) =>
+                      change(turn.key, {
+                        role: event.target.value === 'prospect' ? 'prospect' : 'rep',
+                      })
+                    }
+                    options={ROLE_OPTIONS}
+                  />
+                  {turns.length > 1 ? (
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='sm'
+                      className='text-muted-foreground'
+                      onClick={() => {
+                        drop()
+                        setTurns((all) => all.filter((other) => other.key !== turn.key))
+                        setFocusKey(turns[index === 0 ? 1 : index - 1]?.key ?? null)
+                      }}
+                    >
+                      <X aria-hidden='true' />
+                      Remove turn {n}
+                    </Button>
+                  ) : null}
+                </div>
+                <div className='field'>
+                  <label
+                    htmlFor={`turn-${turn.key}`}
+                    className='text-[0.8125rem] font-medium text-muted-foreground'
+                  >
+                    {`What was said, turn ${n}`}
+                  </label>
+                  <textarea
+                    id={`turn-${turn.key}`}
+                    name={`text-${turn.key}`}
+                    rows={3}
+                    value={turn.text}
+                    aria-invalid={error ? 'true' : undefined}
+                    aria-describedby={error ? errorId : undefined}
+                    ref={(node) => {
+                      if (node) {
+                        fields.current.set(turn.key, node)
+                      } else {
+                        fields.current.delete(turn.key)
+                      }
+                    }}
+                    onChange={(event) => {
+                      change(turn.key, { text: event.target.value })
+                      setTurnErrors((now) => ({ ...now, [turn.key]: '' }))
+                      setFormError(null)
+                    }}
+                  />
+                  {error ? (
+                    <p className='field-error' id={errorId}>
+                      <strong>Error:</strong> {error}
+                    </p>
+                  ) : null}
+                </div>
+              </fieldset>
+            )
+          })}
+          {turns.length < MAX_SEARCH_TURNS ? (
+            <p className='m-0'>
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                className='w-full border-dashed shadow-none'
+                onClick={() => {
+                  const key = nextKey.current
+                  nextKey.current += 1
+                  drop()
+                  setTurns((all) => [
+                    ...all,
+                    { key, role: all.at(-1)?.role === 'rep' ? 'prospect' : 'rep', text: '' },
+                  ])
+                  setFocusKey(key)
+                }}
+              >
+                <Plus aria-hidden='true' />
+                Add a turn
+              </Button>
+            </p>
+          ) : null}
+          <div className='flex flex-wrap items-center justify-between gap-3 border-t pt-3'>
+            <p className='hint tabular-nums'>
+              {used} of {MAX_SEARCH_TEXT_CHARACTERS} characters used
+            </p>
+            <SelectField
+              inline
+              label='Number of results'
+              name='limit'
+              value={String(limit)}
+              onChange={(event) => {
+                drop()
+                setLimit(Number(event.target.value))
+              }}
+              options={LIMITS.map((value) => ({ value: String(value), text: String(value) }))}
+            />
+          </div>
+          <button type='submit' className='button w-full' aria-disabled={search.pending}>
+            {search.pending ? (
+              <Loader2 aria-hidden='true' className='size-4 animate-spin' />
+            ) : (
+              <Search aria-hidden='true' className='size-4' />
+            )}
+            {search.pending ? 'Searching...' : 'Search'}
+          </button>
+        </form>
+      </div>
+      <div className='flex min-w-0 flex-col gap-4'>
+        {failure ? (
+          <Banner kind='error' innerRef={bannerRef} className='m-0'>
+            {failure}
           </Banner>
         ) : null}
-        {turns.map((turn, index) => {
-          const n = index + 1
-          const error = turnErrors[turn.key]
-          const errorId = `turn-${turn.key}-error`
-          return (
-            <fieldset key={turn.key}>
-              <legend>Turn {n}</legend>
-              <SelectField
-                label={`Role, turn ${n}`}
-                name={`role-${turn.key}`}
-                value={turn.role}
-                onChange={(event) =>
-                  change(turn.key, { role: event.target.value === 'prospect' ? 'prospect' : 'rep' })
-                }
-                options={ROLE_OPTIONS}
-              />
-              <div className='field'>
-                <label htmlFor={`turn-${turn.key}`}>{`What was said, turn ${n}`}</label>
-                <textarea
-                  id={`turn-${turn.key}`}
-                  name={`text-${turn.key}`}
-                  rows={3}
-                  value={turn.text}
-                  aria-invalid={error ? 'true' : undefined}
-                  aria-describedby={error ? errorId : undefined}
-                  ref={(node) => {
-                    if (node) {
-                      fields.current.set(turn.key, node)
-                    } else {
-                      fields.current.delete(turn.key)
-                    }
-                  }}
-                  onChange={(event) => {
-                    change(turn.key, { text: event.target.value })
-                    setTurnErrors((now) => ({ ...now, [turn.key]: '' }))
-                    setFormError(null)
-                  }}
-                />
-                {error ? (
-                  <p className='field-error' id={errorId}>
-                    <strong>Error:</strong> {error}
-                  </p>
-                ) : null}
-              </div>
-              {turns.length > 1 ? (
-                <button
-                  type='button'
-                  className='button button-secondary'
-                  onClick={() => {
-                    drop()
-                    setTurns((all) => all.filter((other) => other.key !== turn.key))
-                    setFocusKey(turns[index === 0 ? 1 : index - 1]?.key ?? null)
-                  }}
-                >
-                  Remove turn {n}
-                </button>
-              ) : null}
-            </fieldset>
+        {answer === null ? (
+          failure ? null : (
+            <EmptyState icon={MessagesSquare} title='Results show here'>
+              {search.pending
+                ? 'Looking for text that sounds like this conversation.'
+                : 'Write at least one turn of the conversation, then search.'}
+            </EmptyState>
           )
-        })}
-        <p className='hint'>
-          {used} of {MAX_SEARCH_TEXT_CHARACTERS} characters used
-        </p>
-        {turns.length < MAX_SEARCH_TURNS ? (
-          <p>
-            <button
-              type='button'
-              className='button button-secondary'
-              onClick={() => {
-                const key = nextKey.current
-                nextKey.current += 1
-                drop()
-                setTurns((all) => [
-                  ...all,
-                  { key, role: all.at(-1)?.role === 'rep' ? 'prospect' : 'rep', text: '' },
-                ])
-                setFocusKey(key)
-              }}
-            >
-              Add a turn
-            </button>
-          </p>
-        ) : null}
-        <SelectField
-          label='Number of results'
-          name='limit'
-          value={String(limit)}
-          onChange={(event) => {
-            drop()
-            setLimit(Number(event.target.value))
-          }}
-          options={LIMITS.map((value) => ({ value: String(value), text: String(value) }))}
-        />
-        <button type='submit' className='button' aria-disabled={search.pending}>
-          {search.pending ? 'Searching...' : 'Search'}
-        </button>
-      </form>
-      {failure ? (
-        <Banner kind='error' innerRef={bannerRef}>
-          {failure}
-        </Banner>
-      ) : null}
-      {answer === null ? null : props.children(answer)}
-    </>
+        ) : (
+          props.children(answer)
+        )}
+      </div>
+    </div>
   )
 }
