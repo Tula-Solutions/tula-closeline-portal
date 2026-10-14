@@ -1,5 +1,5 @@
 import { getRouteApi, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { OUTCOMES, type Outcome, outcomeSchema } from 'tula-closeline-contract'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
@@ -59,23 +59,53 @@ export function DealScreen() {
             <dt>Calls</dt>
             <dd>{deal.data.callCount}</dd>
           </dl>
+          <p>
+            <Link to='/sales-history/calls' search={{ deal: deal.data.id }}>
+              Calls of this Deal
+            </Link>
+          </p>
           {deal.data.appearedInImport ? null : (
             <p className='hint'>No CSV has named it: it was created by a Call upload.</p>
           )}
-          <OutcomeForm key={deal.data.id} id={deal.data.id} current={deal.data.outcome} />
+          <OutcomeForm
+            key={deal.data.id}
+            id={deal.data.id}
+            current={deal.data.outcome}
+            readAt={deal.dataUpdatedAt}
+          />
         </>
       )}
     </>
   )
 }
 
-function OutcomeForm(props: { readonly id: string; readonly current: string }) {
+function OutcomeForm(props: {
+  readonly id: string
+  readonly current: string
+  /** When the Deal was last read successfully: a newer value means a read finished. */
+  readonly readAt: number
+}) {
   const app = useApp()
   const parsed = outcomeSchema.safeParse(props.current)
   const current: Outcome = parsed.success ? parsed.data : 'open'
   // Null until the person touches the select: it then follows the Outcome as the service has it.
   const [chosen, setChosen] = useState<Outcome | null>(null)
   const outcome = chosen ?? current
+  const readAtNow = useRef(props.readAt)
+  // Kept current after each commit; it is only read later, when the save answers.
+  useLayoutEffect(() => {
+    readAtNow.current = props.readAt
+  }, [props.readAt])
+  // The Outcome just saved and when the Deal was last read, until a newer read arrives.
+  const [saved, setSaved] = useState<{ outcome: Outcome; readAt: number } | null>(null)
+  useEffect(() => {
+    if (saved !== null && props.readAt !== saved.readAt) {
+      // A read finished after the save: follow what the service now says (another Admin may
+      // have changed it too), unless a different choice was made while it was in flight.
+      setChosen((now) => (now === saved.outcome ? null : now))
+      setSaved(null)
+    }
+  }, [props.readAt, saved])
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const save = useSubmit<Outcome>(
@@ -83,14 +113,11 @@ function OutcomeForm(props: { readonly id: string; readonly current: string }) {
       setError(null)
       await app.salesHistory.setDealOutcome(props.id, chosen)
       setNotice('Outcome saved.')
-      // Saved whatever happens to this read: a failed refresh is the page's own error, and the
-      // select keeps showing what was saved until the read succeeds.
-      try {
-        await refresh(app, 'deals')
-        setChosen(null)
-      } catch {
-        // The page shows the last Deal it read.
-      }
+      // The select keeps showing what was saved until a read of the Deal succeeds (the effect
+      // above). A failed read is the page's own error, not this save's.
+      // The read count as the save answers: a read that finished while it was in flight is older than the save.
+      setSaved({ outcome: chosen, readAt: readAtNow.current })
+      await refresh(app, 'deals')
     },
     { onError: (caught) => setError(presentSales(caught, 'outcome').message) }
   )

@@ -1,12 +1,19 @@
 import {
+  CALL_FAILURE_FIXES,
+  type Call,
+  type CallFailureFix,
+  type CallFailureReason,
+  type CallState,
   DEAL_IMPORT_OPTIONAL_COLUMN,
   DEAL_IMPORT_REQUIRED_COLUMNS,
   type DealImportFailureReason,
   type DealImportHeaderProblem,
   type DealImportRowReason,
   type DealImportState,
+  MAX_CALL_SPEAKERS,
   MAX_DEAL_IMPORT_BYTES,
   MAX_DEAL_IMPORT_ROWS,
+  MAX_TRANSCRIPT_BYTES,
   type Outcome,
 } from 'tula-closeline-contract'
 
@@ -114,6 +121,7 @@ export const BACK_PATHS = [
   '/sales-history',
   '/sales-history/deals',
   '/sales-history/imports',
+  '/sales-history/calls',
 ] as const
 
 /** One of {@link BACK_PATHS}. */
@@ -123,3 +131,99 @@ export type BackPath = (typeof BACK_PATHS)[number]
 export function parseBackPath(value: unknown): BackPath | undefined {
   return BACK_PATHS.find((path) => path === value)
 }
+
+/** The words for each state of a Call. */
+export const CALL_STATE_LABEL: Record<CallState, string> = {
+  uploaded: 'Uploaded',
+  transcribing: 'Transcribing',
+  awaiting_rep: 'Waiting for a Rep',
+  processing: 'Processing',
+  ready: 'Ready',
+  failed: 'Failed',
+  deleted: 'Deleted',
+}
+
+/** The words for each filter of the Calls list (apart from the row's own state words). */
+export const CALL_FILTER_LABEL: Record<CallState, string> = {
+  uploaded: 'Just uploaded',
+  transcribing: 'Being transcribed',
+  awaiting_rep: 'Waiting for a Rep to be picked',
+  processing: 'Being processed',
+  ready: 'Ready for search',
+  failed: 'Failed',
+  deleted: 'Deleted (can be restored)',
+}
+
+/** States in which a Call is on its way by itself, so its state is worth asking about again. A Call waiting for a person is not. */
+export const CALL_PENDING_STATES: readonly CallState[] = ['uploaded', 'transcribing', 'processing']
+
+/** Why a Call failed, in words. */
+export const CALL_FAILURE_WORDS: Record<CallFailureReason, string> = {
+  no_turns: 'No one speaks in the file.',
+  too_few_speakers: 'The file has fewer than two speakers.',
+  too_many_speakers: `The file has more than ${MAX_CALL_SPEAKERS} speakers.`,
+  rep_label_not_found: "The Rep's name does not match any speaker in the file.",
+  not_per_side: 'The Recording does not have exactly two sides.',
+  too_long: 'The Call is longer than the limit.',
+  transcription_failed: 'The Recording could not be transcribed.',
+  transcription_timed_out: 'Transcribing the Recording took too long.',
+  unreadable: 'The file could not be read.',
+  processing_failed: 'Something went wrong while processing the Call.',
+}
+
+/** What to do about a failure, by the fix the contract names for it. */
+export const CALL_FIX_WORDS: Record<CallFailureFix, string> = {
+  change_rep: 'Pick a different Rep.',
+  reupload: 'Upload the same file again.',
+  delete_and_upload: 'Delete this Call and upload a corrected file.',
+}
+
+/** The words for a Call state, with a default for one this build does not know. */
+export function callStateLabel(state: string): string {
+  return Object.hasOwn(CALL_STATE_LABEL, state)
+    ? CALL_STATE_LABEL[state as CallState]
+    : 'Unknown status'
+}
+
+/** A failed Call's reason and what to do, with a general sentence for a reason this build does not know. */
+export function callFailureWords(reason: string): string {
+  if (!Object.hasOwn(CALL_FAILURE_WORDS, reason)) {
+    return 'The Call did not finish. Delete it and upload the file again.'
+  }
+  const known = reason as CallFailureReason
+  return `${CALL_FAILURE_WORDS[known]} ${CALL_FIX_WORDS[CALL_FAILURE_FIXES[known]]}`
+}
+
+/**
+ * Whether a Call is in search, and if not, why. Search holds only Calls of won Deals that are
+ * ready, and it may lag behind a change of Outcome or Rep (ADR 0018).
+ */
+export function inSearchWords(call: Pick<Call, 'inSearch' | 'state' | 'dealOutcome'>): string {
+  if (call.inSearch) {
+    return 'In search'
+  }
+  switch (call.state) {
+    case 'deleted':
+      return 'Not in search: the Call is deleted.'
+    case 'failed':
+      return 'Not in search: the Call failed.'
+    case 'awaiting_rep':
+      return 'Not in search yet: pick the Rep first.'
+    case 'uploaded':
+    case 'transcribing':
+    case 'processing':
+      return 'Not in search yet: it is still being processed.'
+    default:
+      break
+  }
+  if (call.dealOutcome === 'open') {
+    return 'Not in search: its Deal is still open.'
+  }
+  if (call.dealOutcome === 'lost') {
+    return 'Not in search: its Deal was lost.'
+  }
+  return "Not in search yet: the Deal's Outcome is still being applied."
+}
+
+/** The limit on a Transcript in the words used in messages ("5 MB"). */
+export const MAX_TRANSCRIPT_WORDS = `${MAX_TRANSCRIPT_BYTES / (1024 * 1024)} MB`

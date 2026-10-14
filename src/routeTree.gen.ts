@@ -21,6 +21,7 @@ import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
 import { Route as AppSalesHistoryIndexRouteImport } from './routes/_app/sales-history/index'
 import { Route as AppSalesHistoryRightsRouteImport } from './routes/_app/sales-history/rights'
+import { Route as AppSalesHistoryCallsIndexRouteImport } from './routes/_app/sales-history/calls/index'
 import { Route as AppSalesHistoryDealsIndexRouteImport } from './routes/_app/sales-history/deals/index'
 import { Route as AppSalesHistoryDealsDealRecordIdRouteImport } from './routes/_app/sales-history/deals/$dealRecordId'
 import { Route as AppSalesHistoryImportsIndexRouteImport } from './routes/_app/sales-history/imports/index'
@@ -84,6 +85,12 @@ const AppSalesHistoryRightsRoute = AppSalesHistoryRightsRouteImport.update({
   path: '/rights',
   getParentRoute: () => AppSalesHistoryRoute,
 } as any)
+const AppSalesHistoryCallsIndexRoute =
+  AppSalesHistoryCallsIndexRouteImport.update({
+    id: '/calls/',
+    path: '/calls/',
+    getParentRoute: () => AppSalesHistoryRoute,
+  } as any)
 const AppSalesHistoryDealsIndexRoute =
   AppSalesHistoryDealsIndexRouteImport.update({
     id: '/deals/',
@@ -122,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/sales-history/': typeof AppSalesHistoryIndexRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/sales-history/calls/': typeof AppSalesHistoryCallsIndexRoute
   '/sales-history/deals/': typeof AppSalesHistoryDealsIndexRoute
   '/sales-history/imports/': typeof AppSalesHistoryImportsIndexRoute
 }
@@ -137,6 +145,7 @@ export interface FileRoutesByTo {
   '/sales-history': typeof AppSalesHistoryIndexRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/sales-history/calls': typeof AppSalesHistoryCallsIndexRoute
   '/sales-history/deals': typeof AppSalesHistoryDealsIndexRoute
   '/sales-history/imports': typeof AppSalesHistoryImportsIndexRoute
 }
@@ -156,6 +165,7 @@ export interface FileRoutesById {
   '/_app/sales-history/': typeof AppSalesHistoryIndexRoute
   '/_app/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/_app/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/_app/sales-history/calls/': typeof AppSalesHistoryCallsIndexRoute
   '/_app/sales-history/deals/': typeof AppSalesHistoryDealsIndexRoute
   '/_app/sales-history/imports/': typeof AppSalesHistoryImportsIndexRoute
 }
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/sales-history/'
     | '/sales-history/deals/$dealRecordId'
     | '/sales-history/imports/$importId'
+    | '/sales-history/calls/'
     | '/sales-history/deals/'
     | '/sales-history/imports/'
   fileRoutesByTo: FileRoutesByTo
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/sales-history'
     | '/sales-history/deals/$dealRecordId'
     | '/sales-history/imports/$importId'
+    | '/sales-history/calls'
     | '/sales-history/deals'
     | '/sales-history/imports'
   id:
@@ -207,6 +219,7 @@ export interface FileRouteTypes {
     | '/_app/sales-history/'
     | '/_app/sales-history/deals/$dealRecordId'
     | '/_app/sales-history/imports/$importId'
+    | '/_app/sales-history/calls/'
     | '/_app/sales-history/deals/'
     | '/_app/sales-history/imports/'
   fileRoutesById: FileRoutesById
@@ -302,6 +315,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSalesHistoryRightsRouteImport
       parentRoute: typeof AppSalesHistoryRoute
     }
+    '/_app/sales-history/calls/': {
+      id: '/_app/sales-history/calls/'
+      path: '/calls'
+      fullPath: '/sales-history/calls/'
+      preLoaderRoute: typeof AppSalesHistoryCallsIndexRouteImport
+      parentRoute: typeof AppSalesHistoryRoute
+    }
     '/_app/sales-history/deals/': {
       id: '/_app/sales-history/deals/'
       path: '/deals'
@@ -338,6 +358,7 @@ interface AppSalesHistoryRouteChildren {
   AppSalesHistoryIndexRoute: typeof AppSalesHistoryIndexRoute
   AppSalesHistoryDealsDealRecordIdRoute: typeof AppSalesHistoryDealsDealRecordIdRoute
   AppSalesHistoryImportsImportIdRoute: typeof AppSalesHistoryImportsImportIdRoute
+  AppSalesHistoryCallsIndexRoute: typeof AppSalesHistoryCallsIndexRoute
   AppSalesHistoryDealsIndexRoute: typeof AppSalesHistoryDealsIndexRoute
   AppSalesHistoryImportsIndexRoute: typeof AppSalesHistoryImportsIndexRoute
 }
@@ -347,6 +368,7 @@ const AppSalesHistoryRouteChildren: AppSalesHistoryRouteChildren = {
   AppSalesHistoryIndexRoute: AppSalesHistoryIndexRoute,
   AppSalesHistoryDealsDealRecordIdRoute: AppSalesHistoryDealsDealRecordIdRoute,
   AppSalesHistoryImportsImportIdRoute: AppSalesHistoryImportsImportIdRoute,
+  AppSalesHistoryCallsIndexRoute: AppSalesHistoryCallsIndexRoute,
   AppSalesHistoryDealsIndexRoute: AppSalesHistoryDealsIndexRoute,
   AppSalesHistoryImportsIndexRoute: AppSalesHistoryImportsIndexRoute,
 }

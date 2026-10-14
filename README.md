@@ -130,6 +130,14 @@ row with the reason in words and can be downloaded as CSV with formula-looking c
 confirmation wording is in the portal (`src/data/rights-wording.ts`), not the contract, and is a draft
 pending a lawyer's check.
 
+Calls (`/sales-history/calls`) are uploaded as Transcripts only (no Recording upload): the file, the
+customer's deal id and the Rep's speaker label go in the multipart body with an `Idempotency-Key`. If the
+rights wording is not confirmed, the chosen file and fields are held in memory (never in storage or an
+address) while the person confirms on the rights page, then restored. Each Call shows its state, why it is
+or is not in search, the fix the contract names for a failure, and offers Change Rep (from the Call's own
+speaker labels, disabled where the contract refuses), delete and restore. The uploader is not shown (the
+service returns only a user id). The Calls list reads each Call on its own, so one with a state this build does not know becomes a placeholder row instead of failing the page (reported once per page, status and code only).
+
 ## Sessions
 
 Every call to auth sends `x-tula-client: browser`, so auth sets the refresh token in an `HttpOnly`
