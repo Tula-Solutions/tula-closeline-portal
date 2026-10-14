@@ -15,9 +15,16 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppInvitationsRouteImport } from './routes/_app/invitations'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppPlaybookRouteImport } from './routes/_app/playbook'
+import { Route as AppSalesHistoryRouteImport } from './routes/_app/sales-history'
 import { Route as AppTeamsRouteImport } from './routes/_app/teams'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
+import { Route as AppSalesHistoryIndexRouteImport } from './routes/_app/sales-history/index'
+import { Route as AppSalesHistoryRightsRouteImport } from './routes/_app/sales-history/rights'
+import { Route as AppSalesHistoryDealsIndexRouteImport } from './routes/_app/sales-history/deals/index'
+import { Route as AppSalesHistoryDealsDealRecordIdRouteImport } from './routes/_app/sales-history/deals/$dealRecordId'
+import { Route as AppSalesHistoryImportsIndexRouteImport } from './routes/_app/sales-history/imports/index'
+import { Route as AppSalesHistoryImportsImportIdRouteImport } from './routes/_app/sales-history/imports/$importId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -47,6 +54,11 @@ const AppPlaybookRoute = AppPlaybookRouteImport.update({
   path: '/playbook',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSalesHistoryRoute = AppSalesHistoryRouteImport.update({
+  id: '/sales-history',
+  path: '/sales-history',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTeamsRoute = AppTeamsRouteImport.update({
   id: '/teams',
   path: '/teams',
@@ -62,15 +74,56 @@ const PublicSignUpRoute = PublicSignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => PublicRoute,
 } as any)
+const AppSalesHistoryIndexRoute = AppSalesHistoryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppSalesHistoryRoute,
+} as any)
+const AppSalesHistoryRightsRoute = AppSalesHistoryRightsRouteImport.update({
+  id: '/rights',
+  path: '/rights',
+  getParentRoute: () => AppSalesHistoryRoute,
+} as any)
+const AppSalesHistoryDealsIndexRoute =
+  AppSalesHistoryDealsIndexRouteImport.update({
+    id: '/deals/',
+    path: '/deals/',
+    getParentRoute: () => AppSalesHistoryRoute,
+  } as any)
+const AppSalesHistoryDealsDealRecordIdRoute =
+  AppSalesHistoryDealsDealRecordIdRouteImport.update({
+    id: '/deals/$dealRecordId',
+    path: '/deals/$dealRecordId',
+    getParentRoute: () => AppSalesHistoryRoute,
+  } as any)
+const AppSalesHistoryImportsIndexRoute =
+  AppSalesHistoryImportsIndexRouteImport.update({
+    id: '/imports/',
+    path: '/imports/',
+    getParentRoute: () => AppSalesHistoryRoute,
+  } as any)
+const AppSalesHistoryImportsImportIdRoute =
+  AppSalesHistoryImportsImportIdRouteImport.update({
+    id: '/imports/$importId',
+    path: '/imports/$importId',
+    getParentRoute: () => AppSalesHistoryRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/invitations': typeof AppInvitationsRoute
   '/members': typeof AppMembersRoute
   '/playbook': typeof AppPlaybookRoute
+  '/sales-history': typeof AppSalesHistoryRouteWithChildren
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
+  '/sales-history/rights': typeof AppSalesHistoryRightsRoute
+  '/sales-history/': typeof AppSalesHistoryIndexRoute
+  '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
+  '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/sales-history/deals/': typeof AppSalesHistoryDealsIndexRoute
+  '/sales-history/imports/': typeof AppSalesHistoryImportsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
@@ -80,6 +133,12 @@ export interface FileRoutesByTo {
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
+  '/sales-history/rights': typeof AppSalesHistoryRightsRoute
+  '/sales-history': typeof AppSalesHistoryIndexRoute
+  '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
+  '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/sales-history/deals': typeof AppSalesHistoryDealsIndexRoute
+  '/sales-history/imports': typeof AppSalesHistoryImportsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -88,10 +147,17 @@ export interface FileRoutesById {
   '/_app/invitations': typeof AppInvitationsRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/playbook': typeof AppPlaybookRoute
+  '/_app/sales-history': typeof AppSalesHistoryRouteWithChildren
   '/_app/teams': typeof AppTeamsRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/sales-history/rights': typeof AppSalesHistoryRightsRoute
+  '/_app/sales-history/': typeof AppSalesHistoryIndexRoute
+  '/_app/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
+  '/_app/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/_app/sales-history/deals/': typeof AppSalesHistoryDealsIndexRoute
+  '/_app/sales-history/imports/': typeof AppSalesHistoryImportsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -100,9 +166,16 @@ export interface FileRouteTypes {
     | '/invitations'
     | '/members'
     | '/playbook'
+    | '/sales-history'
     | '/teams'
     | '/sign-in'
     | '/sign-up'
+    | '/sales-history/rights'
+    | '/sales-history/'
+    | '/sales-history/deals/$dealRecordId'
+    | '/sales-history/imports/$importId'
+    | '/sales-history/deals/'
+    | '/sales-history/imports/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -112,6 +185,12 @@ export interface FileRouteTypes {
     | '/teams'
     | '/sign-in'
     | '/sign-up'
+    | '/sales-history/rights'
+    | '/sales-history'
+    | '/sales-history/deals/$dealRecordId'
+    | '/sales-history/imports/$importId'
+    | '/sales-history/deals'
+    | '/sales-history/imports'
   id:
     | '__root__'
     | '/_app'
@@ -119,10 +198,17 @@ export interface FileRouteTypes {
     | '/_app/invitations'
     | '/_app/members'
     | '/_app/playbook'
+    | '/_app/sales-history'
     | '/_app/teams'
     | '/_public/sign-in'
     | '/_public/sign-up'
     | '/_app/'
+    | '/_app/sales-history/rights'
+    | '/_app/sales-history/'
+    | '/_app/sales-history/deals/$dealRecordId'
+    | '/_app/sales-history/imports/$importId'
+    | '/_app/sales-history/deals/'
+    | '/_app/sales-history/imports/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -174,6 +260,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPlaybookRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/sales-history': {
+      id: '/_app/sales-history'
+      path: '/sales-history'
+      fullPath: '/sales-history'
+      preLoaderRoute: typeof AppSalesHistoryRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/teams': {
       id: '/_app/teams'
       path: '/teams'
@@ -195,13 +288,78 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicSignUpRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_app/sales-history/': {
+      id: '/_app/sales-history/'
+      path: '/'
+      fullPath: '/sales-history/'
+      preLoaderRoute: typeof AppSalesHistoryIndexRouteImport
+      parentRoute: typeof AppSalesHistoryRoute
+    }
+    '/_app/sales-history/rights': {
+      id: '/_app/sales-history/rights'
+      path: '/rights'
+      fullPath: '/sales-history/rights'
+      preLoaderRoute: typeof AppSalesHistoryRightsRouteImport
+      parentRoute: typeof AppSalesHistoryRoute
+    }
+    '/_app/sales-history/deals/': {
+      id: '/_app/sales-history/deals/'
+      path: '/deals'
+      fullPath: '/sales-history/deals/'
+      preLoaderRoute: typeof AppSalesHistoryDealsIndexRouteImport
+      parentRoute: typeof AppSalesHistoryRoute
+    }
+    '/_app/sales-history/deals/$dealRecordId': {
+      id: '/_app/sales-history/deals/$dealRecordId'
+      path: '/deals/$dealRecordId'
+      fullPath: '/sales-history/deals/$dealRecordId'
+      preLoaderRoute: typeof AppSalesHistoryDealsDealRecordIdRouteImport
+      parentRoute: typeof AppSalesHistoryRoute
+    }
+    '/_app/sales-history/imports/': {
+      id: '/_app/sales-history/imports/'
+      path: '/imports'
+      fullPath: '/sales-history/imports/'
+      preLoaderRoute: typeof AppSalesHistoryImportsIndexRouteImport
+      parentRoute: typeof AppSalesHistoryRoute
+    }
+    '/_app/sales-history/imports/$importId': {
+      id: '/_app/sales-history/imports/$importId'
+      path: '/imports/$importId'
+      fullPath: '/sales-history/imports/$importId'
+      preLoaderRoute: typeof AppSalesHistoryImportsImportIdRouteImport
+      parentRoute: typeof AppSalesHistoryRoute
+    }
   }
 }
+
+interface AppSalesHistoryRouteChildren {
+  AppSalesHistoryRightsRoute: typeof AppSalesHistoryRightsRoute
+  AppSalesHistoryIndexRoute: typeof AppSalesHistoryIndexRoute
+  AppSalesHistoryDealsDealRecordIdRoute: typeof AppSalesHistoryDealsDealRecordIdRoute
+  AppSalesHistoryImportsImportIdRoute: typeof AppSalesHistoryImportsImportIdRoute
+  AppSalesHistoryDealsIndexRoute: typeof AppSalesHistoryDealsIndexRoute
+  AppSalesHistoryImportsIndexRoute: typeof AppSalesHistoryImportsIndexRoute
+}
+
+const AppSalesHistoryRouteChildren: AppSalesHistoryRouteChildren = {
+  AppSalesHistoryRightsRoute: AppSalesHistoryRightsRoute,
+  AppSalesHistoryIndexRoute: AppSalesHistoryIndexRoute,
+  AppSalesHistoryDealsDealRecordIdRoute: AppSalesHistoryDealsDealRecordIdRoute,
+  AppSalesHistoryImportsImportIdRoute: AppSalesHistoryImportsImportIdRoute,
+  AppSalesHistoryDealsIndexRoute: AppSalesHistoryDealsIndexRoute,
+  AppSalesHistoryImportsIndexRoute: AppSalesHistoryImportsIndexRoute,
+}
+
+const AppSalesHistoryRouteWithChildren = AppSalesHistoryRoute._addFileChildren(
+  AppSalesHistoryRouteChildren,
+)
 
 interface AppRouteChildren {
   AppInvitationsRoute: typeof AppInvitationsRoute
   AppMembersRoute: typeof AppMembersRoute
   AppPlaybookRoute: typeof AppPlaybookRoute
+  AppSalesHistoryRoute: typeof AppSalesHistoryRouteWithChildren
   AppTeamsRoute: typeof AppTeamsRoute
   AppIndexRoute: typeof AppIndexRoute
 }
@@ -210,6 +368,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInvitationsRoute: AppInvitationsRoute,
   AppMembersRoute: AppMembersRoute,
   AppPlaybookRoute: AppPlaybookRoute,
+  AppSalesHistoryRoute: AppSalesHistoryRouteWithChildren,
   AppTeamsRoute: AppTeamsRoute,
   AppIndexRoute: AppIndexRoute,
 }

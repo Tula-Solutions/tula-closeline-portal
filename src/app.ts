@@ -4,6 +4,7 @@ import { type CoreApi, createCoreApi } from '~/api/core'
 import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
 import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
+import { createSalesHistoryApi, type SalesHistoryApi } from '~/api/sales-history'
 import type { Env } from '~/env'
 import { createInvitationHolder, type InvitationHolder } from '~/invitation'
 import type { Reporter } from '~/report/reporter'
@@ -15,6 +16,7 @@ export type App = {
   readonly auth: AuthApi
   readonly core: CoreApi
   readonly playbook: PlaybookApi
+  readonly salesHistory: SalesHistoryApi
   /** Waits `milliseconds` (the injected `sleep` in tests): the document poll and a `Retry-After` wait use it. */
   readonly sleep: (milliseconds: number) => Promise<void>
   readonly session: Session
@@ -112,6 +114,7 @@ export function createApp(init: AppInit): App {
     auth,
     core: createCoreApi(coreHttp),
     playbook: createPlaybookApi(coreHttp),
+    salesHistory: createSalesHistoryApi(coreHttp),
     sleep,
     session,
     reporter: init.reporter,

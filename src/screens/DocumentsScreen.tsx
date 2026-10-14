@@ -12,6 +12,7 @@ import {
   failureWords,
   formatBytes,
   MAX_UPLOAD_WORDS,
+  PENDING_STATES,
   stateLabel,
   typeLabel,
 } from '~/data/documents'
@@ -56,7 +57,10 @@ function DocumentsView(props: { readonly manage: boolean }) {
   const [notice, setNotice] = useState('')
   const documents = useDocuments(filter)
   const headingRef = useRef<HTMLHeadingElement>(null)
-  const poll = usePendingPoll(documents.items, documents.refetch)
+  const poll = usePendingPoll(
+    documents.items.filter((item) => PENDING_STATES.includes(item.state)).map((item) => item.id),
+    documents.refetch
+  )
   return (
     <>
       <h1 tabIndex={-1} ref={headingRef}>

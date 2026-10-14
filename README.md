@@ -118,6 +118,18 @@ not know fails the whole page by design (the strict parse is house behaviour) un
 tag is bumped; the label helpers still have safe defaults so a widened schema never renders
 `undefined`.
 
+## Sales history
+
+`/sales-history` (navigation for Owners and Admins only; a Manager or Rep who opens it sees a notice and
+nothing is requested) holds Deals, Deal imports and the rights confirmation, against contract v0.8.0 and
+`/v1/playbook/rights-confirmation`, `/deals`, `/deals/lookup` and `/deal-imports`. A Deal is found by the
+customer's deal id through `POST /deals/lookup` (the id is in the body, never an address, log or Sentry
+event) and opens at `/sales-history/deals/deal_…`. An import is a CSV checked in the browser (extension,
+size, the contract's header check) then sent as multipart with an `Idempotency-Key`; its report lists every
+row with the reason in words and can be downloaded as CSV with formula-looking cells made safe. The rights
+confirmation wording is in the portal (`src/data/rights-wording.ts`), not the contract, and is a draft
+pending a lawyer's check.
+
 ## Sessions
 
 Every call to auth sends `x-tula-client: browser`, so auth sets the refresh token in an `HttpOnly`

@@ -75,6 +75,16 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
   into the cache by hand is not worth the risk, so each tick refetches every loaded page: N
   requests per tick (N = pages loaded), at most 22 ticks per pending episode. A test pins N. The
   waits restart only when a new pending document appears, not when one changes state.
+- Sales history (`src/screens/sales/`, routes under `/sales-history`, Owner and Admin only: `can.manageSalesHistory`;
+  `SalesLayout` renders a notice for any other role and mounts nothing, so no request is made). The customer's
+  deal id travels in request bodies only (`POST /v1/playbook/deals/lookup`, a Call upload's multipart field);
+  portal addresses carry the opaque `deal_…` id. Deal ids, names, speaker labels and file names are text only
+  (`Untrusted`) and are made safe with `csvCell` in anything exported (a deal id may begin with `=`, `+`, `-`,
+  `@`). The rights wording lives in `src/data/rights-wording.ts` keyed by version (the contract carries only the
+  version); it is PENDING A LAWYER'S CHECK, and a version the portal has no text for cannot be confirmed. The
+  `from` search param of the rights route is checked against an allowlist (`parseBackPath`), in the route and
+  again in the screen (the router hands the raw value through). Polling uses `SALES_POLL_SCHEDULE_MS` (first
+  wait 3 s) via `app.sleep`.
 - The Invitation token is never logged, reported or kept in the address bar.
 - Never log, report or show a token, cookie value, code, password or email address. Report only unexpected errors
   (5xx, crashes); never validation, 401, 403, 404, 409 or 429. The one exception is the 403 from auth's Origin check on
