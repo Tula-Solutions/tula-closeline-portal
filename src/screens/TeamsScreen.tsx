@@ -1,5 +1,6 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react'
-import { type Team, teamNameSchema } from 'tula-closeline-contract'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { CORE_ERRORS, type Team, teamNameSchema } from 'tula-closeline-contract'
+import { ApiError } from '~/api/errors'
 import { fingerprint } from '~/api/idempotency'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
@@ -14,6 +15,7 @@ import { plain } from '~/ui/plain'
 import { SelectField } from '~/ui/SelectField'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
+import { useClearOnSuccess, useFeedback } from '~/ui/useFeedback'
 import { useFocusOnError } from '~/ui/useFocusOnError'
 import { useSubmit } from '~/ui/useSubmit'
 
@@ -29,7 +31,7 @@ export function TeamsScreen() {
   useDocumentTitle('Teams')
   const role = useRole()
   const teams = useTeams()
-  const [notice, setNotice] = useState('')
+  const feedback = useFeedback()
   const headingRef = useRef<HTMLHeadingElement>(null)
   if (role === null) {
     return null
@@ -40,9 +42,9 @@ export function TeamsScreen() {
       <h1 tabIndex={-1} ref={headingRef}>
         Teams
       </h1>
-      {manage ? <CreateTeamForm onDone={setNotice} /> : null}
+      {manage ? <CreateTeamForm onDone={feedback.done} onFail={feedback.failed} /> : null}
       <p role='status' className='notice'>
-        {notice}
+        {feedback.notice}
       </p>
       <Paged noun='Teams' emptyText='There are no Teams yet.' state={teams.state}>
         <ul className='plain-list' aria-label='Teams'>
@@ -51,7 +53,9 @@ export function TeamsScreen() {
               key={team.id}
               team={team}
               manage={manage}
-              onDone={setNotice}
+              onDone={feedback.done}
+              onFail={feedback.failed}
+              serial={feedback.serial}
               onDeleted={() => headingRef.current?.focus()}
             />
           ))}
@@ -61,7 +65,10 @@ export function TeamsScreen() {
   )
 }
 
-function CreateTeamForm(props: { readonly onDone: (notice: string) => void }) {
+function CreateTeamForm(props: {
+  readonly onDone: (notice: string) => void
+  readonly onFail: () => void
+}) {
   const app = useApp()
   const [name, setName] = useState('')
   const [errors, setErrors] = useState<{ name?: string; form?: string }>({})
@@ -86,6 +93,7 @@ function CreateTeamForm(props: { readonly onDone: (notice: string) => void }) {
     {
       onError(error) {
         const shown = presentManage(error)
+        props.onFail()
         setErrors(shown.field === 'name' ? { name: shown.message } : { form: shown.message })
         focusFirstError()
       },
@@ -96,6 +104,7 @@ function CreateTeamForm(props: { readonly onDone: (notice: string) => void }) {
     if (create.pending) {
       return
     }
+    props.onFail()
     const parsed = teamNameSchema.safeParse(name)
     if (!parsed.success) {
       setErrors({ name: NAME_RULE })
@@ -136,6 +145,8 @@ function TeamItem(props: {
   readonly team: Team
   readonly manage: boolean
   readonly onDone: (notice: string) => void
+  readonly onFail: () => void
+  readonly serial: number
   readonly onDeleted: () => void
 }) {
   const { team } = props
@@ -146,6 +157,8 @@ function TeamItem(props: {
   const [error, setError] = useState<string | null>(null)
   const renameButton = useRef<HTMLButtonElement>(null)
   const errorId = `${team.id}-error`
+  const clearError = useCallback(() => setError(null), [])
+  useClearOnSuccess(props.serial, clearError)
   const restoreFocus = useRef(false)
   useEffect(() => {
     if (!renaming && restoreFocus.current) {
@@ -163,7 +176,12 @@ function TeamItem(props: {
       props.onDone('Team deleted.')
       props.onDeleted()
     },
-    { onError: (failure) => setError(presentManage(failure).message) }
+    {
+      onError: (failure) => {
+        props.onFail()
+        setError(presentManage(failure).message)
+      },
+    }
   )
   return (
     <li className='list-item'>
@@ -227,7 +245,7 @@ function TeamItem(props: {
           onDone={props.onDone}
         />
       ) : null}
-      {props.manage && membersOpen ? <TeamMembersPanel team={team} onDone={props.onDone} /> : null}
+      {props.manage && membersOpen ? <TeamMembersPanel team={team} onFail={props.onFail} /> : null}
     </li>
   )
 }
@@ -318,24 +336,27 @@ function RenameForm(props: {
  * chosen from the Organization's members (a page at a time); adding someone already in the Team and
  * removing someone not in it both succeed.
  */
-function TeamMembersPanel(props: {
-  readonly team: Team
-  readonly onDone: (notice: string) => void
-}) {
+function TeamMembersPanel(props: { readonly team: Team; readonly onFail: () => void }) {
   const app = useApp()
   const members = useMembers(true)
   const label = plain(props.team.name, 'unnamed Team')
   const [membershipId, setMembershipId] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  // One result for this panel, shown beside its buttons: what the last add or remove did.
+  const [result, setResult] = useState<{ readonly ok: boolean; readonly text: string } | null>(null)
   const errorId = `${props.team.id}-members-error`
   // The chosen member, or the first when they are no longer in the list (and nothing for an empty list).
   const chosen = members.items.some((member) => member.id === membershipId)
     ? membershipId
     : (members.items[0]?.id ?? '')
-  const onError = (failure: unknown) => setError(presentManage(failure).message)
+  const onError = (failure: unknown) =>
+    setResult({ ok: false, text: presentManage(failure).message })
   const add = useSubmit<string>(
     async (id) => {
-      setError(null)
+      setResult(null)
+      props.onFail()
+      // Adding is a new intent after any removal: a removal key left from an unsure removal must
+      // not be reused for the next removal (core would replay the first answer).
+      app.keys.drop(fingerprint.teamMemberRemoval(props.team.id, id))
       const attempt = app.keys.begin(fingerprint.teamMember(props.team.id, id))
       try {
         await app.core.addTeamMember(props.team.id, id, attempt.key)
@@ -344,19 +365,37 @@ function TeamMembersPanel(props: {
         throw failure
       }
       attempt.succeeded()
-      props.onDone('Member added to the Team.')
+      setResult({ ok: true, text: 'Member added to the Team.' })
     },
     { onError }
   )
   const take = useSubmit<string>(
     async (id) => {
-      setError(null)
+      setResult(null)
+      props.onFail()
       // Whatever was unsure about adding this member is over: adding again is a new intent.
       app.keys.drop(fingerprint.teamMember(props.team.id, id))
-      await app.core.removeTeamMember(props.team.id, id)
-      props.onDone('Member removed from the Team.')
+      // A fresh key for each removal the person asks for; only a retry after a lost answer reuses it.
+      const attempt = app.keys.begin(fingerprint.teamMemberRemoval(props.team.id, id))
+      try {
+        await app.core.removeTeamMember(props.team.id, id, attempt.key)
+      } catch (failure) {
+        attempt.failed(failure)
+        throw failure
+      }
+      attempt.succeeded()
+      setResult({ ok: true, text: 'Member removed from the Team.' })
     },
-    { onError }
+    {
+      onError(failure) {
+        // Core says so when the member was not in the Team: that is what was wanted.
+        if (failure instanceof ApiError && failure.code === CORE_ERRORS['member.not_found'].code) {
+          setResult({ ok: true, text: 'That member is already not in this Team.' })
+          return
+        }
+        onError(failure)
+      },
+    }
   )
   return (
     <section id={`${props.team.id}-members`} aria-label={`Members of ${label}`}>
@@ -368,18 +407,22 @@ function TeamMembersPanel(props: {
           label='Member'
           name='member'
           value={chosen}
-          aria-describedby={error ? errorId : undefined}
+          aria-describedby={result?.ok === false ? errorId : undefined}
           options={members.items.map((member) => ({
             value: member.id,
             text: `${isolate(member.name ?? member.email)} ${isolate(`<${member.email}>`)}`,
           }))}
           onChange={(event) => setMembershipId(event.target.value)}
         />
-        {error ? (
-          <p className='field-error' id={errorId} role='alert'>
-            <strong>Error:</strong> {error}
+        {result === null ? null : result.ok ? (
+          <p role='status' className='notice'>
+            {result.text}
           </p>
-        ) : null}
+        ) : (
+          <p className='field-error' id={errorId} role='alert'>
+            <strong>Error:</strong> {result.text}
+          </p>
+        )}
         <div className='row-actions'>
           <button
             type='button'

@@ -12,7 +12,7 @@ import {
 import { isUnreadable } from '~/api/sales-history'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
-import { refresh, useCalls, useDeal } from '~/data/queries'
+import { refresh, useCalls, useDeal, useRights } from '~/data/queries'
 import {
   CALL_FILTER_LABEL,
   CALL_PENDING_STATES,
@@ -65,6 +65,7 @@ export function CallsScreen() {
         A Call is one past conversation, uploaded as a Transcript or a Recording for a Deal. Only
         ready Calls of won Deals are used in search.
       </p>
+      <RightsNotice />
       <CallUpload />
       <RecordingUpload />
       <h2>All Calls</h2>
@@ -129,6 +130,22 @@ export function CallsScreen() {
         </ScrollRegion>
       </Paged>
     </>
+  )
+}
+
+/** Before the upload forms: says that the rights must be confirmed first, while they are not. */
+function RightsNotice() {
+  const rights = useRights(true)
+  if (rights.data === undefined || rights.data.confirmed) {
+    return null
+  }
+  return (
+    <Banner kind='info'>
+      Confirm that your Organization may share these Calls before you upload anything.{' '}
+      <Link to='/sales-history/rights' search={{ from: '/sales-history/calls' }}>
+        Confirm the rights
+      </Link>
+    </Banner>
   )
 }
 

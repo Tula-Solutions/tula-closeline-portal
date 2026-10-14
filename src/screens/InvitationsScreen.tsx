@@ -1,4 +1,4 @@
-import { type FormEvent, useRef, useState } from 'react'
+import { type FormEvent, useCallback, useRef, useState } from 'react'
 import {
   emailSchema,
   type InvitableRole,
@@ -20,6 +20,7 @@ import { ScrollRegion } from '~/ui/ScrollRegion'
 import { SelectField } from '~/ui/SelectField'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
+import { useClearOnSuccess, useFeedback } from '~/ui/useFeedback'
 import { useFocusOnError } from '~/ui/useFocusOnError'
 import { useSubmit } from '~/ui/useSubmit'
 
@@ -41,7 +42,7 @@ export function InvitationsScreen() {
   const role = useRole()
   const allowed = role !== null && can.manageInvitations(role)
   const invitations = useInvitations(allowed)
-  const [notice, setNotice] = useState('')
+  const feedback = useFeedback()
   const headingRef = useRef<HTMLHeadingElement>(null)
   if (role === null) {
     return null
@@ -53,9 +54,9 @@ export function InvitationsScreen() {
       </h1>
       {allowed ? (
         <>
-          <InviteForm role={role} onSent={setNotice} />
+          <InviteForm role={role} onSent={feedback.done} onFail={feedback.failed} />
           <p role='status' className='notice'>
-            {notice}
+            {feedback.notice}
           </p>
           <h2>Pending Invitations</h2>
           <Paged
@@ -79,7 +80,9 @@ export function InvitationsScreen() {
                       key={invitation.id}
                       invitation={invitation}
                       canRevoke={canRevokeInvitation(role, invitation.role)}
-                      onDone={setNotice}
+                      onDone={feedback.done}
+                      onFail={feedback.failed}
+                      serial={feedback.serial}
                       onRevoked={() => headingRef.current?.focus()}
                     />
                   ))}
@@ -98,6 +101,7 @@ export function InvitationsScreen() {
 function InviteForm(props: {
   readonly role: NonNullable<ReturnType<typeof useRole>>
   readonly onSent: (notice: string) => void
+  readonly onFail: () => void
 }) {
   const app = useApp()
   const offered = invitableRoles(props.role)
@@ -126,6 +130,7 @@ function InviteForm(props: {
     {
       onError(error) {
         const shown = presentManage(error, 'invitation')
+        props.onFail()
         setErrors(shown.field === 'email' ? { email: shown.message } : { form: shown.message })
         focusFirstError()
       },
@@ -137,6 +142,7 @@ function InviteForm(props: {
     if (send.pending) {
       return
     }
+    props.onFail()
     const parsed = emailSchema.safeParse(email.trim())
     if (!parsed.success) {
       setErrors({ email: 'Enter a valid email address.' })
@@ -191,11 +197,15 @@ function InvitationRow(props: {
   readonly invitation: Invitation
   readonly canRevoke: boolean
   readonly onDone: (notice: string) => void
+  readonly onFail: () => void
+  readonly serial: number
   readonly onRevoked: () => void
 }) {
   const { invitation } = props
   const app = useApp()
   const [error, setError] = useState<string | null>(null)
+  const clearError = useCallback(() => setError(null), [])
+  useClearOnSuccess(props.serial, clearError)
   const errorId = `${invitation.id}-error`
   const revoke = useSubmit<void>(
     async () => {
@@ -207,7 +217,12 @@ function InvitationRow(props: {
       props.onDone('Invitation revoked.')
       props.onRevoked()
     },
-    { onError: (failure) => setError(presentManage(failure, 'invitation').message) }
+    {
+      onError: (failure) => {
+        props.onFail()
+        setError(presentManage(failure, 'invitation').message)
+      },
+    }
   )
   const label = plain(invitation.email, 'this address')
   const expired = Date.parse(invitation.expiresAt) < Date.now()

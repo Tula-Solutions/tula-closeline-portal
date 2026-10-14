@@ -56,8 +56,8 @@ export type CoreApi = {
   deleteTeam(teamId: string): Promise<void>
   /** Adds a member to a Team (adding one already in it succeeds). */
   addTeamMember(teamId: string, membershipId: string, idempotencyKey: string): Promise<TeamMember>
-  /** Removes a member from a Team (removing one not in it succeeds). */
-  removeTeamMember(teamId: string, membershipId: string): Promise<void>
+  /** Removes a member from a Team; the key makes a repeat of the same request answer as the first did, and core refuses a member who is not in the Team as a missing member. */
+  removeTeamMember(teamId: string, membershipId: string, idempotencyKey: string): Promise<void>
 }
 
 const segment = encodeURIComponent
@@ -158,10 +158,11 @@ export function createCoreApi(http: HttpClient): CoreApi {
         auth: true,
         parse: (json) => teamMemberSchema.parse(json),
       }),
-    removeTeamMember: (teamId, membershipId) =>
+    removeTeamMember: (teamId, membershipId, idempotencyKey) =>
       http.request<void>({
         method: 'DELETE',
         path: `/v1/teams/${segment(teamId)}/members/${segment(membershipId)}`,
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
         auth: true,
       }),
   }

@@ -76,7 +76,7 @@ const RULES: { readonly [C in HandledCode]: (wait: number | undefined) => ShownF
     message: 'That member is no longer in your Organization. Reload the list.',
   }),
   [CORE_ERRORS['member.last_owner'].code]: () => ({
-    message: 'The last Owner cannot be removed or demoted. Make another member an Owner first.',
+    message: 'The last Owner cannot be removed or demoted. Promote another Owner first.',
   }),
   [CORE_ERRORS['invitation.already_pending'].code]: () => ({
     field: 'email',

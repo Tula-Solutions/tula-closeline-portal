@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import type { Member, Role } from 'tula-closeline-contract'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
@@ -11,6 +11,7 @@ import { plain } from '~/ui/plain'
 import { ScrollRegion } from '~/ui/ScrollRegion'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
+import { useClearOnSuccess, useFeedback } from '~/ui/useFeedback'
 import { useSubmit } from '~/ui/useSubmit'
 
 /** The members of the Organization: name (or email address), email address, role; Owners and Admins change roles and remove members. */
@@ -19,7 +20,7 @@ export function MembersScreen() {
   const role = useRole()
   const allowed = role !== null && can.viewMembers(role)
   const members = useMembers(allowed)
-  const [notice, setNotice] = useState('')
+  const feedback = useFeedback()
   const headingRef = useRef<HTMLHeadingElement>(null)
   if (role === null) {
     return null
@@ -32,7 +33,7 @@ export function MembersScreen() {
       {allowed ? (
         <>
           <p role='status' className='notice'>
-            {notice}
+            {feedback.notice}
           </p>
           <Paged noun='members' emptyText='There are no members to show.' state={members.state}>
             <ScrollRegion label='Members'>
@@ -51,7 +52,9 @@ export function MembersScreen() {
                       key={member.id}
                       member={member}
                       viewerRole={role}
-                      onDone={setNotice}
+                      onDone={feedback.done}
+                      onFail={feedback.failed}
+                      serial={feedback.serial}
                       onRemoved={() => headingRef.current?.focus()}
                     />
                   ))}
@@ -71,6 +74,8 @@ function MemberRow(props: {
   readonly member: Member
   readonly viewerRole: Role
   readonly onDone: (notice: string) => void
+  readonly onFail: () => void
+  readonly serial: number
   readonly onRemoved: () => void
 }) {
   const { member, viewerRole } = props
@@ -86,7 +91,12 @@ function MemberRow(props: {
   const select = useRef<HTMLSelectElement>(null)
   const errorId = `${member.id}-error`
   const choices = assignableRoles(viewerRole, member.role)
-  const onError = (failure: unknown) => setError(presentManage(failure).message)
+  const clearError = useCallback(() => setError(null), [])
+  useClearOnSuccess(props.serial, clearError)
+  const onError = (failure: unknown) => {
+    props.onFail()
+    setError(presentManage(failure).message)
+  }
 
   const change = useSubmit<Role>(
     async (next) => {
@@ -106,80 +116,94 @@ function MemberRow(props: {
       props.onDone('Member removed.')
       props.onRemoved()
     },
-    { onError }
+    {
+      onError: (failure) => {
+        // The row is as it was: an unsaved role choice does not stay behind.
+        setSelected(member.role)
+        onError(failure)
+      },
+    }
   )
 
   const display = member.name ?? member.email
   const label = plain(member.name ?? '', plain(member.email, 'member'))
+  const manage = can.manageMembers(viewerRole)
   return (
-    <tr>
-      <th scope='row'>
-        <Untrusted value={display} />
-      </th>
-      <td>
-        <Untrusted value={member.email} />
-      </td>
-      <td>{ROLE_LABEL[member.role]}</td>
-      {can.manageMembers(viewerRole) ? (
+    <>
+      <tr>
+        <th scope='row'>
+          <Untrusted value={display} />
+        </th>
         <td>
-          <div className='row-actions'>
-            {choices.length > 0 ? (
-              <>
-                <label className='sr-only' htmlFor={`${member.id}-role`}>
-                  Role for {label}
-                </label>
-                <select
-                  id={`${member.id}-role`}
-                  ref={select}
-                  value={selected}
-                  aria-describedby={error ? errorId : undefined}
-                  onChange={(event) => setSelected(event.target.value as Role)}
-                >
-                  {choices.map((choice) => (
-                    <option key={choice} value={choice}>
-                      {ROLE_LABEL[choice]}
-                    </option>
-                  ))}
-                </select>
-                {selected !== member.role ? (
-                  <button
-                    type='button'
-                    className='button'
-                    aria-disabled={change.pending}
-                    aria-label={`Save role for ${label}`}
-                    onClick={() => change.submit(selected)}
+          <Untrusted value={member.email} />
+        </td>
+        <td>{ROLE_LABEL[member.role]}</td>
+        {manage ? (
+          <td>
+            <div className='row-actions'>
+              {choices.length > 0 ? (
+                <>
+                  <label className='sr-only' htmlFor={`${member.id}-role`}>
+                    Role for {label}
+                  </label>
+                  <select
+                    id={`${member.id}-role`}
+                    ref={select}
+                    value={selected}
+                    aria-describedby={error ? errorId : undefined}
+                    onChange={(event) => setSelected(event.target.value as Role)}
                   >
-                    {change.pending ? 'Saving...' : 'Save role'}
-                  </button>
-                ) : null}
-              </>
-            ) : null}
-            {canRemoveMember(viewerRole, member.role) ? (
-              <Confirm
-                label='Remove'
-                accessibleName={`Remove ${label}`}
-                pendingAccessibleName={`Removing ${label}`}
-                pendingLabel='Removing...'
-                question={
-                  <>
-                    Remove <Untrusted value={display} /> from your Organization? They lose access at
-                    once.
-                  </>
-                }
-                confirmLabel='Remove member'
-                pending={remove.pending}
-                describedBy={error ? errorId : undefined}
-                onConfirm={() => remove.submit()}
-              />
-            ) : null}
-          </div>
-          {error ? (
+                    {choices.map((choice) => (
+                      <option key={choice} value={choice}>
+                        {ROLE_LABEL[choice]}
+                      </option>
+                    ))}
+                  </select>
+                  {selected !== member.role ? (
+                    <button
+                      type='button'
+                      className='button'
+                      aria-disabled={change.pending}
+                      aria-label={`Save role for ${label}`}
+                      onClick={() => change.submit(selected)}
+                    >
+                      {change.pending ? 'Saving...' : 'Save role'}
+                    </button>
+                  ) : null}
+                </>
+              ) : null}
+              {canRemoveMember(viewerRole, member.role) ? (
+                <Confirm
+                  label='Remove'
+                  accessibleName={`Remove ${label}`}
+                  pendingAccessibleName={`Removing ${label}`}
+                  pendingLabel='Removing...'
+                  question={
+                    <>
+                      Remove <Untrusted value={display} /> from your Organization? They lose access
+                      at once.
+                    </>
+                  }
+                  confirmLabel='Remove member'
+                  pending={remove.pending}
+                  describedBy={error ? errorId : undefined}
+                  onConfirm={() => remove.submit()}
+                />
+              ) : null}
+            </div>
+          </td>
+        ) : null}
+      </tr>
+      {error ? (
+        // Its own row: an error inside the Actions cell widened it and squeezed the other columns.
+        <tr>
+          <td colSpan={manage ? 4 : 3}>
             <p className='field-error' id={errorId} role='alert'>
               <strong>Error:</strong> {error}
             </p>
-          ) : null}
-        </td>
+          </td>
+        </tr>
       ) : null}
-    </tr>
+    </>
   )
 }

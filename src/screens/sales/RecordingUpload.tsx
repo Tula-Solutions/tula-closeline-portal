@@ -82,6 +82,8 @@ export function RecordingUpload() {
   const [dealId, setDealId] = useState(draft?.dealId ?? '')
   const [channel, setChannel] = useState<Channel>(draft?.recording?.channel ?? '')
   const [problems, setProblems] = useState<Problems>({})
+  // Bumped after a stored upload so the file chooser, which keeps its own file, starts empty.
+  const [chooser, setChooser] = useState(0)
   const { formRef, focusFirstError } = useFocusOnError()
 
   const goToRights = (held: { file: File; dealId: string }) => {
@@ -90,6 +92,7 @@ export function RecordingUpload() {
   }
 
   const submit = async () => {
+    upload.clear()
     const found: Problems = {}
     const fileText = file === null ? 'Choose a Recording.' : fileProblem(file)
     if (fileText !== null) {
@@ -122,6 +125,7 @@ export function RecordingUpload() {
     } else if (result === 'accepted') {
       app.pendingCall.clear()
       setFile(null)
+      setChooser((now) => now + 1)
       setDealId('')
       setChannel('')
     }
@@ -140,6 +144,7 @@ export function RecordingUpload() {
         }}
       >
         <Field
+          key={chooser}
           type='file'
           label='Choose a Recording to upload'
           accept={ACCEPT}
@@ -147,10 +152,11 @@ export function RecordingUpload() {
           hint={`${EXTENSIONS}, up to ${MAX_RECORDING_WORDS}. Closeline transcribes it, which can take a few minutes.`}
           onChange={(event) => {
             setFile(event.target.files?.[0] ?? null)
+            upload.clear()
             setProblems((now) => ({ ...now, file: undefined }))
           }}
         />
-        {file === null ? null : (
+        {file === null || problems.file !== undefined ? null : (
           <p className='hint'>{`${plain(file.name, 'file')} is ready to upload.`}</p>
         )}
         <Field
