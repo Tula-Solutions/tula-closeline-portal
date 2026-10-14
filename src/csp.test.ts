@@ -30,6 +30,18 @@ describe('buildCsp', () => {
     expect(connect).toBe("connect-src 'self' https://o1.ingest.sentry.io")
   })
 
+  test("connect-src has no wildcard, scheme or foreign host, which is what limits an upload's redirect to the same origin (sendWithProgress relies on it)", () => {
+    const sources = directive(buildCsp(prod, { meta: true }), 'connect-src')
+      .split(' ')
+      .slice(1)
+    expect(sources[0]).toBe("'self'")
+    for (const source of sources.slice(1)) {
+      expect(source).toBe('https://o1.ingest.sentry.io')
+    }
+    expect(sources).not.toContain('*')
+    expect(sources.some((source) => /^[a-z]+:$/.test(source))).toBe(false)
+  })
+
   test('with no DSN there is no Sentry origin', () => {
     const local = parseEnv({
       VITE_ENVIRONMENT: 'local',

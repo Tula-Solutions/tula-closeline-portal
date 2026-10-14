@@ -13,8 +13,92 @@ export type Authorizer = {
   rejected(token: string): void
 }
 
-/** The part of `fetch` the client uses; tests pass a double. The input is always a same-origin path (`/v1/...`). */
-export type Fetch = (input: string, init: RequestInit) => Promise<Response>
+/** Called as an upload body goes out: bytes sent so far and the total, when the browser knows it. */
+export type UploadProgress = (sent: number, total: number) => void
+
+/**
+ * The part of `fetch` the client uses; tests pass a double. The input is always a same-origin path
+ * (`/v1/...`). The third argument is given only for an upload that reports progress: `fetch` has
+ * no upload progress, so the default then sends with XMLHttpRequest instead.
+ */
+export type Fetch = (
+  input: string,
+  init: RequestInit,
+  onProgress?: UploadProgress
+) => Promise<Response>
+
+/**
+ * Sends a request with XMLHttpRequest so the browser reports how much of the body has gone out.
+ * A FormData body is handed over as it is, so a File part is streamed from disk by the browser and
+ * never read into memory by the page. It answers with a Response, as `fetch` would, except that
+ * XMLHttpRequest cannot take `cache` or `referrerPolicy` (this path adds no referrer-sensitive data:
+ * the address is a same-origin path).
+ *
+ * Redirects: unlike `redirect: 'error'`, XMLHttpRequest follows a redirect first (a 307 or 308
+ * resends the body) and this function can only notice afterwards, by comparing `responseURL` with
+ * the address asked for, and refuse the answer. What limits the damage is the Content-Security-Policy
+ * `connect-src 'self'` (plus the Sentry origin), which keeps the followed request on this origin
+ * (`src/csp.test.ts` pins that value). An empty `responseURL` is treated as a failure.
+ */
+export function sendWithProgress(
+  input: string,
+  init: RequestInit,
+  onProgress: UploadProgress
+): Promise<Response> {
+  return new Promise<Response>((resolve, reject) => {
+    // Like fetch: a request whose signal is already aborted never goes out.
+    if (init.signal?.aborted) {
+      reject(new DOMException('aborted', 'AbortError'))
+      return
+    }
+    const request = new XMLHttpRequest()
+    request.open(init.method ?? 'POST', input)
+    request.responseType = 'text'
+    request.withCredentials = false
+    for (const [name, value] of Object.entries((init.headers ?? {}) as Record<string, string>)) {
+      request.setRequestHeader(name, value)
+    }
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        onProgress(event.loaded, event.total)
+      }
+    }
+    const abort = () => request.abort()
+    init.signal?.addEventListener('abort', abort, { once: true })
+    const done = () => init.signal?.removeEventListener('abort', abort)
+    request.onload = () => {
+      done()
+      // XMLHttpRequest follows redirects (and would resend the body); refuse an answer from anywhere else, as `redirect: 'error'` does.
+      if (
+        request.responseURL === '' ||
+        request.responseURL !== new URL(input, location.href).href
+      ) {
+        reject(new TypeError('redirected'))
+        return
+      }
+      const headers = new Headers()
+      for (const line of request.getAllResponseHeaders().trim().split(/\r?\n/)) {
+        const at = line.indexOf(':')
+        if (at > 0) {
+          headers.append(line.slice(0, at).trim(), line.slice(at + 1).trim())
+        }
+      }
+      const noBody = request.status === 204 || request.status === 205 || request.status === 304
+      resolve(
+        new Response(noBody ? null : request.responseText, { status: request.status, headers })
+      )
+    }
+    request.onerror = () => {
+      done()
+      reject(new TypeError('network'))
+    }
+    request.onabort = () => {
+      done()
+      reject(new DOMException('aborted', 'AbortError'))
+    }
+    request.send((init.body ?? null) as XMLHttpRequestBodyInit | null)
+  })
+}
 
 /** How a client is set up; everything is injectable so tests need no network, timers or randomness. */
 export type HttpConfig = {
@@ -42,6 +126,8 @@ export type RequestOptions<T> = {
   /** This call's timeout, for one that legitimately takes longer than the client's default (an upload). */
   readonly timeoutMs?: number
   readonly headers?: Readonly<Record<string, string>>
+  /** For a `FormData` upload: called as the body goes out (and makes the call use XMLHttpRequest, since `fetch` has no upload progress). */
+  readonly onUploadProgress?: UploadProgress
   readonly auth?: boolean
   readonly signal?: AbortSignal
   /** Checks and narrows the JSON answer (and sees the status, for a route with two success codes); a throw becomes `client.bad_response`. */
@@ -66,7 +152,10 @@ export function createHttpClient(config: HttpConfig): HttpClient {
   const random = config.random ?? Math.random
   const sleep =
     config.sleep ?? ((milliseconds) => new Promise<void>((done) => setTimeout(done, milliseconds)))
-  const send: Fetch = config.fetch ?? ((input, init) => globalThis.fetch(input, init))
+  const send: Fetch =
+    config.fetch ??
+    ((input, init, onProgress) =>
+      onProgress ? sendWithProgress(input, init, onProgress) : globalThis.fetch(input, init))
 
   async function attempt<T>(options: RequestOptions<T>, token: string | null): Promise<T> {
     // Same origin only: a path such as `/v1/organization`, never a URL with a host (and never
@@ -108,20 +197,24 @@ export function createHttpClient(config: HttpConfig): HttpClient {
     options.signal?.addEventListener('abort', abortFromCaller, { once: true })
 
     try {
-      const response = await send(url, {
-        method: options.method ?? 'GET',
-        headers,
-        ...(options.body === undefined
-          ? {}
-          : { body: isForm ? (options.body as FormData) : JSON.stringify(options.body) }),
-        // The refresh cookie rides along on this origin only; never `include`.
-        credentials: 'same-origin',
-        // A redirect would resend the body (a refresh token, a password) to wherever it points.
-        redirect: 'error',
-        cache: 'no-store',
-        referrerPolicy: 'no-referrer',
-        signal: controller.signal,
-      })
+      const response = await send(
+        url,
+        {
+          method: options.method ?? 'GET',
+          headers,
+          ...(options.body === undefined
+            ? {}
+            : { body: isForm ? (options.body as FormData) : JSON.stringify(options.body) }),
+          // The refresh cookie rides along on this origin only; never `include`.
+          credentials: 'same-origin',
+          // A redirect would resend the body (a refresh token, a password) to wherever it points.
+          redirect: 'error',
+          cache: 'no-store',
+          referrerPolicy: 'no-referrer',
+          signal: controller.signal,
+        },
+        isForm ? options.onUploadProgress : undefined
+      )
       config.onResponse?.(response)
       if (!response.ok) {
         throw await parseErrorResponse(response)

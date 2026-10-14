@@ -23,6 +23,7 @@ import {
 } from '~/data/sales-history'
 import { usePendingPoll } from '~/data/use-pending-poll'
 import { CallUpload } from '~/screens/sales/CallUpload'
+import { RecordingUpload } from '~/screens/sales/RecordingUpload'
 import { Banner } from '~/ui/Banner'
 import { Confirm } from '~/ui/Confirm'
 import { Paged } from '~/ui/Paged'
@@ -38,7 +39,7 @@ const REP_WHY_ID = 'rep-change-why'
 
 const route = getRouteApi('/_app/sales-history/calls/')
 
-/** Calls: upload a Transcript, then follow each Call, change its Rep, delete or restore it. */
+/** Calls: upload a Transcript or Recording, then follow each Call, change its Rep, delete or restore it. */
 export function CallsScreen() {
   useDocumentTitle('Calls')
   // Checked again here: only an opaque Deal id is ever used from the address.
@@ -61,10 +62,11 @@ export function CallsScreen() {
         Calls
       </h1>
       <p>
-        A Call is one past conversation, uploaded as a Transcript for a Deal. Only ready Calls of
-        won Deals are used in search.
+        A Call is one past conversation, uploaded as a Transcript or a Recording for a Deal. Only
+        ready Calls of won Deals are used in search.
       </p>
       <CallUpload />
+      <RecordingUpload />
       <h2>All Calls</h2>
       {dealRecordId === undefined ? null : <DealFilter id={dealRecordId} />}
       <SelectField
@@ -218,6 +220,12 @@ function CallRow(props: {
       </td>
       <td>
         <span>{callStateLabel(call.state)}</span>
+        {call.state === 'awaiting_rep' ? (
+          <p className='hint'>
+            Transcribed. Choose which speaker is the Rep with Change Rep, so the Call can be
+            processed.
+          </p>
+        ) : null}
         {call.failureReason === null ? null : (
           <p className='hint'>{callFailureWords(call.failureReason)}</p>
         )}

@@ -11,8 +11,15 @@ import { refresh } from '~/data/queries'
 /** Where the Transcript being sent stands. */
 export type CallUploadState =
   | { readonly kind: 'idle' }
-  | { readonly kind: 'uploading'; readonly name: string }
+  | {
+      readonly kind: 'uploading'
+      readonly name: string
+      /** Bytes sent and the total, once the browser has reported any; null before that. */
+      readonly progress: { readonly sent: number; readonly total: number } | null
+    }
   | { readonly kind: 'stored'; readonly name: string }
+  /** The person cancelled the upload; the service usually did not get the whole file, but one that had just arrived may still be stored. */
+  | { readonly kind: 'cancelled'; readonly name: string }
   /** The service already had this content for this Deal (HTTP 200), so nothing new was stored. */
   | { readonly kind: 'duplicate'; readonly name: string }
   | {
@@ -27,25 +34,27 @@ export type CallUploadState =
 export type CallSendResult = 'accepted' | 'failed' | 'rights'
 
 /**
- * Sends one Transcript at a time. Its idempotency key lives in the app-level key map, so a retry
- * after an unknown outcome reuses it. fetch gives no upload progress, so a Transcript is
- * "uploading" until the service answers. Nothing about the deal id is kept here beyond the call.
+ * Sends one Transcript or Recording at a time. Its idempotency key lives in the app-level key map,
+ * so a retry after an unknown outcome reuses it. A Recording reports upload progress as the
+ * browser sends it. Nothing about the deal id is kept here beyond the call. `kind` picks the words
+ * of the errors (the size limit differs).
  */
-export function useCallUpload() {
+export function useCallUpload(kind: 'transcript' | 'recording' = 'transcript') {
   const app = useApp()
   const [state, setState] = useState<CallUploadState>({ kind: 'idle' })
   const last = useRef<CallUpload | null>(null)
   const alive = useRef(true)
   const busy = useRef(false)
-  const controller = useRef<AbortController | null>(null)
+  const lastPercent = useRef(-1)
+  // The request in flight: leaving the screen and Cancel both abort it.
+  const sending = useRef<AbortController | null>(null)
+  const cancelled = useRef(false)
 
   useEffect(() => {
     alive.current = true
-    const abort = new AbortController()
-    controller.current = abort
     return () => {
       alive.current = false
-      abort.abort()
+      sending.current?.abort()
     }
   }, [])
 
@@ -57,21 +66,33 @@ export function useCallUpload() {
       busy.current = true
       last.current = upload
       const name = upload.file.name
-      setState({ kind: 'uploading', name })
+      lastPercent.current = -1
+      cancelled.current = false
+      const own = new AbortController()
+      sending.current = own
+      setState({ kind: 'uploading', name, progress: null })
       const attempt = app.keys.begin(
         fingerprint.call(
           name,
           upload.file.size,
           upload.file.lastModified,
           upload.dealId,
-          upload.repLabel
+          upload.rep === null ? '' : JSON.stringify(upload.rep)
         )
       )
       try {
         const result = await app.salesHistory.uploadCall(
           upload,
           attempt.key,
-          controller.current?.signal
+          own.signal,
+          (sent, total) => {
+            // The browser reports many times a second; the screen shows whole percents only.
+            const percent = total === 0 ? 0 : Math.floor((sent / total) * 100)
+            if (alive.current && percent !== lastPercent.current) {
+              lastPercent.current = percent
+              setState({ kind: 'uploading', name, progress: { sent, total } })
+            }
+          }
         )
         attempt.succeeded()
         last.current = null
@@ -91,6 +112,11 @@ export function useCallUpload() {
         if (!alive.current) {
           return 'failed'
         }
+        if (cancelled.current) {
+          last.current = null
+          setState({ kind: 'cancelled', name })
+          return 'failed'
+        }
         if (
           error instanceof ApiError &&
           error.code === SALES_HISTORY_ERRORS['rights.confirmation_required'].code
@@ -107,7 +133,8 @@ export function useCallUpload() {
         setState({
           kind: 'failed',
           name,
-          message: presentSales(error, 'call-upload').message,
+          message: presentSales(error, kind === 'recording' ? 'recording-upload' : 'call-upload')
+            .message,
           retry,
           waiting,
         })
@@ -121,7 +148,7 @@ export function useCallUpload() {
         return 'failed'
       }
     },
-    [app]
+    [app, kind]
   )
 
   const retry = useCallback(() => {
@@ -131,10 +158,15 @@ export function useCallUpload() {
     void send(last.current)
   }, [send, state])
 
+  const cancel = useCallback(() => {
+    cancelled.current = true
+    sending.current?.abort()
+  }, [])
+
   const report = useCallback((name: string, message: string) => {
     last.current = null
     setState({ kind: 'failed', name, message, retry: false, waiting: false })
   }, [])
 
-  return { state, send, retry, report }
+  return { state, send, retry, cancel, report }
 }

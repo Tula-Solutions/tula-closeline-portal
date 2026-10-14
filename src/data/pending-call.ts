@@ -1,14 +1,16 @@
-/** A Transcript upload the person has chosen but not sent, held while they confirm the rights wording. */
+/** A Transcript or Recording upload the person has chosen but not sent, held while they confirm the rights wording. */
 export type PendingCall = {
   readonly organizationId: string
   readonly file: File
   /** The customer's deal id as typed: held in memory only, never in an address, storage or a log. */
   readonly dealId: string
   readonly repLabel: string
+  /** Set when the held file is a Recording: the channel chosen as the Rep, or empty to pick after transcription. */
+  readonly recording?: { readonly channel: '' | 'left' | 'right' }
 }
 
 /**
- * Holds one chosen Transcript, in memory only, across the trip to the rights confirmation page
+ * Holds one chosen Transcript or Recording, in memory only, across the trip to the rights confirmation page
  * and back. Nothing is written to storage, an address or the history state. It belongs to the
  * Organization it was chosen in and is dropped on sign-out or another Organization.
  */

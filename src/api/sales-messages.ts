@@ -1,8 +1,8 @@
-import { SALES_HISTORY_ERRORS } from 'tula-closeline-contract'
+import { ACCEPTED_RECORDING_EXTENSIONS, SALES_HISTORY_ERRORS } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import type { ShownFailure } from '~/api/manage-messages'
 import { type DocumentAction, presentDocument } from '~/api/playbook-messages'
-import { MAX_IMPORT_WORDS, MAX_TRANSCRIPT_WORDS } from '~/data/sales-history'
+import { MAX_IMPORT_WORDS, MAX_RECORDING_WORDS, MAX_TRANSCRIPT_WORDS } from '~/data/sales-history'
 
 /** Which sales-history call failed, where a code means more than one thing. */
 export type SalesAction =
@@ -13,6 +13,7 @@ export type SalesAction =
   | 'import-upload'
   | 'import-read'
   | 'call-upload'
+  | 'recording-upload'
   | 'call-list'
   | 'call-rep'
   | 'call-delete'
@@ -51,11 +52,16 @@ export function presentSales(error: unknown, action: SalesAction): ShownFailure 
       case SALES_HISTORY_ERRORS['call.unsupported_type'].code:
         return {
           message:
-            'This file type is not supported. Upload a Transcript: .txt, .vtt, .srt or .json.',
+            action === 'recording-upload'
+              ? `This file type is not supported. Upload a Recording: ${ACCEPTED_RECORDING_EXTENSIONS.join(', ')}.`
+              : 'This file type is not supported. Upload a Transcript: .txt, .vtt, .srt or .json.',
         }
       case SALES_HISTORY_ERRORS['call.too_large'].code:
         return {
-          message: `This file is larger than ${MAX_TRANSCRIPT_WORDS}. Make it smaller or split the Call.`,
+          message:
+            action === 'recording-upload'
+              ? `This Recording is larger than ${MAX_RECORDING_WORDS}. Make it smaller or split the Call.`
+              : `This file is larger than ${MAX_TRANSCRIPT_WORDS}. Make it smaller or split the Call.`,
         }
       case SALES_HISTORY_ERRORS['call.quota_exceeded'].code:
         return {
@@ -65,7 +71,7 @@ export function presentSales(error: unknown, action: SalesAction): ShownFailure 
       case SALES_HISTORY_ERRORS['call.content_in_other_deal'].code:
         return {
           message:
-            'This exact Transcript is already stored under another deal id. Check the deal id, or delete the other Call first.',
+            'This exact file is already stored under another deal id. Check the deal id, or delete the other Call first.',
         }
       case SALES_HISTORY_ERRORS['call.rep_invalid'].code:
         return { message: 'That Rep does not match the Call. Pick one of the speakers listed.' }
@@ -77,7 +83,7 @@ export function presentSales(error: unknown, action: SalesAction): ShownFailure 
       case SALES_HISTORY_ERRORS['call.not_restorable'].code:
         return {
           message:
-            'This Call was purged after its retention period and cannot be restored. Upload the Transcript again.',
+            'This Call was purged after its retention period and cannot be restored. Upload the file again.',
         }
       case SALES_HISTORY_ERRORS['rights.confirmation_required'].code:
         return {
@@ -94,7 +100,7 @@ export function presentSales(error: unknown, action: SalesAction): ShownFailure 
     }
   }
   const asDocument: DocumentAction =
-    action === 'import-upload' || action === 'call-upload'
+    action === 'import-upload' || action === 'call-upload' || action === 'recording-upload'
       ? 'upload'
       : action === 'call-delete'
         ? 'delete'
