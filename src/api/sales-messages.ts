@@ -1,4 +1,8 @@
-import { ACCEPTED_RECORDING_EXTENSIONS, SALES_HISTORY_ERRORS } from 'tula-closeline-contract'
+import {
+  ACCEPTED_RECORDING_EXTENSIONS,
+  MAX_QUEUED_DEAL_IMPORTS,
+  SALES_HISTORY_ERRORS,
+} from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import type { ShownFailure } from '~/api/manage-messages'
 import { type DocumentAction, presentDocument } from '~/api/playbook-messages'
@@ -46,6 +50,10 @@ export function presentSales(error: unknown, action: SalesAction): ShownFailure 
         return {
           message:
             'The first row does not match the template. Download the template and use its first row.',
+        }
+      case SALES_HISTORY_ERRORS['deal_import.busy'].code:
+        return {
+          message: `Up to ${MAX_QUEUED_DEAL_IMPORTS} imports can wait at once. Try again when one finishes.`,
         }
       case SALES_HISTORY_ERRORS['call.not_found'].code:
         return { message: 'That Call no longer exists. Reload the list.' }

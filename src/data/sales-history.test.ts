@@ -30,6 +30,11 @@ import {
 } from '~/data/sales-history'
 
 describe('words for contract values', () => {
+  test('an interior blank line has its own words, and trailing blank lines need none', () => {
+    expect(rowReasonWords('blank_row')).toMatch(/blank line/i)
+    expect(rowReasonWords('blank_row')).not.toBe('The row was rejected.')
+  })
+
   test('every Outcome, import state, failure, row reason and header problem has words', () => {
     for (const outcome of OUTCOMES) {
       expect(OUTCOME_LABEL[outcome]).toBeTruthy()
