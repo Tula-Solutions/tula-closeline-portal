@@ -6,6 +6,7 @@ import {
   DEAL_IMPORT_REQUIRED_COLUMNS,
   DEAL_IMPORT_ROW_REASONS,
   DEAL_IMPORT_STATES,
+  MAX_CALL_SPEAKERS,
   OUTCOMES,
 } from 'tula-closeline-contract'
 import { rightsWordingFor } from '~/data/rights-wording'
@@ -99,6 +100,12 @@ describe('the rights wording', () => {
 })
 
 describe('words for Calls', () => {
+  test("the speaker limit in the words is the contract's", () => {
+    expect(callFailureWords('too_many_speakers')).toContain(
+      `more than ${MAX_CALL_SPEAKERS} speakers`
+    )
+  })
+
   test('a reason or state from a newer service gets a plain sentence, never its own text', () => {
     expect(callFailureWords('toString')).toMatch(/did not finish/)
     expect(callStateLabel('constructor')).toBe('Unknown status')

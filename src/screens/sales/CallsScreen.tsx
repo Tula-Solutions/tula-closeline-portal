@@ -9,6 +9,7 @@ import {
   repChangeAllowed,
   repChoiceSuits,
 } from 'tula-closeline-contract'
+import { isUnreadable } from '~/api/sales-history'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
 import { refresh, useCalls, useDeal } from '~/data/queries'
@@ -33,6 +34,8 @@ import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { useSubmit } from '~/ui/useSubmit'
 import { formatWhen, When } from '~/ui/When'
 
+const REP_WHY_ID = 'rep-change-why'
+
 const route = getRouteApi('/_app/sales-history/calls/')
 
 /** Calls: upload a Transcript, then follow each Call, change its Rep, delete or restore it. */
@@ -46,7 +49,9 @@ export function CallsScreen() {
   const calls = useCalls({ state, dealRecordId })
   const headingRef = useRef<HTMLHeadingElement>(null)
   const poll = usePendingPoll(
-    calls.items.filter((call) => CALL_PENDING_STATES.includes(call.state)).map((call) => call.id),
+    calls.items
+      .filter((call) => !isUnreadable(call) && CALL_PENDING_STATES.includes(call.state))
+      .map((call) => call.id),
     calls.refetch,
     SALES_POLL_SCHEDULE_MS
   )
@@ -87,6 +92,10 @@ export function CallsScreen() {
           </button>
         </Banner>
       ) : null}
+      <p className='hint' id={REP_WHY_ID}>
+        The Rep can be changed when the Call is ready, waiting for a Rep, or failed because of the
+        Rep.
+      </p>
       <Paged noun='Calls' emptyText='There are no Calls to show.' state={calls.state}>
         <ScrollRegion label='Calls'>
           <table>
@@ -102,9 +111,17 @@ export function CallsScreen() {
               </tr>
             </thead>
             <tbody>
-              {calls.items.map((call) => (
-                <CallRow key={call.id} call={call} onDone={setNotice} heading={headingRef} />
-              ))}
+              {calls.items.map((call) =>
+                isUnreadable(call) ? (
+                  <tr key={call.id}>
+                    <td colSpan={7}>
+                      This Call cannot be shown by this version of the portal. Reload the page.
+                    </td>
+                  </tr>
+                ) : (
+                  <CallRow key={call.id} call={call} onDone={setNotice} heading={headingRef} />
+                )
+              )}
             </tbody>
           </table>
         </ScrollRegion>
@@ -142,10 +159,13 @@ function CallRow(props: {
   const app = useApp()
   const label = plain(call.fileName, 'Call')
   const errorId = `${call.id}-error`
-  const whyId = `${call.id}-why`
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
-  const [pick, setPick] = useState(call.speakerLabels[0] ?? '')
+  // Null until the person touches the select; a choice whose speaker is no longer in the Call is ignored.
+  const [pick, setPick] = useState<string | null>(null)
+  const currentRep = call.rep?.by === 'speaker' ? call.rep.label : null
+  const preset = currentRep !== null && call.speakerLabels.includes(currentRep) ? currentRep : ''
+  const chosen = pick !== null && call.speakerLabels.includes(pick) ? pick : preset
   const canChange = repChangeAllowed(call.state, call.failureReason)
 
   const remove = useSubmit<void>(
@@ -233,7 +253,7 @@ function CallRow(props: {
               className='button button-quiet'
               aria-disabled={!canChange}
               aria-label={`Change Rep of ${label}`}
-              aria-describedby={canChange ? undefined : whyId}
+              aria-describedby={canChange ? undefined : REP_WHY_ID}
               onClick={() => {
                 if (canChange) {
                   setEditing((now) => !now)
@@ -242,22 +262,20 @@ function CallRow(props: {
             >
               Change Rep
             </button>
-            {canChange ? null : (
-              <p className='hint' id={whyId}>
-                The Rep can be changed when the Call is ready, waiting for a Rep, or failed because
-                of the Rep.
-              </p>
-            )}
             {editing && canChange ? (
               <form
                 noValidate
                 onSubmit={(event) => {
                   event.preventDefault()
-                  const chosen = call.speakerLabels.includes(pick) ? pick : ''
-                  if (
-                    chosen === '' ||
-                    !repChoiceSuits(call.kind, { by: 'speaker', label: chosen }, 'change')
-                  ) {
+                  if (chosen === '') {
+                    setError('Choose a speaker first.')
+                    return
+                  }
+                  if (chosen === currentRep) {
+                    setError('That speaker is already the Rep. Choose a different one.')
+                    return
+                  }
+                  if (!repChoiceSuits(call.kind, { by: 'speaker', label: chosen }, 'change')) {
                     setError('Pick one of the speakers in this Call.')
                     return
                   }
@@ -267,9 +285,12 @@ function CallRow(props: {
                 <SelectField
                   label={`Rep for ${label}`}
                   name='rep'
-                  value={pick}
+                  value={chosen}
                   onChange={(event) => setPick(event.target.value)}
-                  options={call.speakerLabels.map((speaker) => ({ value: speaker, text: speaker }))}
+                  options={[
+                    { value: '', text: 'Choose a speaker' },
+                    ...call.speakerLabels.map((speaker) => ({ value: speaker, text: speaker })),
+                  ]}
                 />
                 <button type='submit' className='button' aria-disabled={changeRep.pending}>
                   {changeRep.pending ? 'Saving...' : 'Save Rep'}

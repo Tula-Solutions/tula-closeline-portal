@@ -10,6 +10,7 @@ import {
   type DealImportHeaderProblem,
   type DealImportRowReason,
   type DealImportState,
+  MAX_CALL_SPEAKERS,
   MAX_DEAL_IMPORT_BYTES,
   MAX_DEAL_IMPORT_ROWS,
   MAX_TRANSCRIPT_BYTES,
@@ -160,7 +161,7 @@ export const CALL_PENDING_STATES: readonly CallState[] = ['uploaded', 'transcrib
 export const CALL_FAILURE_WORDS: Record<CallFailureReason, string> = {
   no_turns: 'No one speaks in the file.',
   too_few_speakers: 'The file has fewer than two speakers.',
-  too_many_speakers: 'The file has more than 20 speakers.',
+  too_many_speakers: `The file has more than ${MAX_CALL_SPEAKERS} speakers.`,
   rep_label_not_found: "The Rep's name does not match any speaker in the file.",
   not_per_side: 'The Recording does not have exactly two sides.',
   too_long: 'The Call is longer than the limit.',

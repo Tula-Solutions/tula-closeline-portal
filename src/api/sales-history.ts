@@ -1,6 +1,7 @@
 import {
   type Call,
   type CallState,
+  callIdSchema,
   callSchema,
   DEAL_IMPORT_FILE_FIELD,
   type Deal,
@@ -9,19 +10,19 @@ import {
   dealImportSchema,
   dealSchema,
   IDEMPOTENCY_KEY_HEADER,
-  type ListCallsResponse,
   type ListDealImportRowsResponse,
   type ListDealImportsResponse,
   type ListDealsResponse,
-  listCallsResponseSchema,
   listDealImportRowsResponseSchema,
   listDealImportsResponseSchema,
   listDealsResponseSchema,
+  MAX_CURSOR_LENGTH,
   type Outcome,
   type RightsStatus,
   rightsStatusSchema,
   UPLOAD_FILE_FIELD,
 } from 'tula-closeline-contract'
+import { z } from 'zod'
 import { PAGE_SIZE, type PageRequest } from '~/api/core'
 import type { HttpClient } from '~/api/http'
 import { onlyStatus, UPLOAD_TIMEOUT_MS } from '~/api/playbook'
@@ -35,6 +36,45 @@ export type DealPageRequest = PageRequest & {
 /** One page request for an import's report: `result: 'rejected'` lists only the rows that need fixing. */
 export type ImportRowPageRequest = PageRequest & {
   readonly result?: 'applied' | 'rejected' | undefined
+}
+
+/** A Call this version of the portal cannot read (a state or reason it does not know): only its id is kept. */
+export type UnreadableCall = { readonly unreadable: true; readonly id: string }
+
+/** One entry of a Calls page: a Call, or a placeholder for one that cannot be read. */
+export type CallListItem = Call | UnreadableCall
+
+/** One page of Calls. */
+export type CallsPage = {
+  readonly items: readonly CallListItem[]
+  readonly nextCursor: string | null
+}
+
+/** Whether a list entry is a placeholder. */
+export function isUnreadable(item: CallListItem): item is UnreadableCall {
+  return 'unreadable' in item
+}
+
+const callsEnvelopeSchema = z.object({
+  items: z.array(z.unknown()),
+  nextCursor: z.string().min(1).max(MAX_CURSOR_LENGTH).nullable(),
+})
+const withIdSchema = z.object({ id: callIdSchema })
+
+/**
+ * Reads a page of Calls: the envelope and every id strictly (a failure fails the page), each Call
+ * on its own, so one the contract of this build does not know becomes a placeholder instead of
+ * hiding the others.
+ */
+function parseCallsPage(json: unknown): CallsPage {
+  const envelope = callsEnvelopeSchema.parse(json)
+  return {
+    nextCursor: envelope.nextCursor,
+    items: envelope.items.map((item): CallListItem => {
+      const call = callSchema.safeParse(item)
+      return call.success ? call.data : { unreadable: true, id: withIdSchema.parse(item).id }
+    }),
+  }
 }
 
 /** One page request for Calls: with a state only Calls in it; with a Deal (by its opaque id) only its Calls. */
@@ -77,7 +117,7 @@ export type SalesHistoryApi = {
     page: ImportRowPageRequest
   ): Promise<ListDealImportRowsResponse>
   /** One page of Calls, newest first. */
-  listCalls(page: CallPageRequest): Promise<ListCallsResponse>
+  listCalls(page: CallPageRequest): Promise<CallsPage>
   /** Uploads a Transcript for a Deal; the key makes a repeat of the same request answer with the stored Call. */
   uploadCall(
     upload: CallUpload,
@@ -206,7 +246,7 @@ export function createSalesHistoryApi(http: HttpClient): SalesHistoryApi {
         },
         auth: true,
         ...signalOf(page.signal),
-        parse: (json) => listCallsResponseSchema.parse(json),
+        parse: parseCallsPage,
       }),
     uploadCall: (upload, idempotencyKey, signal) => {
       const form = new FormData()

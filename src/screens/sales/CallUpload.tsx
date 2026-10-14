@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ACCEPTED_TRANSCRIPT_EXTENSIONS,
   checkCallFile,
@@ -54,7 +54,11 @@ export function CallUpload() {
   const organizationId = session.status === 'signed_in' ? session.organization.id : ''
   const rights = useRights(true)
   const upload = useCallUpload()
+  // Read once, then forgotten: the held file refills the form on the return trip only.
   const [draft] = useState(() => app.pendingCall.peek(organizationId))
+  useEffect(() => {
+    app.pendingCall.clear()
+  }, [app])
   const [file, setFile] = useState<File | null>(draft?.file ?? null)
   const [dealId, setDealId] = useState(draft?.dealId ?? '')
   const [repLabel, setRepLabel] = useState(draft?.repLabel ?? '')

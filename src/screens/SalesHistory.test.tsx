@@ -997,6 +997,50 @@ describe('Sales history review round 1', () => {
     expect(select.value).toBe('lost')
   })
 
+  test('a read that finishes while the save is in flight does not hand the select back to the old Outcome', async () => {
+    const deal = dealBody(1)
+    let saved = false
+    let release: () => void = () => {}
+    let putStarted = false
+    let reads = 0
+    const portal = visit(`/sales-history/deals/${deal.id}`, 'owner', [
+      route('PUT', `${DEALS}/${deal.id}/outcome`, async () => {
+        putStarted = true
+        await new Promise<void>((resolve) => {
+          release = resolve
+        })
+        saved = true
+        return json(200, { ...deal, outcome: 'won' })
+      }),
+      route('GET', `${DEALS}/${deal.id}`, () => {
+        reads += 1
+        return saved
+          ? failure(500, ERRORS['server.unavailable'].code)
+          : json(200, { ...deal, outcome: 'open' })
+      }),
+    ])
+    const select = (await screen.findByLabelText('Outcome')) as HTMLSelectElement
+    await portal.user.selectOptions(select, 'won')
+    await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
+    await waitFor(() => {
+      if (!putStarted) {
+        throw new Error('the save has not started')
+      }
+    })
+    const before = reads
+    void portal.app.queryClient.invalidateQueries()
+    await waitFor(() => {
+      if (reads === before) {
+        throw new Error('the background read has not happened')
+      }
+    })
+    release()
+    await waitFor(() =>
+      expect(screen.getByRole('status', { name: 'Notice' }).textContent).toContain('Outcome saved')
+    )
+    expect(select.value).toBe('won')
+  })
+
   test('the Outcome select follows a change made elsewhere until the person touches it', async () => {
     const deal = dealBody(1, { outcome: 'open' })
     let outcome = 'open'

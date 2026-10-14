@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import {
   CALL_FAILURE_FIXES,
   CALL_FAILURE_REASONS,
@@ -7,7 +7,7 @@ import {
   SALES_HISTORY_ERRORS,
 } from 'tula-closeline-contract'
 import { callBody, dealBody, hexId, page, rightsBody } from '~/testing/core-bodies'
-import { failure, json, route } from '~/testing/fixtures'
+import { failure, json, route, tokens } from '~/testing/fixtures'
 import { gatedSleep, param, visit } from '~/testing/sales'
 
 const PB = '/v1/playbook'
@@ -98,6 +98,38 @@ describe('Calls: the list', () => {
   })
 })
 
+describe('Calls: a page with something this portal cannot read', () => {
+  test('one Call in an unknown state is a placeholder with no actions and the others still show', async () => {
+    visit('/sales-history/calls', 'owner', [
+      route(
+        'GET',
+        CALLS,
+        json(200, page([callBody(1), { ...callBody(2), state: 'quarantined' }, callBody(3)]))
+      ),
+      route('GET', RIGHTS, json(200, rightsBody())),
+    ])
+    expect(await screen.findByText('call-1.txt')).toBeTruthy()
+    expect(screen.getByText('call-3.txt')).toBeTruthy()
+    const placeholder = screen.getByText(/cannot be shown by this version of the portal/)
+    const row = placeholder.closest('tr') as HTMLElement
+    expect(within(row).queryAllByRole('button')).toHaveLength(0)
+    expect(row.textContent).not.toContain('call-2.txt')
+  })
+
+  test.each([
+    ['no items', { nextCursor: null }],
+    ['an item with a bad id', page([{ ...callBody(1), id: 'nope' }])],
+    ['items that are not a list', { items: 'x', nextCursor: null }],
+  ])('%s fails the list as a whole', async (_name, body) => {
+    visit('/sales-history/calls', 'owner', [
+      route('GET', CALLS, json(200, body)),
+      route('GET', RIGHTS, json(200, rightsBody())),
+    ])
+    expect((await screen.findAllByRole('alert')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('call-1.txt')).toBeNull()
+  })
+})
+
 describe('Calls: in search, and why not', () => {
   test.each([
     [{ inSearch: true }, /In search/],
@@ -165,7 +197,7 @@ describe('Calls: changing the Rep', () => {
       within(select)
         .getAllByRole('option')
         .map((option) => option.textContent)
-    ).toEqual(['Sam', 'Pat'])
+    ).toEqual(['Choose a speaker', 'Sam', 'Pat'])
     await portal.user.selectOptions(select, 'Pat')
     await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
     await waitFor(() =>
@@ -234,6 +266,63 @@ describe('Calls: changing the Rep', () => {
     expect(portal.calls.filter((made) => made.method === 'PUT')).toHaveLength(0)
   })
 
+  test('opening the form on a Call whose Rep is the second speaker and saving untouched sends nothing', async () => {
+    const call = callBody(1, {
+      rep: { by: 'speaker', label: 'Pat' },
+      speakerLabels: ['Sam', 'Pat'],
+    })
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('GET', RIGHTS, json(200, rightsBody())),
+      listOf(call),
+    ])
+    await portal.user.click(await screen.findByRole('button', { name: 'Change Rep of call-1.txt' }))
+    expect((screen.getByLabelText('Rep for call-1.txt') as HTMLSelectElement).value).toBe('Pat')
+    await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
+    expect((await screen.findByRole('alert')).textContent).toMatch(/already the Rep/)
+    expect(portal.calls.filter((made) => made.method === 'PUT')).toHaveLength(0)
+  })
+
+  test('a Call waiting for a Rep starts with no choice and saving without one sends nothing', async () => {
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('GET', RIGHTS, json(200, rightsBody())),
+      listOf(recording({ state: 'awaiting_rep', rep: null, inSearch: false })),
+    ])
+    await portal.user.click(await screen.findByRole('button', { name: 'Change Rep of call-1.txt' }))
+    const select = screen.getByLabelText('Rep for call-1.txt') as HTMLSelectElement
+    expect(select.value).toBe('')
+    expect(within(select).getAllByRole('option')[0]?.textContent).toBe('Choose a speaker')
+    await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
+    expect((await screen.findByRole('alert')).textContent).toMatch(/Choose a speaker/)
+    expect(portal.calls.filter((made) => made.method === 'PUT')).toHaveLength(0)
+  })
+
+  test('a choice whose speaker is no longer in the Call is not sent', async () => {
+    let labels = ['Sam', 'Pat', 'Lee']
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('GET', RIGHTS, json(200, rightsBody())),
+      route('GET', CALLS, () =>
+        json(
+          200,
+          page([callBody(1, { rep: { by: 'speaker', label: 'Sam' }, speakerLabels: labels })])
+        )
+      ),
+    ])
+    await portal.user.click(await screen.findByRole('button', { name: 'Change Rep of call-1.txt' }))
+    await portal.user.selectOptions(screen.getByLabelText('Rep for call-1.txt'), 'Lee')
+    labels = ['Sam', 'Pat']
+    void portal.app.queryClient.invalidateQueries()
+    await waitFor(() => {
+      const options = within(screen.getByLabelText('Rep for call-1.txt'))
+        .getAllByRole('option')
+        .map((option) => option.textContent)
+      if (options.includes('Lee')) {
+        throw new Error('the list still has the old speakers')
+      }
+    })
+    await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
+    expect(portal.calls.filter((made) => made.method === 'PUT')).toHaveLength(0)
+  })
+
   test('a refusal from the service is explained', async () => {
     const call = callBody(1)
     const portal = visit('/sales-history/calls', 'owner', [
@@ -245,6 +334,7 @@ describe('Calls: changing the Rep', () => {
       listOf(call),
     ])
     await portal.user.click(await screen.findByRole('button', { name: 'Change Rep of call-1.txt' }))
+    await portal.user.selectOptions(screen.getByLabelText('Rep for call-1.txt'), 'Pat')
     await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(/cannot be changed now/)
   })
@@ -567,5 +657,78 @@ describe('Calls: the rights confirmation comes first', () => {
     holder.hold({ organizationId: 'org_1', file: transcript(), dealId: 'D-1', repLabel: 'Sam' })
     expect(holder.take('org_1')?.dealId).toBe('D-1')
     expect(holder.take('org_1')).toBeNull()
+  })
+})
+
+describe('Calls: the held Transcript is used once', () => {
+  const transcript = () => new File(['Sam: hi'], 'held.txt', { type: 'text/plain' })
+
+  test('after the return trip, leaving and coming back shows an empty form', async () => {
+    const portal = visit('/sales-history/deals', 'owner', [
+      route('GET', RIGHTS, json(200, rightsBody())),
+      route('GET', DEALS, json(200, page([]))),
+      listOf(),
+    ])
+    portal.app.pendingCall.hold({
+      organizationId: 'org_1',
+      file: transcript(),
+      dealId: 'D-77',
+      repLabel: 'Sam',
+    })
+    await portal.user.click(await screen.findByRole('link', { name: 'Calls' }))
+    expect(((await screen.findByLabelText("Customer's deal id")) as HTMLInputElement).value).toBe(
+      'D-77'
+    )
+    await portal.user.click(screen.getByRole('link', { name: 'Deals' }))
+    await screen.findByRole('heading', { name: 'Deals' })
+    await portal.user.click(screen.getByRole('link', { name: 'Calls' }))
+    expect(((await screen.findByLabelText("Customer's deal id")) as HTMLInputElement).value).toBe(
+      ''
+    )
+    expect(screen.queryByText(/held\.txt is ready/)).toBeNull()
+  })
+
+  test('another Organization never sees it, and nothing is sent', async () => {
+    const portal = visit('/sales-history/deals', 'owner', [
+      route('GET', RIGHTS, json(200, rightsBody())),
+      route('GET', DEALS, json(200, page([]))),
+      route('POST', '/v1/client/sessions/refresh', () =>
+        json(200, tokens({ accessToken: 'access-2', organization: { id: 'org_2', role: 'owner' } }))
+      ),
+      listOf(),
+    ])
+    await screen.findByRole('heading', { name: 'Deals' })
+    portal.app.pendingCall.hold({
+      organizationId: 'org_1',
+      file: transcript(),
+      dealId: 'D-77',
+      repLabel: 'Sam',
+    })
+    await act(() => portal.app.session.refresh('access-1'))
+    expect(portal.app.pendingCall.peek('org_2')).toBeNull()
+    await act(() => portal.router.navigate({ to: '/sales-history/calls' }))
+    expect(((await screen.findByLabelText("Customer's deal id")) as HTMLInputElement).value).toBe(
+      ''
+    )
+    expect(
+      portal.calls.filter((made) => made.method === 'POST' && made.path === CALLS)
+    ).toHaveLength(0)
+  })
+
+  test('sign-out drops it', async () => {
+    const portal = visit('/sales-history/deals', 'owner', [
+      route('GET', RIGHTS, json(200, rightsBody())),
+      route('GET', DEALS, json(200, page([]))),
+      route('POST', '/v1/client/sessions/sign-out', json(204)),
+    ])
+    await screen.findByRole('heading', { name: 'Deals' })
+    portal.app.pendingCall.hold({
+      organizationId: 'org_1',
+      file: transcript(),
+      dealId: 'D-77',
+      repLabel: 'Sam',
+    })
+    await act(() => portal.app.session.signOut())
+    expect(portal.app.pendingCall.peek('org_1')).toBeNull()
   })
 })

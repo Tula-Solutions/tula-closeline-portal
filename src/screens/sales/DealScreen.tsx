@@ -1,5 +1,5 @@
 import { getRouteApi, Link } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { OUTCOMES, type Outcome, outcomeSchema } from 'tula-closeline-contract'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
@@ -91,6 +91,8 @@ function OutcomeForm(props: {
   // Null until the person touches the select: it then follows the Outcome as the service has it.
   const [chosen, setChosen] = useState<Outcome | null>(null)
   const outcome = chosen ?? current
+  const readAtNow = useRef(props.readAt)
+  readAtNow.current = props.readAt
   // The Outcome just saved and when the Deal was last read, until a newer read arrives.
   const [saved, setSaved] = useState<{ outcome: Outcome; readAt: number } | null>(null)
   useEffect(() => {
@@ -110,7 +112,8 @@ function OutcomeForm(props: {
       setNotice('Outcome saved.')
       // The select keeps showing what was saved until a read of the Deal succeeds (the effect
       // above). A failed read is the page's own error, not this save's.
-      setSaved({ outcome: chosen, readAt: props.readAt })
+      // The read count as the save answers: a read that finished while it was in flight is older than the save.
+      setSaved({ outcome: chosen, readAt: readAtNow.current })
       await refresh(app, 'deals')
     },
     { onError: (caught) => setError(presentSales(caught, 'outcome').message) }

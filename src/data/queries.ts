@@ -2,7 +2,6 @@ import { type InfiniteData, useInfiniteQuery, useQuery } from '@tanstack/react-q
 import type {
   CallState,
   DocumentState,
-  ListCallsResponse,
   ListDealImportRowsResponse,
   ListDealImportsResponse,
   ListDealsResponse,
@@ -12,6 +11,7 @@ import type {
   ListTeamsResponse,
   Outcome,
 } from 'tula-closeline-contract'
+import type { CallsPage } from '~/api/sales-history'
 import type { App } from '~/app'
 import { useApp, useSessionState } from '~/app-context'
 import type { PagedState } from '~/ui/Paged'
@@ -301,9 +301,9 @@ export function useCalls(filter: {
   const app = useApp()
   const organizationId = useOrganizationId()
   const query = useInfiniteQuery<
-    ListCallsResponse,
+    CallsPage,
     Error,
-    InfiniteData<ListCallsResponse, string | undefined>,
+    InfiniteData<CallsPage, string | undefined>,
     readonly [string, string, string, string, string],
     string | undefined
   >({
