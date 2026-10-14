@@ -4,8 +4,11 @@ import { AUTH_ERRORS, emailSchema } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS, clientError } from '~/api/errors'
 import { type FieldName, present } from '~/api/messages'
 import { useApp, useSessionState } from '~/app-context'
+import { AuthTitle } from '~/components/app/auth-title'
+import { SocialSignIn } from '~/components/app/social-sign-in'
 import { Banner } from '~/ui/Banner'
 import { Field } from '~/ui/Field'
+import { SubmitButton } from '~/ui/SubmitButton'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { useFocusOnError } from '~/ui/useFocusOnError'
 import { useSubmit } from '~/ui/useSubmit'
@@ -80,7 +83,8 @@ export function SignInScreen() {
 
   return (
     <>
-      <h1>Sign in</h1>
+      <AuthTitle description='Welcome back. Sign in to your Organization.'>Sign in</AuthTitle>
+      <SocialSignIn />
       <form ref={formRef} onSubmit={onSubmit} noValidate>
         {errors.form ? (
           <Banner kind='error' innerRef={bannerRef}>
@@ -109,13 +113,19 @@ export function SignInScreen() {
           onChange={(event) => setPassword(event.target.value)}
           error={errors.fields.password}
         />
-        <button type='submit' className='button' aria-disabled={signIn.pending}>
+        <SubmitButton pending={signIn.pending} className='w-full' size='lg'>
           {signIn.pending ? 'Signing in...' : 'Sign in'}
-        </button>
+        </SubmitButton>
       </form>
-      <div className='actions'>
-        <Link to='/sign-up'>Create an Organization</Link>
-      </div>
+      <p className='mt-6 text-center text-sm text-muted-foreground'>
+        New to Closeline?{' '}
+        <Link
+          to='/sign-up'
+          className='font-semibold text-primary underline-offset-4 hover:underline'
+        >
+          Create an Organization
+        </Link>
+      </p>
     </>
   )
 }

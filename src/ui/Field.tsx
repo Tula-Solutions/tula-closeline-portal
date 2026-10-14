@@ -1,4 +1,7 @@
+import { CircleAlert } from 'lucide-react'
 import { type InputHTMLAttributes, useId } from 'react'
+import { Input } from '~/components/ui/input'
+import { Label } from '~/components/ui/label'
 
 /** A labelled input whose hint and error are tied to it with `aria-describedby`. */
 export function Field(
@@ -14,22 +17,25 @@ export function Field(
   const errorId = `${id}-error`
   const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(' ')
   return (
-    <div className='field'>
-      <label htmlFor={id}>{label}</label>
+    <div className='field mb-4 flex flex-col gap-2'>
+      <Label htmlFor={id}>{label}</Label>
       {hint ? (
-        <p className='hint' id={hintId}>
+        <p className='text-sm text-muted-foreground' id={hintId}>
           {hint}
         </p>
       ) : null}
-      <input
+      <Input
         {...input}
         id={id}
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={describedBy || undefined}
       />
       {error ? (
-        <p className='field-error' id={errorId}>
-          <strong>Error:</strong> {error}
+        <p className='flex items-start gap-1.5 text-sm text-danger' id={errorId}>
+          <CircleAlert aria-hidden='true' className='mt-0.5 size-4 shrink-0' />
+          <span>
+            <strong className='sr-only'>Error:</strong> {error}
+          </span>
         </p>
       ) : null}
     </div>
