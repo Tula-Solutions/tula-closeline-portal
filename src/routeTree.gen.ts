@@ -24,6 +24,7 @@ import { Route as AppPlaybookSearchRouteImport } from './routes/_app/playbook/se
 import { Route as AppSalesHistoryIndexRouteImport } from './routes/_app/sales-history/index'
 import { Route as AppSalesHistoryRightsRouteImport } from './routes/_app/sales-history/rights'
 import { Route as AppSalesHistorySearchRouteImport } from './routes/_app/sales-history/search'
+import { Route as PublicSignUpGoogleRouteImport } from './routes/_public/sign-up_.google'
 import { Route as AppSalesHistoryCallsIndexRouteImport } from './routes/_app/sales-history/calls/index'
 import { Route as AppSalesHistoryDealsIndexRouteImport } from './routes/_app/sales-history/deals/index'
 import { Route as AppSalesHistoryDealsDealRecordIdRouteImport } from './routes/_app/sales-history/deals/$dealRecordId'
@@ -103,6 +104,11 @@ const AppSalesHistorySearchRoute = AppSalesHistorySearchRouteImport.update({
   path: '/search',
   getParentRoute: () => AppSalesHistoryRoute,
 } as any)
+const PublicSignUpGoogleRoute = PublicSignUpGoogleRouteImport.update({
+  id: '/sign-up_/google',
+  path: '/sign-up/google',
+  getParentRoute: () => PublicRoute,
+} as any)
 const AppSalesHistoryCallsIndexRoute =
   AppSalesHistoryCallsIndexRouteImport.update({
     id: '/calls/',
@@ -146,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/sales-history/search': typeof AppSalesHistorySearchRoute
+  '/sign-up/google': typeof PublicSignUpGoogleRoute
   '/playbook/': typeof AppPlaybookIndexRoute
   '/sales-history/': typeof AppSalesHistoryIndexRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/sales-history/search': typeof AppSalesHistorySearchRoute
+  '/sign-up/google': typeof PublicSignUpGoogleRoute
   '/playbook': typeof AppPlaybookIndexRoute
   '/sales-history': typeof AppSalesHistoryIndexRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/_app/playbook/search': typeof AppPlaybookSearchRoute
   '/_app/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/_app/sales-history/search': typeof AppSalesHistorySearchRoute
+  '/_public/sign-up_/google': typeof PublicSignUpGoogleRoute
   '/_app/playbook/': typeof AppPlaybookIndexRoute
   '/_app/sales-history/': typeof AppSalesHistoryIndexRoute
   '/_app/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/playbook/search'
     | '/sales-history/rights'
     | '/sales-history/search'
+    | '/sign-up/google'
     | '/playbook/'
     | '/sales-history/'
     | '/sales-history/deals/$dealRecordId'
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/playbook/search'
     | '/sales-history/rights'
     | '/sales-history/search'
+    | '/sign-up/google'
     | '/playbook'
     | '/sales-history'
     | '/sales-history/deals/$dealRecordId'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/_app/playbook/search'
     | '/_app/sales-history/rights'
     | '/_app/sales-history/search'
+    | '/_public/sign-up_/google'
     | '/_app/playbook/'
     | '/_app/sales-history/'
     | '/_app/sales-history/deals/$dealRecordId'
@@ -370,6 +382,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSalesHistorySearchRouteImport
       parentRoute: typeof AppSalesHistoryRoute
     }
+    '/_public/sign-up_/google': {
+      id: '/_public/sign-up_/google'
+      path: '/sign-up/google'
+      fullPath: '/sign-up/google'
+      preLoaderRoute: typeof PublicSignUpGoogleRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/_app/sales-history/calls/': {
       id: '/_app/sales-history/calls/'
       path: '/calls'
@@ -471,11 +490,13 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 interface PublicRouteChildren {
   PublicSignInRoute: typeof PublicSignInRoute
   PublicSignUpRoute: typeof PublicSignUpRoute
+  PublicSignUpGoogleRoute: typeof PublicSignUpGoogleRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
   PublicSignInRoute: PublicSignInRoute,
   PublicSignUpRoute: PublicSignUpRoute,
+  PublicSignUpGoogleRoute: PublicSignUpGoogleRoute,
 }
 
 const PublicRouteWithChildren =

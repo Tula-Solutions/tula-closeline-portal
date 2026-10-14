@@ -1,11 +1,12 @@
-import { Link } from '@tanstack/react-router'
-import { type FormEvent, useState } from 'react'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
+import { type FormEvent, useEffect, useState } from 'react'
 import { AUTH_ERRORS, emailSchema } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS, clientError } from '~/api/errors'
-import { type FieldName, present } from '~/api/messages'
+import { type FieldName, present, presentGoogleError } from '~/api/messages'
 import { useApp, useSessionState } from '~/app-context'
 import { AuthTitle } from '~/components/app/auth-title'
 import { SocialSignIn } from '~/components/app/social-sign-in'
+import { googleErrorCode } from '~/data/google'
 import { Banner } from '~/ui/Banner'
 import { Field } from '~/ui/Field'
 import { SubmitButton } from '~/ui/SubmitButton'
@@ -29,6 +30,29 @@ export function SignInScreen() {
   const [errors, setErrors] = useState<Errors>({ fields: {} })
   const { formRef, bannerRef, focusFirstError } = useFocusOnError()
   useDocumentTitle('Sign in')
+  const search = useSearch({ from: '/_public/sign-in' })
+  const navigate = useNavigate()
+  // A failed Google sign-in comes back as `?error=<code>`: show it, then take it out of the address.
+  const code = googleErrorCode(search.error)
+  const [googleError] = useState(() => (code === undefined ? null : presentGoogleError(code)))
+  // The failure message takes focus on arrival so a screen reader reads it first.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, on arrival
+  useEffect(() => {
+    if (googleError !== null) {
+      bannerRef.current?.focus()
+    }
+  }, [])
+  const hasError = search.error !== undefined
+  useEffect(() => {
+    if (hasError) {
+      void navigate({
+        to: '/sign-in',
+        search: (previous) =>
+          previous.redirect === undefined ? {} : { redirect: previous.redirect },
+        replace: true,
+      })
+    }
+  }, [hasError, navigate])
 
   const signIn = useSubmit<void>(
     async () => {
@@ -84,11 +108,14 @@ export function SignInScreen() {
   return (
     <>
       <AuthTitle description='Welcome back. Sign in to your Organization.'>Sign in</AuthTitle>
-      <SocialSignIn />
+      <SocialSignIn
+        intent='sign_in'
+        {...(search.redirect === undefined ? {} : { returnTo: search.redirect })}
+      />
       <form ref={formRef} onSubmit={onSubmit} noValidate>
-        {errors.form ? (
+        {(errors.form ?? googleError) ? (
           <Banner kind='error' innerRef={bannerRef}>
-            {errors.form}
+            {errors.form ?? googleError}
           </Banner>
         ) : session.status === 'signed_out' && session.ended ? (
           <Banner kind='info' innerRef={bannerRef}>

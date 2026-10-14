@@ -6,6 +6,7 @@ import type { RightsWording } from 'tula-closeline-contract'
 import { AppRoot } from '~/AppRoot'
 import type { SessionTokens } from '~/api/auth'
 import { createApp } from '~/app'
+import { parseEnv } from '~/env'
 import { createReporter } from '~/report/reporter'
 import { createAppRouter } from '~/router'
 import type { SessionChannel } from '~/session/session'
@@ -72,13 +73,23 @@ export function renderPortal(
     rightsWording?: (version: number) => RightsWording | undefined
     /** Render inside `<StrictMode>`, as `main.tsx` does, so effects run, clean up and run again. */
     strict?: boolean
+    /** Stands in `location.assign`, which leaves the page for another origin. */
+    assign?: (url: string) => void
+    /** Local-only host of the fake Google issuer, as the env variable would set it. */
+    googleFakeIssuerHost?: string
   } = {}
 ) {
   window.history.replaceState(null, '', options.url ?? '/sign-in')
   const reports: Error[] = []
   const double = fakeFetch(...(options.handlers ?? []), ...defaultReads())
   const app = createApp({
-    env: TEST_ENV,
+    env: options.googleFakeIssuerHost
+      ? parseEnv({
+          VITE_ENVIRONMENT: 'local',
+          VITE_GOOGLE_FAKE_ISSUER_HOST: options.googleFakeIssuerHost,
+        })
+      : TEST_ENV,
+    ...(options.assign ? { assign: options.assign } : {}),
     reporter: createReporter((error) => reports.push(error)),
     fetch: double.fetch,
     sleep: options.sleep ?? (async () => {}),

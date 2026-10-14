@@ -1,21 +1,26 @@
-import type { ReactNode } from 'react'
+import type { GoogleIntent } from 'tula-closeline-contract'
+import { GoogleButton, useGoogleEnabled } from '~/components/app/google-button'
 
 /**
- * Google sign-in is being built separately. Until it lands this is off and renders nothing, so
- * the forms are exactly as they were. To turn it on: set `GOOGLE_SIGN_IN_ENABLED` to true and
- * pass the "Continue with Google" button as `children` where `<SocialSignIn>` is used in
- * SignInScreen and SignUpScreen; it then shows above the form with an "or" divider.
+ * The "Continue with Google" button above an email form, with an "or" divider. It renders nothing
+ * unless the auth service says Google sign-in is on (`GET /v1/client/auth-options`).
  */
-export const GOOGLE_SIGN_IN_ENABLED = false
-
-/** The slot above the email forms for "Continue with Google" (hidden for now), with its "or" divider. */
-export function SocialSignIn(props: { readonly children?: ReactNode }) {
-  if (!GOOGLE_SIGN_IN_ENABLED || props.children === undefined) {
+export function SocialSignIn(props: {
+  readonly intent: GoogleIntent
+  readonly returnTo?: string
+  /** Hides the button whatever the options say: an Invitation is held, and it would not survive the trip to Google. */
+  readonly suppressed?: boolean
+}) {
+  const enabled = useGoogleEnabled(props.suppressed !== true)
+  if (!enabled || props.suppressed === true) {
     return null
   }
   return (
     <div data-slot='social-sign-in' className='mb-6 flex flex-col gap-4'>
-      {props.children}
+      <GoogleButton
+        intent={props.intent}
+        {...(props.returnTo === undefined ? {} : { returnTo: props.returnTo })}
+      />
       <div
         className='flex items-center gap-3 text-xs text-muted-foreground uppercase'
         aria-hidden='true'
