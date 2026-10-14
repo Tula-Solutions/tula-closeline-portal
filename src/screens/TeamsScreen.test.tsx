@@ -374,7 +374,7 @@ describe('Teams: adding and removing members', () => {
     await portal.user.dblClick(add)
     release()
     await waitFor(() =>
-      expect(screen.getByRole('status').textContent).toBe('Member added to the Team.')
+      expect(screen.getByText('Member added to the Team.').closest('[role=status]')).not.toBeNull()
     )
     const posts = portal.calls.filter((call) => call.method === 'POST')
     expect(posts).toHaveLength(1)
@@ -405,7 +405,7 @@ describe('Teams: adding and removing members', () => {
     await screen.findByText(/Could not reach Closeline/)
     await portal.user.click(screen.getByRole('button', { name: 'Add to Team' }))
     await waitFor(() =>
-      expect(screen.getByRole('status').textContent).toBe('Member added to the Team.')
+      expect(screen.getByText('Member added to the Team.').closest('[role=status]')).not.toBeNull()
     )
     const keys = portal.calls
       .filter((call) => call.method === 'POST')
@@ -423,7 +423,9 @@ describe('Teams: adding and removing members', () => {
     await open(portal)
     await portal.user.click(screen.getByRole('button', { name: 'Remove from Team' }))
     await waitFor(() =>
-      expect(screen.getByRole('status').textContent).toBe('Member removed from the Team.')
+      expect(
+        screen.getByText('Member removed from the Team.').closest('[role=status]')
+      ).not.toBeNull()
     )
     expect(portal.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1)
   })

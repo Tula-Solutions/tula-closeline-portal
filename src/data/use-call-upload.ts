@@ -163,10 +163,15 @@ export function useCallUpload(kind: 'transcript' | 'recording' = 'transcript') {
     sending.current?.abort()
   }, [])
 
+  const clear = useCallback(() => {
+    // A finished result goes when a new action starts; an upload still in flight is left alone.
+    setState((now) => (now.kind === 'uploading' ? now : { kind: 'idle' }))
+  }, [])
+
   const report = useCallback((name: string, message: string) => {
     last.current = null
     setState({ kind: 'failed', name, message, retry: false, waiting: false })
   }, [])
 
-  return { state, send, retry, cancel, report }
+  return { state, send, retry, cancel, clear, report }
 }

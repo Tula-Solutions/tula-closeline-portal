@@ -73,13 +73,18 @@ export function ImportsScreen() {
                   <td>{item.appliedCount ?? '-'}</td>
                   <td>{item.rejectedCount ?? '-'}</td>
                   <td>
-                    <Link to='/sales-history/imports/$importId' params={{ importId: item.id }}>
-                      Report
-                      <span className='sr-only'>
-                        {' '}
-                        for the import of {formatWhen(item.createdAt)}
-                      </span>
-                    </Link>
+                    {IMPORT_PENDING_STATES.includes(item.state) ? (
+                      // There is no report until the import has been processed.
+                      'Not ready yet'
+                    ) : (
+                      <Link to='/sales-history/imports/$importId' params={{ importId: item.id }}>
+                        Report
+                        <span className='sr-only'>
+                          {' '}
+                          for the import of {formatWhen(item.createdAt)}
+                        </span>
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -48,6 +48,9 @@ export const fingerprint = {
   /** Adding `membershipId` to the Team `teamId`. */
   teamMember: (teamId: string, membershipId: string) =>
     JSON.stringify(['team-member', teamId, membershipId]),
+  /** Removing `membershipId` from the Team `teamId`: its own intent, apart from adding. */
+  teamMemberRemoval: (teamId: string, membershipId: string) =>
+    JSON.stringify(['team-member-removal', teamId, membershipId]),
 }
 
 /** Drops every key for inviting `email`, whatever role was offered. */

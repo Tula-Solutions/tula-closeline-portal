@@ -21,7 +21,7 @@ import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { useFocusOnError } from '~/ui/useFocusOnError'
 import { useSubmit } from '~/ui/useSubmit'
-import { When } from '~/ui/When'
+import { DayOrWhen } from '~/ui/When'
 
 /** Money as the service holds it (a decimal string) with its currency code, in the reader's grouping. */
 export function Money(props: { readonly amount: string | null; readonly currency: string | null }) {
@@ -102,7 +102,7 @@ export function DealsScreen() {
                   </th>
                   <td>{deal.name === null ? '-' : <Untrusted value={deal.name} />}</td>
                   <td>{outcomeLabel(deal.outcome)}</td>
-                  <td>{deal.closedAt === null ? '-' : <When iso={deal.closedAt} />}</td>
+                  <td>{deal.closedAt === null ? '-' : <DayOrWhen value={deal.closedAt} />}</td>
                   <td>
                     <Money amount={deal.amount} currency={deal.currency} />
                   </td>

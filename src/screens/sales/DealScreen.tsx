@@ -11,7 +11,7 @@ import { SelectField } from '~/ui/SelectField'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { useSubmit } from '~/ui/useSubmit'
-import { When } from '~/ui/When'
+import { DayOrWhen } from '~/ui/When'
 
 const route = getRouteApi('/_app/sales-history/deals/$dealRecordId')
 
@@ -51,7 +51,7 @@ export function DealScreen() {
             <dt>Current Outcome</dt>
             <dd>{outcomeLabel(deal.data.outcome)}</dd>
             <dt>Closed</dt>
-            <dd>{deal.data.closedAt === null ? '-' : <When iso={deal.data.closedAt} />}</dd>
+            <dd>{deal.data.closedAt === null ? '-' : <DayOrWhen value={deal.data.closedAt} />}</dd>
             <dt>Amount</dt>
             <dd>
               <Money amount={deal.data.amount} currency={deal.data.currency} />

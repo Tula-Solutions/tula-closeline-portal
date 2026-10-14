@@ -497,7 +497,9 @@ describe('Sales history: Deal imports', () => {
     const form = call?.init.body
     expect(form instanceof FormData).toBe(true)
     expect(((form as FormData).get('file') as File).name).toBe('deals.csv')
-    await waitFor(() => expect(screen.getByRole('link', { name: /^Report/ })).toBeTruthy())
+    // Not processed yet, so there is no report to link to.
+    await waitFor(() => expect(screen.getByText('Not ready yet')).toBeTruthy())
+    expect(screen.queryByRole('link', { name: /^Report/ })).toBeNull()
   })
 
   test.each([
