@@ -14,7 +14,7 @@ function Results(props: { readonly answer: SearchDocumentsResponse }) {
   useEffect(() => heading.current?.focus(), [])
   const { items, evidence } = props.answer
   return (
-    <section aria-labelledby='search-documents-results-heading'>
+    <section aria-labelledby='search-documents-results-heading' className='mt-10'>
       <h2 id='search-documents-results-heading' tabIndex={-1} ref={heading}>
         Results
       </h2>
@@ -80,7 +80,7 @@ export function SearchDocumentsScreen() {
   }
   return (
     <>
-      <PageHeader title='Search Documents' />
+      <PageHeader className='mb-3' title='Search Documents' />
       <SearchForm
         label='Search Documents'
         intro="Write what was said so far. The search finds text in your Playbook's Documents that sounds like it."

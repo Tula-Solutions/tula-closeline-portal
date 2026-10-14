@@ -52,7 +52,30 @@
 
   form {
     display: grid;
+    max-width: 42rem;
     gap: 1rem;
+  }
+
+  /* A submit button is as wide as its label, not stretched across a wide page. */
+  form > .button,
+  form > button[type="submit"] {
+    justify-self: start;
+  }
+
+  fieldset {
+    display: grid;
+    min-width: 0;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  legend {
+    margin-bottom: 0.5rem;
+    padding: 0;
+    font-size: 0.9375rem;
+    font-weight: 700;
   }
 
   label {
@@ -357,7 +380,14 @@
   }
 
   dl {
-    margin: 0 0 1rem;
+    display: grid;
+    grid-template-columns: minmax(7rem, max-content) minmax(0, 1fr);
+    gap: 0.75rem 2rem;
+    margin: 0 0 1.5rem;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
   }
 
   dl dt {
@@ -367,7 +397,16 @@
   }
 
   dl dd {
-    margin: 0 0 0.75rem;
+    margin: 0;
+  }
+
+  a:not([class]) {
+    color: var(--primary);
+    font-weight: 500;
+  }
+
+  td > .button {
+    margin-inline-end: 0.5rem;
   }
 
   @media (prefers-reduced-motion: no-preference) {

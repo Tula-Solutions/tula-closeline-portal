@@ -91,7 +91,7 @@ export function SearchForm<Answer>(props: {
   }
   return (
     <>
-      <p>{props.intro}</p>
+      <p className='mb-6 max-w-prose text-muted-foreground'>{props.intro}</p>
       <form
         ref={formRef}
         noValidate

@@ -4,6 +4,7 @@ import { calendarDateSchema, OUTCOMES, type Outcome, outcomeSchema } from 'tula-
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
+import { StatusBadge } from '~/components/app/status-badge'
 import { refresh, useDeal } from '~/data/queries'
 import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
 import { Money } from '~/screens/sales/DealsScreen'
@@ -56,7 +57,9 @@ export function DealScreen() {
             <dt>Name</dt>
             <dd>{deal.data.name === null ? '-' : <Untrusted value={deal.data.name} />}</dd>
             <dt>Current Outcome</dt>
-            <dd>{outcomeLabel(deal.data.outcome)}</dd>
+            <dd>
+              <StatusBadge state={deal.data.outcome}>{outcomeLabel(deal.data.outcome)}</StatusBadge>
+            </dd>
             <dt>Closed</dt>
             <dd>{deal.data.closedAt === null ? '-' : <DateOnly value={deal.data.closedAt} />}</dd>
             <dt>Amount</dt>

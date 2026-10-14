@@ -25,7 +25,7 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
   useEffect(() => heading.current?.focus(), [])
   const { items, evidence } = props.answer
   return (
-    <section aria-labelledby='search-results-heading'>
+    <section aria-labelledby='search-results-heading' className='mt-10'>
       <h2 id='search-results-heading' tabIndex={-1} ref={heading}>
         Results
       </h2>
@@ -126,7 +126,7 @@ export function SearchScreen() {
   }
   return (
     <>
-      <PageHeader title='Search won Deals' />
+      <PageHeader className='mb-3' title='Search won Deals' />
       <SearchForm
         label='Search won Deals'
         intro='Write what was said so far. The search finds Moments from your won Deals that sound like it.'
