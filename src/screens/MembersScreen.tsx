@@ -1,8 +1,15 @@
+import { Link } from '@tanstack/react-router'
+import { Lock, UserPlus, Users } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 import type { Member, Role } from 'tula-closeline-contract'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
+import { EmptyState } from '~/components/app/empty-state'
 import { PageHeader } from '~/components/app/page-header'
+import { RoleBadge } from '~/components/app/role-badge'
+import { Avatar } from '~/components/ui/avatar'
+import { Button } from '~/components/ui/button'
+import { NativeSelect } from '~/components/ui/native-select'
 import { assignableRoles, can, canRemoveMember, ROLE_LABEL } from '~/data/permissions'
 import { refresh, useMembers } from '~/data/queries'
 import { useRole } from '~/data/session-role'
@@ -29,25 +36,49 @@ export function MembersScreen() {
   return (
     <>
       <PageHeader
+        icon={Users}
         title='Members'
         description='Everyone in your Organization and the role they hold.'
         headingRef={headingRef}
         headingProps={{ tabIndex: -1 }}
+        actions={
+          can.manageInvitations(role) ? (
+            <Button asChild size='sm'>
+              <Link to='/invitations'>
+                <UserPlus aria-hidden='true' />
+                Invite people
+              </Link>
+            </Button>
+          ) : null
+        }
       />
       {allowed ? (
-        <>
+        <div className='page-stack'>
           <p role='status' className='notice'>
             {feedback.notice}
           </p>
-          <Paged noun='members' emptyText='There are no members to show.' state={members.state}>
+          <Paged
+            noun='members'
+            emptyText='There are no members to show.'
+            emptyIcon={Users}
+            emptyHint='People appear here once they accept an Invitation.'
+            state={members.state}
+          >
             <ScrollRegion label='Members'>
               <table>
                 <thead>
                   <tr>
-                    <th scope='col'>Name</th>
-                    <th scope='col'>Email address</th>
+                    <th scope='col'>Member</th>
+                    {/* The address shows under the name; this column carries it for assistive technology. */}
+                    <th scope='col' className='sr-only'>
+                      Email address
+                    </th>
                     <th scope='col'>Role</th>
-                    {can.manageMembers(role) ? <th scope='col'>Actions</th> : null}
+                    {can.manageMembers(role) ? (
+                      <th scope='col' className='w-0 text-end'>
+                        Actions
+                      </th>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -66,9 +97,11 @@ export function MembersScreen() {
               </table>
             </ScrollRegion>
           </Paged>
-        </>
+        </div>
       ) : (
-        <p>Your role cannot see the list of members. Ask an Owner or Admin if you need it.</p>
+        <EmptyState icon={Lock} title='Members are visible to Owners, Admins and Managers'>
+          Your role cannot see the list of members. Ask an Owner or Admin if you need it.
+        </EmptyState>
       )}
     </>
   )
@@ -135,24 +168,44 @@ function MemberRow(props: {
   return (
     <>
       <tr>
-        <th scope='row'>
-          <Untrusted value={display} />
+        <th scope='row' className='font-normal'>
+          <div className='flex min-w-0 items-center gap-3'>
+            <Avatar name={display} toneKey={member.id} />
+            <div className='flex min-w-0 flex-col leading-tight'>
+              <span className='font-semibold'>
+                <Untrusted value={display} />
+              </span>
+              {member.name === null ? null : (
+                // A copy for the eye: the Email address cell carries it for assistive technology.
+                <span
+                  aria-hidden='true'
+                  className='clip mt-0.5 text-[0.8125rem] text-muted-foreground'
+                >
+                  {member.email}
+                </span>
+              )}
+            </div>
+          </div>
         </th>
-        <td>
+        <td className='sr-only'>
           <Untrusted value={member.email} />
         </td>
-        <td>{ROLE_LABEL[member.role]}</td>
+        <td>
+          <RoleBadge role={member.role} />
+        </td>
         {manage ? (
           <td>
-            <div className='row-actions'>
+            <div className='row-actions flex-nowrap justify-end'>
               {choices.length > 0 ? (
                 <>
                   <label className='sr-only' htmlFor={`${member.id}-role`}>
                     Role for {label}
                   </label>
-                  <select
+                  <NativeSelect
                     id={`${member.id}-role`}
                     ref={select}
+                    controlSize='sm'
+                    className='min-w-[7.5rem]'
                     value={selected}
                     aria-describedby={error ? errorId : undefined}
                     onChange={(event) => setSelected(event.target.value as Role)}
@@ -162,22 +215,24 @@ function MemberRow(props: {
                         {ROLE_LABEL[choice]}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                   {selected !== member.role ? (
-                    <button
+                    <Button
                       type='button'
-                      className='button'
+                      size='sm'
+                      className='motion-safe:animate-fade'
                       aria-disabled={change.pending}
                       aria-label={`Save role for ${label}`}
                       onClick={() => change.submit(selected)}
                     >
                       {change.pending ? 'Saving...' : 'Save role'}
-                    </button>
+                    </Button>
                   ) : null}
                 </>
               ) : null}
               {canRemoveMember(viewerRole, member.role) ? (
                 <Confirm
+                  tone='quiet-destructive'
                   label='Remove'
                   accessibleName={`Remove ${label}`}
                   pendingAccessibleName={`Removing ${label}`}
