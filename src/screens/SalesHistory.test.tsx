@@ -7,46 +7,14 @@ import { RIGHTS_WORDING, type RightsWording } from '~/data/rights-wording'
 import { createReporter } from '~/report/reporter'
 import { SalesLayout } from '~/screens/sales/SalesLayout'
 import { dealBody, hexId, importBody, page, rightsBody, rowBody } from '~/testing/core-bodies'
-import { failure, fakeFetch, type Handler, json, route, TEST_ENV, tokens } from '~/testing/fixtures'
-import { renderPortal } from '~/testing/render'
+import { failure, fakeFetch, json, route, TEST_ENV, tokens } from '~/testing/fixtures'
+import { gatedSleep, param, visit } from '~/testing/sales'
 
 const PB = '/v1/playbook'
 const DEALS = `${PB}/deals`
 const IMPORTS = `${PB}/deal-imports`
 const RIGHTS = `${PB}/rights-confirmation`
 const IDEMPOTENCY = 'idempotency-key'
-type Role = 'owner' | 'admin' | 'manager' | 'rep'
-
-function visit(
-  url: string,
-  role: Role,
-  handlers: Handler[],
-  extra: { sleep?: (milliseconds: number) => Promise<void> } = {}
-) {
-  return renderPortal({
-    url,
-    signedIn: tokens({ organization: { id: 'org_1', role } }),
-    handlers,
-    ...(extra.sleep ? { sleep: extra.sleep } : {}),
-  })
-}
-
-/** A wait the test controls: every call is recorded and stays pending until `release` is called. */
-function gatedSleep() {
-  const waits: number[] = []
-  const gates: (() => void)[] = []
-  return {
-    waits,
-    sleep: (milliseconds: number) =>
-      new Promise<void>((resolve) => {
-        waits.push(milliseconds)
-        gates.push(resolve)
-      }),
-    release: () => gates.shift()?.(),
-  }
-}
-
-const param = (url: string, name: string) => new URL(url, 'http://x').searchParams.get(name)
 const salesCalls = (portal: ReturnType<typeof visit>) =>
   portal.calls.filter((call) => call.path.startsWith(PB))
 
@@ -57,6 +25,7 @@ describe('Sales history: Owner and Admin only', () => {
     `/sales-history/deals/${hexId('deal', 1)}`,
     '/sales-history/imports',
     `/sales-history/imports/${hexId('dimp', 1)}`,
+    '/sales-history/calls',
     '/sales-history/rights',
   ]
 
@@ -85,7 +54,7 @@ describe('Sales history: Owner and Admin only', () => {
         within(menu)
           .getAllByRole('link')
           .map((link) => link.textContent)
-      ).toEqual(['Overview', 'Deals', 'Imports', 'Rights confirmation'])
+      ).toEqual(['Overview', 'Deals', 'Imports', 'Calls', 'Rights confirmation'])
     }
   )
 })

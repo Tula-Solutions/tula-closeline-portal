@@ -34,6 +34,7 @@ export function SalesLayout() {
         </Link>
         <Link to='/sales-history/deals'>Deals</Link>
         <Link to='/sales-history/imports'>Imports</Link>
+        <Link to='/sales-history/calls'>Calls</Link>
         <Link to='/sales-history/rights'>Rights confirmation</Link>
       </nav>
       <Outlet />

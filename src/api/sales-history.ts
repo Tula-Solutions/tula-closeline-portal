@@ -1,4 +1,7 @@
 import {
+  type Call,
+  type CallState,
+  callSchema,
   DEAL_IMPORT_FILE_FIELD,
   type Deal,
   type DealImport,
@@ -6,15 +9,18 @@ import {
   dealImportSchema,
   dealSchema,
   IDEMPOTENCY_KEY_HEADER,
+  type ListCallsResponse,
   type ListDealImportRowsResponse,
   type ListDealImportsResponse,
   type ListDealsResponse,
+  listCallsResponseSchema,
   listDealImportRowsResponseSchema,
   listDealImportsResponseSchema,
   listDealsResponseSchema,
   type Outcome,
   type RightsStatus,
   rightsStatusSchema,
+  UPLOAD_FILE_FIELD,
 } from 'tula-closeline-contract'
 import { PAGE_SIZE, type PageRequest } from '~/api/core'
 import type { HttpClient } from '~/api/http'
@@ -30,6 +36,22 @@ export type DealPageRequest = PageRequest & {
 export type ImportRowPageRequest = PageRequest & {
   readonly result?: 'applied' | 'rejected' | undefined
 }
+
+/** One page request for Calls: with a state only Calls in it; with a Deal (by its opaque id) only its Calls. */
+export type CallPageRequest = PageRequest & {
+  readonly state?: CallState | undefined
+  readonly dealRecordId?: string | undefined
+}
+
+/** A Call upload: the Transcript, the customer's deal id and the Rep's speaker label. The deal id travels in the multipart body. */
+export type CallUpload = {
+  readonly file: File
+  readonly dealId: string
+  readonly repLabel: string
+}
+
+/** The answer to a Call upload: `duplicate` when the service already had this content for this Deal (HTTP 200). */
+export type CallUploadResult = { readonly call: Call; readonly duplicate: boolean }
 
 /** The sales-history routes the portal uses (Owner and Admin only on the service). */
 export type SalesHistoryApi = {
@@ -54,6 +76,20 @@ export type SalesHistoryApi = {
     importId: string,
     page: ImportRowPageRequest
   ): Promise<ListDealImportRowsResponse>
+  /** One page of Calls, newest first. */
+  listCalls(page: CallPageRequest): Promise<ListCallsResponse>
+  /** Uploads a Transcript for a Deal; the key makes a repeat of the same request answer with the stored Call. */
+  uploadCall(
+    upload: CallUpload,
+    idempotencyKey: string,
+    signal?: AbortSignal
+  ): Promise<CallUploadResult>
+  /** Picks or changes the Rep of a Call by one of its speaker labels. */
+  setCallRep(callId: string, label: string): Promise<Call>
+  /** Soft-deletes a Call; it can be restored until it is purged. */
+  deleteCall(callId: string): Promise<Call>
+  /** Restores a soft-deleted Call. */
+  restoreCall(callId: string): Promise<Call>
   /** Uploads a CSV; the key makes a repeat of the same request answer with the stored import. */
   uploadDealImport(file: File, idempotencyKey: string, signal?: AbortSignal): Promise<DealImport>
 }
@@ -159,5 +195,60 @@ export function createSalesHistoryApi(http: HttpClient): SalesHistoryApi {
         },
       })
     },
+    listCalls: (page) =>
+      http.request({
+        path: `${BASE}/calls`,
+        query: {
+          cursor: page.cursor,
+          limit: PAGE_SIZE,
+          state: page.state,
+          dealRecordId: page.dealRecordId,
+        },
+        auth: true,
+        ...signalOf(page.signal),
+        parse: (json) => listCallsResponseSchema.parse(json),
+      }),
+    uploadCall: (upload, idempotencyKey, signal) => {
+      const form = new FormData()
+      form.set(UPLOAD_FILE_FIELD, upload.file, upload.file.name)
+      // The customer's deal id is a body field, never part of the address.
+      form.set('dealId', upload.dealId)
+      form.set('rep', JSON.stringify({ by: 'speaker', label: upload.repLabel }))
+      return http.request({
+        method: 'POST',
+        path: `${BASE}/calls`,
+        body: form,
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        timeoutMs: UPLOAD_TIMEOUT_MS,
+        auth: true,
+        ...signalOf(signal),
+        parse: (json, status) => ({
+          duplicate: onlyStatus(status, 200, 201) === 200,
+          call: callSchema.parse(json),
+        }),
+      })
+    },
+    setCallRep: (callId, label) =>
+      http.request({
+        method: 'PUT',
+        path: `${BASE}/calls/${segment(callId)}/rep`,
+        body: { rep: { by: 'speaker', label } },
+        auth: true,
+        parse: (json) => callSchema.parse(json),
+      }),
+    deleteCall: (callId) =>
+      http.request({
+        method: 'DELETE',
+        path: `${BASE}/calls/${segment(callId)}`,
+        auth: true,
+        parse: (json) => callSchema.parse(json),
+      }),
+    restoreCall: (callId) =>
+      http.request({
+        method: 'POST',
+        path: `${BASE}/calls/${segment(callId)}/restore`,
+        auth: true,
+        parse: (json) => callSchema.parse(json),
+      }),
   }
 }

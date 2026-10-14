@@ -5,6 +5,7 @@ import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
 import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
 import { createSalesHistoryApi, type SalesHistoryApi } from '~/api/sales-history'
+import { createPendingCall, type PendingCallHolder } from '~/data/pending-call'
 import type { Env } from '~/env'
 import { createInvitationHolder, type InvitationHolder } from '~/invitation'
 import type { Reporter } from '~/report/reporter'
@@ -17,6 +18,8 @@ export type App = {
   readonly core: CoreApi
   readonly playbook: PlaybookApi
   readonly salesHistory: SalesHistoryApi
+  /** The Transcript chosen but not yet sent, held in memory across the rights confirmation. */
+  readonly pendingCall: PendingCallHolder
   /** Waits `milliseconds` (the injected `sleep` in tests): the document poll and a `Retry-After` wait use it. */
   readonly sleep: (milliseconds: number) => Promise<void>
   readonly session: Session
@@ -94,6 +97,7 @@ export function createApp(init: AppInit): App {
     },
   })
   const keys = createKeyHolder()
+  const pendingCall = createPendingCall()
   const organizationOf = () => {
     const snapshot = session.getSnapshot()
     return snapshot.status === 'signed_in' ? snapshot.organization.id : null
@@ -106,6 +110,7 @@ export function createApp(init: AppInit): App {
     if (session.getSnapshot().status === 'signed_out' || next !== currentOrganization) {
       queryClient.clear()
       keys.clear()
+      pendingCall.clear()
     }
     currentOrganization = next
   })
@@ -121,5 +126,6 @@ export function createApp(init: AppInit): App {
     queryClient,
     invitation: init.invitation ?? createInvitationHolder(),
     keys,
+    pendingCall,
   }
 }

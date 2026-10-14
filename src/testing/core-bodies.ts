@@ -172,3 +172,46 @@ export function rightsBody(
 export function page<T>(items: T[], nextCursor: string | null = null) {
   return { items, nextCursor }
 }
+
+/** A Transcript Call as the playbook service returns it: ready, of a won Deal, in search. */
+export function callBody(
+  n: number,
+  overrides: Partial<{
+    dealId: string
+    dealRecordId: string
+    dealOutcome: string
+    inSearch: boolean
+    kind: string
+    mediaType: string
+    fileName: string
+    state: string
+    failureReason: string | null
+    rep: { by: 'speaker'; label: string } | { by: 'channel'; channel: string } | null
+    speakerLabels: string[]
+    deletedAt: string | null
+    purgeAt: string | null
+  }> = {}
+) {
+  return {
+    id: hexId('call', n),
+    dealId: `D-${n}`,
+    dealRecordId: hexId('deal', n),
+    dealOutcome: 'won',
+    inSearch: true,
+    kind: 'transcript',
+    fileName: `call-${n}.txt`,
+    mediaType: 'text/plain',
+    sizeBytes: 2048,
+    durationSeconds: null,
+    state: 'ready',
+    failureReason: null,
+    rep: { by: 'speaker', label: 'Sam' },
+    speakerLabels: ['Sam', 'Pat'],
+    deletedAt: null,
+    purgeAt: null,
+    uploadedByUserId: hexId('usr', 1),
+    createdAt: '2026-10-13T09:30:00Z',
+    updatedAt: '2026-10-13T09:31:00Z',
+    ...overrides,
+  }
+}

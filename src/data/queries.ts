@@ -1,6 +1,8 @@
 import { type InfiniteData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import type {
+  CallState,
   DocumentState,
+  ListCallsResponse,
   ListDealImportRowsResponse,
   ListDealImportsResponse,
   ListDealsResponse,
@@ -25,6 +27,8 @@ export const KEYS = {
   deals: (organizationId: string) => [organizationId, 'deals'] as const,
   /** Every cached read about Deal imports (lists, single imports and reports). */
   dealImports: (organizationId: string) => [organizationId, 'deal-imports'] as const,
+  /** Every cached list of Calls, whatever its filters. */
+  calls: (organizationId: string) => [organizationId, 'calls'] as const,
   /** The rights confirmation. */
   rights: (organizationId: string) => [organizationId, 'rights'] as const,
 }
@@ -287,4 +291,38 @@ export function useImportRows(importId: string, rejectedOnly: boolean, enabled: 
     enabled: enabled && organizationId !== '',
   })
   return pagedStateBy(query, (row) => String(row.rowNumber))
+}
+
+/** Calls, a page at a time, newest first; with a state only Calls in it, with a Deal (opaque id) only its Calls. */
+export function useCalls(filter: {
+  readonly state?: CallState | undefined
+  readonly dealRecordId?: string | undefined
+}) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListCallsResponse,
+    Error,
+    InfiniteData<ListCallsResponse, string | undefined>,
+    readonly [string, string, string, string, string],
+    string | undefined
+  >({
+    queryKey: [
+      ...KEYS.calls(organizationId),
+      'list',
+      filter.state ?? 'current',
+      filter.dealRecordId ?? 'any',
+    ],
+    queryFn: ({ pageParam, signal }) =>
+      app.salesHistory.listCalls({
+        cursor: pageParam,
+        state: filter.state,
+        dealRecordId: filter.dealRecordId,
+        signal,
+      }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  return { ...pagedState(query), refetch: () => query.refetch() }
 }

@@ -10,12 +10,15 @@ import {
 } from 'tula-closeline-contract'
 import { rightsWordingFor } from '~/data/rights-wording'
 import {
+  callFailureWords,
+  callStateLabel,
   dealImportTemplate,
   HEADER_PROBLEM_WORDS,
   IMPORT_FAILURE_WORDS,
   IMPORT_STATE_LABEL,
   importFailureWords,
   importStateLabel,
+  inSearchWords,
   OUTCOME_LABEL,
   outcomeLabel,
   parseBackPath,
@@ -92,5 +95,19 @@ describe('the rights wording', () => {
     expect(rightsWordingFor(1)).toBeDefined()
     expect(rightsWordingFor(2)).toBeUndefined()
     expect(rightsWordingFor(Number.NaN)).toBeUndefined()
+  })
+})
+
+describe('words for Calls', () => {
+  test('a reason or state from a newer service gets a plain sentence, never its own text', () => {
+    expect(callFailureWords('toString')).toMatch(/did not finish/)
+    expect(callStateLabel('constructor')).toBe('Unknown status')
+  })
+
+  test('a Call in search says so, and one out of search says why', () => {
+    expect(inSearchWords({ inSearch: true, state: 'ready', dealOutcome: 'won' })).toBe('In search')
+    expect(inSearchWords({ inSearch: false, state: 'deleted', dealOutcome: 'won' })).toMatch(
+      /deleted/
+    )
   })
 })

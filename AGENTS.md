@@ -84,7 +84,9 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
   version); it is PENDING A LAWYER'S CHECK, and a version the portal has no text for cannot be confirmed. The
   `from` search param of the rights route is checked against an allowlist (`parseBackPath`), in the route and
   again in the screen (the router hands the raw value through). Polling uses `SALES_POLL_SCHEDULE_MS` (first
-  wait 3 s) via `app.sleep`.
+  wait 3 s) via `app.sleep`. A Transcript chosen before the rights are confirmed is held by `app.pendingCall`
+  (memory only, per Organization, cleared on sign-out) and restored on return; the Calls list takes only an
+  opaque `deal_…` id in `?deal=`.
 - The Invitation token is never logged, reported or kept in the address bar.
 - Never log, report or show a token, cookie value, code, password or email address. Report only unexpected errors
   (5xx, crashes); never validation, 401, 403, 404, 409 or 429. The one exception is the 403 from auth's Origin check on

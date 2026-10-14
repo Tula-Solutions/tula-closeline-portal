@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { screen } from '@testing-library/react'
 import {
+  callBody,
   dealBody,
   documentBody,
   importBody,
@@ -30,6 +31,7 @@ describe('what the query cache holds', () => {
     ['/playbook', 'Document 1.pdf'],
     ['/sales-history/deals', 'D-1'],
     ['/sales-history/imports', 'Completed'],
+    ['/sales-history/calls', 'call-1.txt'],
     ['/sales-history/rights', /Rights confirmed/],
   ])('%s: every cached query is Organization-keyed', async (url, text) => {
     const portal = renderPortal({
@@ -40,6 +42,7 @@ describe('what the query cache holds', () => {
         route('GET', '/v1/teams', json(200, page([teamBody(1, 'Northern')]))),
         route('GET', '/v1/invitations', json(200, page([]))),
         route('GET', '/v1/playbook/documents', json(200, page([documentBody(1)]))),
+        route('GET', '/v1/playbook/calls', json(200, page([callBody(1)]))),
         route('GET', '/v1/playbook/deals', json(200, page([dealBody(1)]))),
         route('GET', '/v1/playbook/deal-imports', json(200, page([importBody(1)]))),
         route('GET', '/v1/playbook/rights-confirmation', json(200, rightsBody())),

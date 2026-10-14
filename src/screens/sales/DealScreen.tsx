@@ -59,6 +59,11 @@ export function DealScreen() {
             <dt>Calls</dt>
             <dd>{deal.data.callCount}</dd>
           </dl>
+          <p>
+            <Link to='/sales-history/calls' search={{ deal: deal.data.id }}>
+              Calls of this Deal
+            </Link>
+          </p>
           {deal.data.appearedInImport ? null : (
             <p className='hint'>No CSV has named it: it was created by a Call upload.</p>
           )}
