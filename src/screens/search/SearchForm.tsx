@@ -171,7 +171,7 @@ export function SearchForm<Answer>(props: {
               <fieldset
                 key={turn.key}
                 className={cn(
-                  'gap-2.5 rounded-lg border bg-background/50 p-3 motion-safe:animate-rise',
+                  'gap-2.5 rounded-lg border border-border bg-background/50 p-3 motion-safe:animate-rise',
                   turn.role === 'rep'
                     ? 'border-l-[3px] border-l-primary'
                     : 'border-l-[3px] border-l-border-strong'

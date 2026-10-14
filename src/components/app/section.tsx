@@ -25,7 +25,7 @@ export function Section(props: {
       aria-labelledby={headingId}
       data-slot='section'
       className={cn(
-        'min-w-0 overflow-hidden rounded-xl border bg-card text-card-foreground shadow-elev-1',
+        'm-0 min-w-0 overflow-hidden rounded-xl border bg-card text-card-foreground shadow-elev-1',
         props.className
       )}
     >
