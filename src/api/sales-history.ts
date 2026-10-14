@@ -23,6 +23,9 @@ import {
   type RepChoice,
   type RightsStatus,
   rightsStatusSchema,
+  type SearchMomentsRequest,
+  type SearchMomentsResponse,
+  searchMomentsResponseSchema,
   UPLOAD_FILE_FIELD,
 } from 'tula-closeline-contract'
 import { z } from 'zod'
@@ -122,6 +125,8 @@ export type SalesHistoryApi = {
   lookupDeal(customerDealId: string): Promise<Deal>
   /** Sets or corrects a Deal's Outcome, with its closing date (`YYYY-MM-DD`) when given; `null` clears the date. */
   setDealOutcome(dealRecordId: string, outcome: Outcome, closedAt?: string | null): Promise<Deal>
+  /** Searches the Moments of won Deals for ones like the conversation so far. The body is conversation text: it is sent, never logged. */
+  searchMoments(request: SearchMomentsRequest, signal?: AbortSignal): Promise<SearchMomentsResponse>
   /** One page of Deal imports, newest first. */
   listDealImports(page: PageRequest): Promise<ListDealImportsResponse>
   /** One import with its state and counts. */
@@ -218,6 +223,15 @@ export function createSalesHistoryApi(
         body: closedAt === undefined ? { outcome } : { outcome, closedAt },
         auth: true,
         parse: (json) => dealSchema.parse(json),
+      }),
+    searchMoments: (request, signal) =>
+      http.request({
+        method: 'POST',
+        path: `${BASE}/search/moments`,
+        body: request,
+        auth: true,
+        ...signalOf(signal),
+        parse: (json) => searchMomentsResponseSchema.parse(json),
       }),
     listDealImports: (page) =>
       http.request({

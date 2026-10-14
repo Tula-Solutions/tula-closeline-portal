@@ -36,6 +36,7 @@ export function SalesLayout() {
         <Link to='/sales-history/imports'>Imports</Link>
         <Link to='/sales-history/calls'>Calls</Link>
         <Link to='/sales-history/rights'>Rights confirmation</Link>
+        {can.searchWonDeals(role) ? <Link to='/sales-history/search'>Search</Link> : null}
       </nav>
       <Outlet />
     </>

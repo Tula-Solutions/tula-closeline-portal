@@ -1,10 +1,12 @@
 import {
   ACCEPTED_RECORDING_EXTENSIONS,
+  ERRORS,
   MAX_QUEUED_DEAL_IMPORTS,
   SALES_HISTORY_ERRORS,
 } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import type { ShownFailure } from '~/api/manage-messages'
+import { waitPhrase } from '~/api/messages'
 import { type DocumentAction, presentDocument } from '~/api/playbook-messages'
 import { MAX_IMPORT_WORDS, MAX_RECORDING_WORDS, MAX_TRANSCRIPT_WORDS } from '~/data/sales-history'
 
@@ -22,6 +24,7 @@ export type SalesAction =
   | 'call-rep'
   | 'call-delete'
   | 'call-restore'
+  | 'search'
 
 /**
  * Turns a failure of a sales-history call into plain words, branching on the code. Codes this table
@@ -29,6 +32,21 @@ export type SalesAction =
  * message carries text from the service: every sentence is fixed here.
  */
 export function presentSales(error: unknown, action: SalesAction): ShownFailure {
+  if (error instanceof ApiError && action === 'search') {
+    // By code, never by status: the contract's code is what the service means.
+    if (error.code === ERRORS['server.unavailable'].code) {
+      const wait = error.retryAfterSeconds
+      return {
+        message: `Search is busy, try again${wait === undefined ? ' shortly' : ` in ${waitPhrase(wait)}`}.`,
+      }
+    }
+    if (error.code === ERRORS['server.timeout'].code) {
+      return { message: 'Search took too long. Try again, or shorten what was said.' }
+    }
+    if (error.code === ERRORS['request.invalid'].code) {
+      return { message: 'The conversation could not be searched. Check the turns and try again.' }
+    }
+  }
   if (error instanceof ApiError) {
     switch (error.code) {
       case SALES_HISTORY_ERRORS['deal.not_found'].code:
