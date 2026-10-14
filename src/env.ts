@@ -29,8 +29,24 @@ const envSchema = z
     VITE_ENVIRONMENT: z.enum(ENVIRONMENTS, `must be one of ${ENVIRONMENTS.join(', ')}`),
     VITE_SENTRY_DSN: dsnSchema,
     VITE_RELEASE: optionalString,
+    VITE_GOOGLE_FAKE_ISSUER_HOST: optionalString,
   })
   .superRefine((value, ctx) => {
+    if (value.VITE_GOOGLE_FAKE_ISSUER_HOST !== undefined) {
+      if (value.VITE_ENVIRONMENT !== 'local') {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['VITE_GOOGLE_FAKE_ISSUER_HOST'],
+          message: 'may be set in the local environment only',
+        })
+      } else if (!/^[a-z0-9.-]+(:\d{1,5})?$/i.test(value.VITE_GOOGLE_FAKE_ISSUER_HOST)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['VITE_GOOGLE_FAKE_ISSUER_HOST'],
+          message: 'must be a host such as 127.0.0.1:3015, with no scheme or path',
+        })
+      }
+    }
     if (value.VITE_ENVIRONMENT !== 'local' && value.VITE_SENTRY_DSN === undefined) {
       ctx.addIssue({
         code: 'custom',
@@ -45,6 +61,8 @@ export type Env = {
   readonly environment: Environment
   readonly sentryDsn: string | undefined
   readonly release: string | undefined
+  /** The host (and port) of the fake Google issuer used in local development; always undefined outside `local`. */
+  readonly googleFakeIssuerHost: string | undefined
 }
 
 /** Thrown at boot when the `VITE_*` variables are missing or malformed; the message names each one. */
@@ -70,6 +88,7 @@ export function parseEnv(raw: Readonly<Record<string, unknown>>): Env {
     environment: value.VITE_ENVIRONMENT,
     sentryDsn: value.VITE_SENTRY_DSN,
     release: value.VITE_RELEASE,
+    googleFakeIssuerHost: value.VITE_GOOGLE_FAKE_ISSUER_HOST,
   }
 }
 

@@ -1,4 +1,13 @@
+import {
+  type AuthOptionsResponse,
+  authOptionsResponseSchema,
+  type GoogleCompleteRequest,
+  type GoogleStartRequest,
+  googleCompleteResponseSchema,
+  googleStartResponseSchema,
+} from 'tula-closeline-contract'
 import type { components } from '~/api/auth.gen'
+import { CLIENT_ERRORS, clientError } from '~/api/errors'
 import type { HttpClient } from '~/api/http'
 
 /** The answer of every step of a sign-up or sign-in. */
@@ -37,6 +46,12 @@ export type AuthApi = {
   refresh(signal?: AbortSignal): Promise<SessionTokens>
   /** Ends the session the refresh cookie belongs to; the service clears the cookie. */
   signOut(signal?: AbortSignal): Promise<void>
+  /** Which sign-in providers are on (a read). Any failure means "none": the caller hides the button. */
+  authOptions(signal?: AbortSignal): Promise<AuthOptionsResponse>
+  /** Starts a Sign in with Google; the answer is the Google address to send the browser to (the attempt secret is a cookie). */
+  startGoogle(request: GoogleStartRequest, signal?: AbortSignal): Promise<string>
+  /** Finishes a Google sign-up with an Organization name or an Invitation; the answer carries the session. */
+  completeGoogle(request: GoogleCompleteRequest, signal?: AbortSignal): Promise<FlowResponse>
   /** Reads the password length limits (a read, so it is retried). */
   passwordPolicy(signal?: AbortSignal): Promise<PasswordPolicy>
 }
@@ -96,6 +111,40 @@ export function createAuthApi(http: HttpClient): AuthApi {
       }),
     signOut: (signal) =>
       http.request<void>({ method: 'POST', path: '/v1/client/sessions/sign-out', signal }),
+    authOptions: async (signal) => {
+      const body = await http.request<unknown>({ path: '/v1/client/auth-options', signal })
+      const parsed = authOptionsResponseSchema.safeParse(body)
+      if (!parsed.success) {
+        throw clientError(CLIENT_ERRORS.badResponse, 200)
+      }
+      return parsed.data
+    },
+    startGoogle: async (request, signal) => {
+      const body = await http.request<unknown>({
+        method: 'POST',
+        path: '/v1/client/google/start',
+        body: request,
+        signal,
+      })
+      const parsed = googleStartResponseSchema.safeParse(body)
+      if (!parsed.success) {
+        throw clientError(CLIENT_ERRORS.badResponse, 200)
+      }
+      return parsed.data.authorizationUrl
+    },
+    completeGoogle: async (request, signal) => {
+      const body = await http.request<unknown>({
+        method: 'POST',
+        path: '/v1/client/google/complete',
+        body: request,
+        signal,
+      })
+      const parsed = googleCompleteResponseSchema.safeParse(body)
+      if (!parsed.success) {
+        throw clientError(CLIENT_ERRORS.badResponse, 200)
+      }
+      return parsed.data
+    },
     passwordPolicy: (signal) =>
       http.request<PasswordPolicy>({ path: '/v1/client/password-policy', signal }),
   }

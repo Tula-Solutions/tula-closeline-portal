@@ -42,6 +42,12 @@ export const HANDLED_CODES = [
   ERRORS['server.timeout'].code,
   AUTH_ERRORS['membership.unavailable'].code,
   AUTH_ERRORS['mail.unavailable'].code,
+  AUTH_ERRORS['oidc.disabled'].code,
+  AUTH_ERRORS['oidc.state_invalid'].code,
+  AUTH_ERRORS['oidc.email_unverified'].code,
+  AUTH_ERRORS['oidc.provider_unavailable'].code,
+  AUTH_ERRORS['oidc.invitation_mismatch'].code,
+  AUTH_ERRORS['oidc.access_denied'].code,
   CLIENT_ERRORS.timeout,
   CLIENT_ERRORS.network,
   CLIENT_ERRORS.badResponse,
@@ -157,6 +163,28 @@ const RULES: { readonly [C in HandledCode]: (context: Context) => Presented } = 
   [AUTH_ERRORS['mail.unavailable'].code]: ({ wait }) => ({
     message: `We could not send the email right now. ${tryAgain(wait)}`,
   }),
+  [AUTH_ERRORS['oidc.disabled'].code]: () => ({
+    message: 'Sign in with Google is not available right now. Use your email address and password.',
+  }),
+  [AUTH_ERRORS['oidc.state_invalid'].code]: () => ({
+    restart: true,
+    message: 'This Google sign-in expired or was already used. Start again.',
+  }),
+  [AUTH_ERRORS['oidc.email_unverified'].code]: () => ({
+    message:
+      'Google has not verified that email address, so we cannot use it. Verify it with Google, or choose another email address.',
+  }),
+  [AUTH_ERRORS['oidc.provider_unavailable'].code]: ({ wait }) => ({
+    message: `Google did not answer. ${tryAgain(wait)}`,
+  }),
+  [AUTH_ERRORS['oidc.invitation_mismatch'].code]: () => ({
+    invitationRefused: true,
+    message:
+      'This Invitation was sent to a different email address than the one you chose in Google. Choose the invited address, or ask an Admin for a new Invitation.',
+  }),
+  [AUTH_ERRORS['oidc.access_denied'].code]: () => ({
+    message: 'Google sign-in was cancelled. Try again, or use your email address and password.',
+  }),
   [CLIENT_ERRORS.timeout]: () => ({
     message: 'Closeline did not answer in time. Check your connection and try again.',
   }),
@@ -175,4 +203,15 @@ export function present(error: unknown, flow: FlowKind): Presented {
   }
   const ended = flow === 'sign-up' ? 'This sign-up has ended.' : 'This sign-in has ended.'
   return RULES[error.code as HandledCode]({ wait: error.retryAfterSeconds, flow, ended })
+}
+
+/** The general words for a Google sign-in that failed with a code this table has no words for. */
+export const GOOGLE_GENERIC_MESSAGE =
+  'We could not sign you in with Google. Try again, or use your email address and password.'
+
+/** The words for the `error` code the Google callback put in the sign-in address. A code that is not one of ours gets general words and is never shown. */
+export function presentGoogleError(code: string): string {
+  return Object.hasOwn(RULES, code) && code.startsWith('oidc.')
+    ? present(new ApiError({ code, status: 400 }), 'sign-in').message
+    : GOOGLE_GENERIC_MESSAGE
 }

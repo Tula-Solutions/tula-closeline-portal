@@ -257,7 +257,7 @@ export function SignUpScreen() {
       >
         {invited ? 'Accept your Invitation' : 'Create your Organization'}
       </AuthTitle>
-      <SocialSignIn />
+      <SocialSignIn intent='sign_up' />
       <form ref={formRef} onSubmit={onDetails} noValidate>
         {banner}
         {invitation.status === 'malformed' && !errors.form ? (
