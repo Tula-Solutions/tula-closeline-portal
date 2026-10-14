@@ -312,9 +312,13 @@ describe('search over won Deals: the answer', () => {
     ])
     await ask(portal)
     await screen.findByRole('list', { name: 'Matching Moments' })
+    // The answer is held by a mutation until the session changes; the check after must not be vacuous.
+    expect(portal.app.queryClient.getMutationCache().getAll()).toHaveLength(1)
     await act(() => portal.app.session.refresh('access-1'))
     await waitFor(() => expect(screen.queryByRole('list', { name: 'Matching Moments' })).toBeNull())
     expect((screen.getByLabelText('What was said, turn 1') as HTMLTextAreaElement).value).toBe('')
+    expect(screen.queryByText('Prospect line 1')).toBeNull()
+    expect(portal.app.queryClient.getMutationCache().getAll()).toHaveLength(0)
   })
 
   test('after sign-out the results and turns are gone', async () => {
@@ -324,9 +328,11 @@ describe('search over won Deals: the answer', () => {
     ])
     await ask(portal)
     await screen.findByRole('list', { name: 'Matching Moments' })
+    expect(portal.app.queryClient.getMutationCache().getAll()).toHaveLength(1)
     await act(() => portal.app.session.signOut())
     await waitFor(() => expect(screen.queryByLabelText('What was said, turn 1')).toBeNull())
     expect(screen.queryByText('Prospect line 1')).toBeNull()
+    expect(portal.app.queryClient.getMutationCache().getAll()).toHaveLength(0)
   })
 
   test('a score that is not between 0 and 1 is left out', async () => {
