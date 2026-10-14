@@ -21,6 +21,7 @@ import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
 import { Route as AppSalesHistoryIndexRouteImport } from './routes/_app/sales-history/index'
 import { Route as AppSalesHistoryRightsRouteImport } from './routes/_app/sales-history/rights'
+import { Route as AppSalesHistorySearchRouteImport } from './routes/_app/sales-history/search'
 import { Route as AppSalesHistoryCallsIndexRouteImport } from './routes/_app/sales-history/calls/index'
 import { Route as AppSalesHistoryDealsIndexRouteImport } from './routes/_app/sales-history/deals/index'
 import { Route as AppSalesHistoryDealsDealRecordIdRouteImport } from './routes/_app/sales-history/deals/$dealRecordId'
@@ -85,6 +86,11 @@ const AppSalesHistoryRightsRoute = AppSalesHistoryRightsRouteImport.update({
   path: '/rights',
   getParentRoute: () => AppSalesHistoryRoute,
 } as any)
+const AppSalesHistorySearchRoute = AppSalesHistorySearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => AppSalesHistoryRoute,
+} as any)
 const AppSalesHistoryCallsIndexRoute =
   AppSalesHistoryCallsIndexRouteImport.update({
     id: '/calls/',
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
+  '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sales-history/': typeof AppSalesHistoryIndexRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
+  '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sales-history': typeof AppSalesHistoryIndexRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/_public/sign-up': typeof PublicSignUpRoute
   '/_app/': typeof AppIndexRoute
   '/_app/sales-history/rights': typeof AppSalesHistoryRightsRoute
+  '/_app/sales-history/search': typeof AppSalesHistorySearchRoute
   '/_app/sales-history/': typeof AppSalesHistoryIndexRoute
   '/_app/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/_app/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
@@ -181,6 +190,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/sales-history/rights'
+    | '/sales-history/search'
     | '/sales-history/'
     | '/sales-history/deals/$dealRecordId'
     | '/sales-history/imports/$importId'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-up'
     | '/sales-history/rights'
+    | '/sales-history/search'
     | '/sales-history'
     | '/sales-history/deals/$dealRecordId'
     | '/sales-history/imports/$importId'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/_public/sign-up'
     | '/_app/'
     | '/_app/sales-history/rights'
+    | '/_app/sales-history/search'
     | '/_app/sales-history/'
     | '/_app/sales-history/deals/$dealRecordId'
     | '/_app/sales-history/imports/$importId'
@@ -315,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSalesHistoryRightsRouteImport
       parentRoute: typeof AppSalesHistoryRoute
     }
+    '/_app/sales-history/search': {
+      id: '/_app/sales-history/search'
+      path: '/search'
+      fullPath: '/sales-history/search'
+      preLoaderRoute: typeof AppSalesHistorySearchRouteImport
+      parentRoute: typeof AppSalesHistoryRoute
+    }
     '/_app/sales-history/calls/': {
       id: '/_app/sales-history/calls/'
       path: '/calls'
@@ -355,6 +374,7 @@ declare module '@tanstack/react-router' {
 
 interface AppSalesHistoryRouteChildren {
   AppSalesHistoryRightsRoute: typeof AppSalesHistoryRightsRoute
+  AppSalesHistorySearchRoute: typeof AppSalesHistorySearchRoute
   AppSalesHistoryIndexRoute: typeof AppSalesHistoryIndexRoute
   AppSalesHistoryDealsDealRecordIdRoute: typeof AppSalesHistoryDealsDealRecordIdRoute
   AppSalesHistoryImportsImportIdRoute: typeof AppSalesHistoryImportsImportIdRoute
@@ -365,6 +385,7 @@ interface AppSalesHistoryRouteChildren {
 
 const AppSalesHistoryRouteChildren: AppSalesHistoryRouteChildren = {
   AppSalesHistoryRightsRoute: AppSalesHistoryRightsRoute,
+  AppSalesHistorySearchRoute: AppSalesHistorySearchRoute,
   AppSalesHistoryIndexRoute: AppSalesHistoryIndexRoute,
   AppSalesHistoryDealsDealRecordIdRoute: AppSalesHistoryDealsDealRecordIdRoute,
   AppSalesHistoryImportsImportIdRoute: AppSalesHistoryImportsImportIdRoute,

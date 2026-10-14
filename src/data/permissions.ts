@@ -3,6 +3,7 @@ import {
   type InvitableRole,
   type Role,
   roleAtLeast,
+  SEARCH_ROUTES,
 } from 'tula-closeline-contract'
 
 /** The plain word for each role. */
@@ -30,6 +31,8 @@ export const can = {
   managePlaybook: (role: Role) => roleAtLeast(role, 'admin'),
   /** Owner and Admin see and manage sales history (Deals, imports, Calls, the rights confirmation); Manager and Rep never reach it. */
   manageSalesHistory: (role: Role) => roleAtLeast(role, 'admin'),
+  /** The roles the contract gives the search route (Owner and Admin) search the Moments of won Deals. */
+  searchWonDeals: (role: Role) => SEARCH_ROUTES.searchMoments.roles.includes(role),
 }
 
 /** The roles an Invitation may offer: an Owner offers Admin, Manager or Rep; an Admin Manager or Rep. */

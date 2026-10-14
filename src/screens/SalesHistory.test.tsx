@@ -60,7 +60,7 @@ describe('Sales history: Owner and Admin only', () => {
         within(menu)
           .getAllByRole('link')
           .map((link) => link.textContent)
-      ).toEqual(['Overview', 'Deals', 'Imports', 'Calls', 'Rights confirmation'])
+      ).toEqual(['Overview', 'Deals', 'Imports', 'Calls', 'Rights confirmation', 'Search'])
     }
   )
 })
