@@ -5,8 +5,12 @@ import { emailSchema, organizationNameSchema } from 'tula-closeline-contract'
 import { CLIENT_ERRORS, clientError } from '~/api/errors'
 import { type FieldName, present } from '~/api/messages'
 import { useApp } from '~/app-context'
+import { AuthTitle } from '~/components/app/auth-title'
+import { SocialSignIn } from '~/components/app/social-sign-in'
+import { Button } from '~/components/ui/button'
 import { Banner } from '~/ui/Banner'
 import { Field } from '~/ui/Field'
+import { SubmitButton } from '~/ui/SubmitButton'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { useFocusOnError } from '~/ui/useFocusOnError'
 import { useSubmit } from '~/ui/useSubmit'
@@ -185,13 +189,19 @@ export function SignUpScreen() {
   if (step === 'code' && attempt !== null) {
     return (
       <>
-        <h1 tabIndex={-1} ref={headingRef}>
+        <AuthTitle
+          focusable
+          headingRef={headingRef}
+          description={
+            <>
+              If this address can be used to sign up, we emailed a 6-digit code to{' '}
+              <strong className='text-foreground'>{attempt.destination}</strong>. Enter it below. It
+              works for 10 minutes.
+            </>
+          }
+        >
           Check your email
-        </h1>
-        <p>
-          If this address can be used to sign up, we emailed a 6-digit code to{' '}
-          <strong>{attempt.destination}</strong>. Enter it below. It works for 10 minutes.
-        </p>
+        </AuthTitle>
         <form ref={formRef} onSubmit={onCode} noValidate>
           {banner}
           {notice ? <Banner kind='info'>{notice}</Banner> : null}
@@ -205,17 +215,18 @@ export function SignUpScreen() {
             onChange={(event) => setCode(event.target.value)}
             error={errors.fields.code}
           />
-          <button type='submit' className='button' aria-disabled={verify.pending}>
+          <SubmitButton pending={verify.pending} className='w-full' size='lg'>
             {verify.pending ? 'Checking...' : 'Continue'}
-          </button>
+          </SubmitButton>
         </form>
-        <div className='actions'>
-          <button type='button' className='link' onClick={resend} aria-disabled={resending}>
+        <div className='mt-6 flex flex-wrap items-center justify-between gap-2'>
+          <Button type='button' variant='link' size='sm' onClick={resend} aria-disabled={resending}>
             Send a new code
-          </button>
-          <button
+          </Button>
+          <Button
             type='button'
-            className='link'
+            variant='link'
+            size='sm'
             onClick={() => {
               setAttempt(null)
               setErrors({ fields: {} })
@@ -223,7 +234,7 @@ export function SignUpScreen() {
             }}
           >
             Use a different address
-          </button>
+          </Button>
         </div>
       </>
     )
@@ -235,14 +246,18 @@ export function SignUpScreen() {
     : undefined
   return (
     <>
-      <h1 tabIndex={-1} ref={headingRef}>
+      <AuthTitle
+        focusable
+        headingRef={headingRef}
+        description={
+          invited
+            ? 'You were invited to join an Organization on Closeline. Enter your details to accept.'
+            : 'Sign up to set up your Organization on Closeline. You will be its Owner.'
+        }
+      >
         {invited ? 'Accept your Invitation' : 'Create your Organization'}
-      </h1>
-      <p>
-        {invited
-          ? 'You were invited to join an Organization on Closeline. Enter your details to accept.'
-          : 'Sign up to set up your Organization on Closeline. You will be its Owner.'}
-      </p>
+      </AuthTitle>
+      <SocialSignIn />
       <form ref={formRef} onSubmit={onDetails} noValidate>
         {banner}
         {invitation.status === 'malformed' && !errors.form ? (
@@ -296,15 +311,16 @@ export function SignUpScreen() {
           value={lastName}
           onChange={(event) => setLastName(event.target.value)}
         />
-        <button type='submit' className='button' aria-disabled={start.pending}>
+        <SubmitButton pending={start.pending} className='w-full' size='lg'>
           {start.pending ? 'Sending a code...' : 'Email me a code'}
-        </button>
+        </SubmitButton>
       </form>
-      <div className='actions'>
+      <div className='mt-6 flex flex-wrap items-center justify-between gap-2 text-sm'>
         {invited || invitation.status === 'malformed' ? (
-          <button
+          <Button
             type='button'
-            className='link'
+            variant='link'
+            size='sm'
             onClick={() => {
               app.invitation.clear()
               setInvitation({ status: 'none' })
@@ -312,9 +328,14 @@ export function SignUpScreen() {
             }}
           >
             Create an Organization instead
-          </button>
+          </Button>
         ) : null}
-        <Link to='/sign-in'>Sign in instead</Link>
+        <Link
+          to='/sign-in'
+          className='font-semibold text-primary underline-offset-4 hover:underline'
+        >
+          Sign in instead
+        </Link>
       </div>
     </>
   )

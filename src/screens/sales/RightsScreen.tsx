@@ -4,6 +4,7 @@ import type { RightsWording } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS } from '~/api/errors'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
+import { PageHeader } from '~/components/app/page-header'
 import { refresh, useRights } from '~/data/queries'
 import { parseBackPath } from '~/data/sales-history'
 import { Banner } from '~/ui/Banner'
@@ -61,7 +62,7 @@ export function RightsScreen() {
 
   return (
     <>
-      <h1>Rights confirmation</h1>
+      <PageHeader title='Rights confirmation' />
       <p role='status' aria-label='Notice' className='notice'>
         {notice}
       </p>

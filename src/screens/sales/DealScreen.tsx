@@ -3,6 +3,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { calendarDateSchema, OUTCOMES, type Outcome, outcomeSchema } from 'tula-closeline-contract'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
+import { PageHeader } from '~/components/app/page-header'
+import { StatusBadge } from '~/components/app/status-badge'
 import { refresh, useDeal } from '~/data/queries'
 import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
 import { Money } from '~/screens/sales/DealsScreen'
@@ -24,10 +26,14 @@ export function DealScreen() {
   const deal = useDeal(dealRecordId)
   return (
     <>
-      <h1>Deal</h1>
-      <p>
-        <Link to='/sales-history/deals'>Back to Deals</Link>
-      </p>
+      <PageHeader
+        title='Deal'
+        actions={
+          <Link to='/sales-history/deals' className='button button-quiet'>
+            Back to Deals
+          </Link>
+        }
+      />
       {deal.isPending ? (
         <p role='status' className='hint'>
           Loading...
@@ -51,7 +57,9 @@ export function DealScreen() {
             <dt>Name</dt>
             <dd>{deal.data.name === null ? '-' : <Untrusted value={deal.data.name} />}</dd>
             <dt>Current Outcome</dt>
-            <dd>{outcomeLabel(deal.data.outcome)}</dd>
+            <dd>
+              <StatusBadge state={deal.data.outcome}>{outcomeLabel(deal.data.outcome)}</StatusBadge>
+            </dd>
             <dt>Closed</dt>
             <dd>{deal.data.closedAt === null ? '-' : <DateOnly value={deal.data.closedAt} />}</dd>
             <dt>Amount</dt>

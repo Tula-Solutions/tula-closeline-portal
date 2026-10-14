@@ -4,6 +4,7 @@ import { ApiError } from '~/api/errors'
 import { fingerprint } from '~/api/idempotency'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
+import { PageHeader } from '~/components/app/page-header'
 import { can } from '~/data/permissions'
 import { refresh, useMembers, useTeams } from '~/data/queries'
 import { useRole } from '~/data/session-role'
@@ -39,9 +40,12 @@ export function TeamsScreen() {
   const manage = can.manageTeams(role)
   return (
     <>
-      <h1 tabIndex={-1} ref={headingRef}>
-        Teams
-      </h1>
+      <PageHeader
+        title='Teams'
+        description='Group Reps into Teams so a Manager can see how each one is doing.'
+        headingRef={headingRef}
+        headingProps={{ tabIndex: -1 }}
+      />
       {manage ? <CreateTeamForm onDone={feedback.done} onFail={feedback.failed} /> : null}
       <p role='status' className='notice'>
         {feedback.notice}

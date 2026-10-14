@@ -6,7 +6,12 @@ import { boot } from '~/boot'
 import { EnvError } from '~/env'
 import { createAppRouter } from '~/router'
 import { createBroadcastSessionChannel } from '~/session/session'
+import '~/index.css'
 import '~/styles.css'
+import { startTheme } from '~/ui/theme'
+
+// The theme is set before the first paint, so there is no flash of the other one.
+startTheme()
 
 // The Content-Security-Policy forbids eval, so Zod must not try to compile its validators.
 z.config({ jitless: true })

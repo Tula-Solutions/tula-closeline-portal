@@ -2,6 +2,8 @@ import { getRouteApi, Link } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import type { DealImportRow } from 'tula-closeline-contract'
 import { presentSales } from '~/api/sales-messages'
+import { PageHeader } from '~/components/app/page-header'
+import { StatusBadge } from '~/components/app/status-badge'
 import { csvLine } from '~/data/csv-export'
 import { useDealImport, useImportRows } from '~/data/queries'
 import {
@@ -31,10 +33,14 @@ export function ImportScreen() {
   const poll = usePendingPoll(pending ? [importId] : [], item.refetch, SALES_POLL_SCHEDULE_MS)
   return (
     <>
-      <h1>Deal import</h1>
-      <p>
-        <Link to='/sales-history/imports'>Back to imports</Link>
-      </p>
+      <PageHeader
+        title='Deal import'
+        actions={
+          <Link to='/sales-history/imports' className='button button-quiet'>
+            Back to imports
+          </Link>
+        }
+      />
       {item.isPending ? (
         <p role='status' className='hint'>
           Loading...
@@ -149,7 +155,11 @@ function Report(props: { readonly importId: string }) {
                 <tr key={row.rowNumber}>
                   <td>{row.rowNumber}</td>
                   <td>{row.dealId === null ? '-' : <Untrusted value={row.dealId} />}</td>
-                  <td>{row.result === 'applied' ? 'Applied' : 'Rejected'}</td>
+                  <td>
+                    <StatusBadge state={row.result === 'applied' ? 'completed' : 'failed'}>
+                      {row.result === 'applied' ? 'Applied' : 'Rejected'}
+                    </StatusBadge>
+                  </td>
                   <td>{row.reason === null ? '' : rowReasonWords(row.reason)}</td>
                 </tr>
               ))}

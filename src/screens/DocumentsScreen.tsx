@@ -7,6 +7,8 @@ import {
 } from 'tula-closeline-contract'
 import { presentDocument } from '~/api/playbook-messages'
 import { useApp } from '~/app-context'
+import { PageHeader } from '~/components/app/page-header'
+import { StatusBadge } from '~/components/app/status-badge'
 import {
   FILTER_LABEL,
   failureWords,
@@ -63,10 +65,12 @@ function DocumentsView(props: { readonly manage: boolean }) {
   )
   return (
     <>
-      <h1 tabIndex={-1} ref={headingRef}>
-        Playbook
-      </h1>
-      <p>The documents your Organization's sales knowledge comes from.</p>
+      <PageHeader
+        title='Playbook'
+        description="The documents your Organization's sales knowledge comes from."
+        headingRef={headingRef}
+        headingProps={{ tabIndex: -1 }}
+      />
       {props.manage ? <UploadSection /> : null}
       <SelectField
         label='Show'
@@ -174,7 +178,7 @@ function DocumentRow(props: {
       <td>{typeLabel(document.mediaType)}</td>
       <td>{formatBytes(document.sizeBytes)}</td>
       <td>
-        <span>{stateLabel(document.state)}</span>
+        <StatusBadge state={document.state}>{stateLabel(document.state)}</StatusBadge>
         {document.failureReason === null ? null : (
           <p className='hint'>{failureWords(document.failureReason)}</p>
         )}

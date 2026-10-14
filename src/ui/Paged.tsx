@@ -1,5 +1,9 @@
+import { Inbox, type LucideIcon, RotateCw } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { presentManage } from '~/api/manage-messages'
+import { EmptyState } from '~/components/app/empty-state'
+import { Button } from '~/components/ui/button'
+import { Skeleton } from '~/components/ui/skeleton'
 import { Banner } from '~/ui/Banner'
 
 /** The state of a paginated list as the screen needs it. */
@@ -24,39 +28,58 @@ export function Paged(props: {
   readonly emptyText: string
   readonly state: PagedState
   readonly children: ReactNode
+  readonly emptyIcon?: LucideIcon
+  /** What to do about an empty list, such as the button that adds the first one. */
+  readonly emptyAction?: ReactNode
 }) {
   const { state, noun } = props
   if (state.isPending) {
     return (
-      <p role='status' className='hint'>
-        Loading {noun}...
-      </p>
+      <div>
+        <p role='status' className='sr-only'>
+          Loading {noun}...
+        </p>
+        <div aria-hidden='true' className='flex flex-col gap-3 rounded-xl border bg-card p-4'>
+          <Skeleton className='h-5 w-1/3' />
+          <Skeleton className='h-10 w-full' />
+          <Skeleton className='h-10 w-full' />
+          <Skeleton className='h-10 w-5/6' />
+        </div>
+      </div>
     )
   }
   if (state.isError && !state.hasData) {
     return (
       <div>
         <Banner kind='error'>{presentManage(state.error).message}</Banner>
-        <p>
-          <button type='button' className='button button-quiet' onClick={() => state.refetch()}>
-            Try again
-          </button>
-        </p>
+        <Button variant='outline' onClick={() => state.refetch()}>
+          <RotateCw aria-hidden='true' />
+          Try again
+        </Button>
       </div>
     )
   }
   if (state.isEmpty) {
-    return <p>{props.emptyText}</p>
+    return (
+      <EmptyState
+        icon={props.emptyIcon ?? Inbox}
+        title={props.emptyText}
+        action={props.emptyAction}
+      />
+    )
   }
   return (
     <>
       {props.children}
-      {state.isError ? <Banner kind='error'>{presentManage(state.error).message}</Banner> : null}
+      {state.isError ? (
+        <Banner kind='error' className='mt-4'>
+          {presentManage(state.error).message}
+        </Banner>
+      ) : null}
       {state.hasNextPage ? (
-        <p>
-          <button
-            type='button'
-            className='button button-quiet'
+        <div className='mt-4 flex justify-center'>
+          <Button
+            variant='outline'
             aria-disabled={state.isFetchingNextPage}
             onClick={() => {
               if (!state.isFetchingNextPage) {
@@ -65,8 +88,8 @@ export function Paged(props: {
             }}
           >
             {state.isFetchingNextPage ? 'Loading...' : `Load more ${noun}`}
-          </button>
-        </p>
+          </Button>
+        </div>
       ) : null}
     </>
   )

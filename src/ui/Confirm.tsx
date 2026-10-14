@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { Button } from '~/components/ui/button'
 
 /**
  * A button that asks before it acts. Opening moves focus to Cancel (the safe choice); Escape or
@@ -35,10 +36,11 @@ export function Confirm(props: {
   }
   if (!open) {
     return (
-      <button
+      <Button
         type='button'
+        variant='outline'
+        size='sm'
         ref={trigger}
-        className='button button-quiet'
         aria-label={props.pending ? props.pendingAccessibleName : props.accessibleName}
         aria-describedby={props.describedBy}
         aria-disabled={props.pending}
@@ -49,12 +51,12 @@ export function Confirm(props: {
         }}
       >
         {props.pending ? props.pendingLabel : props.label}
-      </button>
+      </Button>
     )
   }
   return (
     <fieldset
-      className='confirm'
+      className='confirm flex min-w-56 flex-col gap-3 rounded-lg border border-warning/40 bg-warning-soft p-3 text-sm text-warning'
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           close()
@@ -63,19 +65,22 @@ export function Confirm(props: {
     >
       <legend className='sr-only'>{props.accessibleName}</legend>
       <p>{props.question}</p>
-      <button
-        type='button'
-        className='button'
-        onClick={() => {
-          props.onConfirm()
-          close()
-        }}
-      >
-        {props.confirmLabel}
-      </button>{' '}
-      <button type='button' ref={cancel} className='button button-quiet' onClick={close}>
-        Cancel
-      </button>
+      <div className='flex flex-wrap gap-2'>
+        <Button
+          type='button'
+          variant='destructive'
+          size='sm'
+          onClick={() => {
+            props.onConfirm()
+            close()
+          }}
+        >
+          {props.confirmLabel}
+        </Button>
+        <Button type='button' variant='outline' size='sm' ref={cancel} onClick={close}>
+          Cancel
+        </Button>
+      </div>
     </fieldset>
   )
 }

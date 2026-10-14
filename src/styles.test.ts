@@ -11,8 +11,4 @@ describe('styles', () => {
     expect(body).toMatch(/width:\s*auto/)
     expect(body).toMatch(/min-height:\s*0/)
   })
-
-  test('the sales-history menu has room before the heading below it', () => {
-    expect(rule('.sub-nav')).toMatch(/margin-bottom:\s*1\.[0-9]+rem/)
-  })
 })

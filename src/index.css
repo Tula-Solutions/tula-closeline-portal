@@ -1,0 +1,150 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/jetbrains-mono";
+
+/* Dark mode follows the `dark` class on <html>, set from the theme choice (see ~/ui/theme.ts). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Closeline colour tokens (shadcn names). Brand: ink #1A1A18 and paper #F1EFE8. One accent, a
+ * cobalt, for primary actions, links and focus. Every text pair below is checked to WCAG AA
+ * (4.5:1), and the input border to 3:1 against its surface.
+ */
+:root {
+  --radius: 0.625rem;
+  --background: #f1efe8;
+  --foreground: #1a1a18;
+  --card: #fbfaf6;
+  --card-foreground: #1a1a18;
+  --popover: #fbfaf6;
+  --popover-foreground: #1a1a18;
+  --primary: #1f4fc7;
+  --primary-foreground: #ffffff;
+  --secondary: #e6e3d8;
+  --secondary-foreground: #1a1a18;
+  --muted: #e6e3d8;
+  --muted-foreground: #58564e;
+  --accent: #e6e3d8;
+  --accent-foreground: #1a1a18;
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+  --border: #d6d2c4;
+  --input: #85816f;
+  --ring: #1f4fc7;
+  --success: #14663a;
+  --success-soft: #dcefe2;
+  --warning: #7a4a00;
+  --warning-soft: #f8e7bf;
+  --danger: #b3261e;
+  --danger-soft: #f7dad6;
+  --info: #1c5c8f;
+  --info-soft: #d9e8f5;
+  --sidebar: #ebe8dd;
+  --sidebar-foreground: #1a1a18;
+  --sidebar-accent: #dedbcd;
+  --sidebar-border: #d6d2c4;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #1a1a18;
+  --foreground: #f1efe8;
+  --card: #232321;
+  --card-foreground: #f1efe8;
+  --popover: #262624;
+  --popover-foreground: #f1efe8;
+  --primary: #8daeff;
+  --primary-foreground: #10131f;
+  --secondary: #2e2e2b;
+  --secondary-foreground: #f1efe8;
+  --muted: #2e2e2b;
+  --muted-foreground: #a9a69a;
+  --accent: #2e2e2b;
+  --accent-foreground: #f1efe8;
+  --destructive: #ff8f86;
+  --destructive-foreground: #2a0f0c;
+  --border: #3d3c37;
+  --input: #7a776c;
+  --ring: #8daeff;
+  --success: #6fd39a;
+  --success-soft: #16301f;
+  --warning: #f2c14e;
+  --warning-soft: #3a2d0b;
+  --danger: #ff8f86;
+  --danger-soft: #3f1815;
+  --info: #7fc0f2;
+  --info-soft: #12293d;
+  --sidebar: #151514;
+  --sidebar-foreground: #f1efe8;
+  --sidebar-accent: #2a2a27;
+  --sidebar-border: #33322e;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    overflow-wrap: anywhere;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+  }
+}

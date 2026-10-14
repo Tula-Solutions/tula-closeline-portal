@@ -12,6 +12,8 @@ import {
 import { isUnreadable } from '~/api/sales-history'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
+import { PageHeader } from '~/components/app/page-header'
+import { StatusBadge } from '~/components/app/status-badge'
 import { refresh, useCallSpeakers, useCalls, useDeal, useRights } from '~/data/queries'
 import {
   CALL_FILTER_LABEL,
@@ -58,13 +60,12 @@ export function CallsScreen() {
   )
   return (
     <>
-      <h1 tabIndex={-1} ref={headingRef}>
-        Calls
-      </h1>
-      <p>
-        A Call is one past conversation, uploaded as a Transcript or a Recording for a Deal. Only
-        ready Calls of won Deals are used in search.
-      </p>
+      <PageHeader
+        title='Calls'
+        description='A Call is one past conversation, uploaded as a Transcript or a Recording for a Deal. Only ready Calls of won Deals are used in search.'
+        headingRef={headingRef}
+        headingProps={{ tabIndex: -1 }}
+      />
       <RightsNotice />
       <CallUpload />
       <RecordingUpload />
@@ -238,7 +239,7 @@ function CallRow(props: {
         </Link>
       </td>
       <td>
-        <span>{callStateLabel(call.state)}</span>
+        <StatusBadge state={call.state}>{callStateLabel(call.state)}</StatusBadge>
         {call.state === 'awaiting_rep' ? (
           <p className='hint'>
             Transcribed. Choose which speaker is the Rep with Change Rep, so the Call can be

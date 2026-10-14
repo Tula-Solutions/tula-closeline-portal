@@ -1,6 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { type DragEvent, useState } from 'react'
 import { MAX_DEAL_IMPORT_ROWS } from 'tula-closeline-contract'
+import { PageHeader } from '~/components/app/page-header'
+import { StatusBadge } from '~/components/app/status-badge'
 import { useDealImports } from '~/data/queries'
 import {
   dealImportTemplate,
@@ -33,11 +35,10 @@ export function ImportsScreen() {
   )
   return (
     <>
-      <h1>Deal imports</h1>
-      <p>
-        Upload a CSV with one row per Deal to set each Deal's Outcome in bulk. Each import gets a
-        report that says what happened to every row.
-      </p>
+      <PageHeader
+        title='Deal imports'
+        description="Upload a CSV with one row per Deal to set each Deal's Outcome in bulk. Each import gets a report that says what happened to every row."
+      />
       <TemplateLink />
       <UploadSection />
       {poll.paused ? (
@@ -68,7 +69,9 @@ export function ImportsScreen() {
                   <th scope='row'>
                     <When iso={item.createdAt} />
                   </th>
-                  <td>{importStateLabel(item.state)}</td>
+                  <td>
+                    <StatusBadge state={item.state}>{importStateLabel(item.state)}</StatusBadge>
+                  </td>
                   <td>{item.rowCount ?? '-'}</td>
                   <td>{item.appliedCount ?? '-'}</td>
                   <td>{item.rejectedCount ?? '-'}</td>

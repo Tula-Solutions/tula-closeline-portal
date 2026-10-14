@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { presentSales } from '~/api/sales-messages'
+import { PageHeader } from '~/components/app/page-header'
 import { useRights } from '~/data/queries'
 import { Banner } from '~/ui/Banner'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
@@ -10,11 +11,10 @@ export function SalesOverview() {
   const rights = useRights(true)
   return (
     <>
-      <h1>Sales history</h1>
-      <p>
-        Past Deals and their Calls teach your Playbook what winning looks like. Only Calls from won
-        Deals are used in search.
-      </p>
+      <PageHeader
+        title='Sales history'
+        description='Past Deals and their Calls teach your Playbook what winning looks like. Only Calls from won Deals are used in search.'
+      />
       {rights.isPending ? (
         <p role='status' className='hint'>
           Loading...
