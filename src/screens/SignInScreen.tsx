@@ -35,6 +35,13 @@ export function SignInScreen() {
   // A failed Google sign-in comes back as `?error=<code>`: show it, then take it out of the address.
   const code = googleErrorCode(search.error)
   const [googleError] = useState(() => (code === undefined ? null : presentGoogleError(code)))
+  // The failure message takes focus on arrival so a screen reader reads it first.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, on arrival
+  useEffect(() => {
+    if (googleError !== null) {
+      bannerRef.current?.focus()
+    }
+  }, [])
   const hasError = search.error !== undefined
   useEffect(() => {
     if (hasError) {

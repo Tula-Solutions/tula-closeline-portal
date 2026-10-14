@@ -40,6 +40,16 @@ describe('the Continue with Google button', () => {
     expect(await screen.findByRole('button', BUTTON)).toBeTruthy()
   })
 
+  test('is hidden on sign-up while an Invitation is held or malformed, so invited people use the email form', async () => {
+    for (const hash of ['Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5', 'bad token!']) {
+      const { calls } = renderPortal({ url: `/sign-up#invitation=${hash}`, handlers: [on] })
+      expect(await screen.findByLabelText('Email address')).toBeTruthy()
+      expect(screen.queryByRole('button', BUTTON)).toBeNull()
+      expect(calls.some((call) => call.path === OPTIONS)).toBe(false)
+      cleanup()
+    }
+  })
+
   test('starts the flow with the intent and goes to Google', async () => {
     const assigned: string[] = []
     const portal = renderPortal({
@@ -92,6 +102,22 @@ describe('the Continue with Google button', () => {
     await first.user.click(await screen.findByRole('button', BUTTON))
     await screen.findByText(/could not start the sign-in with Google/i)
     expect(refused).toEqual([])
+  })
+
+  test('the fake issuer must be plain http, and its host is matched in lower case', async () => {
+    const assigned: string[] = []
+    const portal = renderPortal({
+      url: '/sign-in',
+      assign: (url) => assigned.push(url),
+      googleFakeIssuerHost: '127.0.0.1:3015',
+      handlers: [
+        on,
+        route('POST', START, json(200, { authorizationUrl: 'https://127.0.0.1:3015/authorize' })),
+      ],
+    })
+    await portal.user.click(await screen.findByRole('button', BUTTON))
+    await screen.findByText(/could not start the sign-in with Google/i)
+    expect(assigned).toEqual([])
   })
 
   test('with the fake issuer configured it goes there', async () => {
@@ -191,34 +217,6 @@ describe('the Google sign-up step', () => {
     expect(document.cookie).not.toContain('access-1')
   })
 
-  test('takes the Invitation instead of a name when it came from an Invitation link', async () => {
-    const token = 'Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5'
-    const portal = renderPortal({
-      url: `${url}#invitation=${token}`,
-      handlers: [route('POST', COMPLETE, json(200, completeBody('sign_up')))],
-    })
-    expect(screen.queryByLabelText('Organization name')).toBeNull()
-    await portal.user.click(await screen.findByRole('button', { name: 'Accept Invitation' }))
-    expect(await screen.findByRole('heading', { name: 'Home' })).toBeTruthy()
-    expect(portal.calls.find((c) => c.path === COMPLETE)?.body).toEqual({
-      attemptId: attempt,
-      invitationToken: token,
-    })
-    expect(window.location.href).not.toContain(token)
-  })
-
-  test('a Google account for another address than the Invitation says so and offers a fresh start', async () => {
-    const portal = renderPortal({
-      url: `${url}#invitation=Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5`,
-      handlers: [
-        route('POST', COMPLETE, failure(403, AUTH_ERRORS['oidc.invitation_mismatch'].code)),
-      ],
-    })
-    await portal.user.click(await screen.findByRole('button', { name: 'Accept Invitation' }))
-    expect(await screen.findByText(/different email address/)).toBeTruthy()
-    expect(portal.app.session.getSnapshot().status).not.toBe('signed_in')
-  })
-
   test('an expired or used attempt tells the person to start again', async () => {
     const portal = renderPortal({
       url,
@@ -228,6 +226,35 @@ describe('the Google sign-up step', () => {
     await portal.user.click(screen.getByRole('button', { name: 'Create Organization' }))
     expect(await screen.findByText(/expired or was already used/)).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Start again' }).getAttribute('href')).toBe('/sign-up')
+  })
+
+  test('after an expired attempt or a lost connection it also offers to sign in with Google, as the account may exist', async () => {
+    for (const answer of [
+      failure(400, AUTH_ERRORS['oidc.state_invalid'].code),
+      failure(500, 'server.internal'),
+    ]) {
+      const portal = renderPortal({ url, handlers: [route('POST', COMPLETE, answer)] })
+      await portal.user.type(await screen.findByLabelText('Organization name'), 'Northline')
+      await portal.user.click(screen.getByRole('button', { name: 'Create Organization' }))
+      await screen.findByRole('alert')
+      if (answer.status === 400) {
+        expect(screen.getByRole('link', { name: 'Sign in with Google' }).getAttribute('href')).toBe(
+          '/sign-in'
+        )
+        expect(screen.getByRole('link', { name: 'Start again' })).toBeTruthy()
+      }
+      cleanup()
+    }
+  })
+
+  test('a lost connection offers it too', async () => {
+    const portal = renderPortal({
+      url,
+      handlers: [route('POST', COMPLETE, () => Promise.reject(new TypeError('Failed to fetch')))],
+    })
+    await portal.user.type(await screen.findByLabelText('Organization name'), 'Northline')
+    await portal.user.click(screen.getByRole('button', { name: 'Create Organization' }))
+    expect(await screen.findByRole('link', { name: 'Sign in with Google' })).toBeTruthy()
   })
 
   test('an Organization name the service refuses is shown at the field', async () => {
@@ -246,5 +273,42 @@ describe('the Google sign-up step', () => {
     renderPortal({ url: '/sign-up/google', handlers: [] })
     expect(await screen.findByText(/This Google sign-in cannot continue/)).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Start again' }).getAttribute('href')).toBe('/sign-up')
+  })
+})
+
+describe('focus and announcements', () => {
+  test('the pending state is announced politely and a second click does not start another attempt', async () => {
+    let release: (response: Response) => void = () => {}
+    const portal = renderPortal({
+      url: '/sign-in',
+      handlers: [
+        on,
+        route('POST', START, () => new Promise<Response>((resolve) => (release = resolve))),
+      ],
+    })
+    const button = await screen.findByRole('button', BUTTON)
+    await portal.user.click(button)
+    const status = await screen.findByRole('status')
+    expect(status.textContent).toContain('Opening Google')
+    expect(button.getAttribute('aria-disabled')).toBe('true')
+    await portal.user.click(button)
+    expect(portal.calls.filter((call) => call.path === START)).toHaveLength(1)
+    release(json(200, { authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth?x=1' }))
+  })
+
+  test('a Google failure on the sign-in page takes focus', async () => {
+    renderPortal({ url: '/sign-in?error=oidc.state_invalid', handlers: [on] })
+    const message = await screen.findByText(/expired or was already used/)
+    await waitFor(() => {
+      const active = document.activeElement
+      expect(active).not.toBe(document.body)
+      expect(active?.contains(message)).toBe(true)
+    })
+  })
+
+  test('the sign-up step moves focus to its heading', async () => {
+    renderPortal({ url: '/sign-up/google?attempt=att_1', handlers: [] })
+    const heading = await screen.findByRole('heading', { name: 'Finish signing up' })
+    await waitFor(() => expect(document.activeElement).toBe(heading))
   })
 })

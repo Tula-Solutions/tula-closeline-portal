@@ -41,13 +41,14 @@ export function GoogleGlyph(props: { readonly className?: string }) {
  * Whether Google sign-in is on, from the auth service's options. Any failure means off, so a
  * button that would only fail is never shown; the options are read once and kept.
  */
-export function useGoogleEnabled(): boolean {
+export function useGoogleEnabled(wanted = true): boolean {
   const app = useApp()
   const options = useQuery({
     queryKey: ['auth-options'],
     queryFn: ({ signal }) => app.auth.authOptions(signal),
     staleTime: Number.POSITIVE_INFINITY,
     retry: false,
+    enabled: wanted,
   })
   return options.data?.providers.google === true
 }
@@ -106,8 +107,11 @@ export function GoogleButton(props: { readonly intent: GoogleIntent; readonly re
         onClick={() => void go()}
       >
         <GoogleGlyph />
-        {pending ? 'Opening Google...' : 'Continue with Google'}
+        Continue with Google
       </Button>
+      <span role='status' className='sr-only'>
+        {pending ? 'Opening Google...' : ''}
+      </span>
       {error === null ? null : (
         <p role='alert' className='m-0 text-sm font-medium text-danger'>
           <strong>Error:</strong> {error}

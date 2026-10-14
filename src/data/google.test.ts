@@ -25,6 +25,10 @@ describe('the authorization URL allow-list', () => {
     expect(allowedAuthorizationUrl(url, undefined)).toBeNull()
   })
 
+  test('the fake issuer must be plain http', () => {
+    expect(allowedAuthorizationUrl('https://127.0.0.1:3015/authorize', '127.0.0.1:3015')).toBeNull()
+  })
+
   test('accepts the configured fake issuer host and port only', () => {
     expect(
       allowedAuthorizationUrl('http://127.0.0.1:3015/authorize?x=1', '127.0.0.1:3015')

@@ -28,7 +28,8 @@ export function allowedAuthorizationUrl(
   if (url.protocol === 'https:' && url.host === GOOGLE_HOST) {
     return url
   }
-  if (fakeIssuerHost !== undefined && url.host === fakeIssuerHost) {
+  // The fake issuer speaks plain http on loopback; it is never reached over https.
+  if (fakeIssuerHost !== undefined && url.protocol === 'http:' && url.host === fakeIssuerHost) {
     return url
   }
   return null

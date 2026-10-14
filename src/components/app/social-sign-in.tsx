@@ -5,9 +5,14 @@ import { GoogleButton, useGoogleEnabled } from '~/components/app/google-button'
  * The "Continue with Google" button above an email form, with an "or" divider. It renders nothing
  * unless the auth service says Google sign-in is on (`GET /v1/client/auth-options`).
  */
-export function SocialSignIn(props: { readonly intent: GoogleIntent; readonly returnTo?: string }) {
-  const enabled = useGoogleEnabled()
-  if (!enabled) {
+export function SocialSignIn(props: {
+  readonly intent: GoogleIntent
+  readonly returnTo?: string
+  /** Hides the button whatever the options say: an Invitation is held, and it would not survive the trip to Google. */
+  readonly suppressed?: boolean
+}) {
+  const enabled = useGoogleEnabled(props.suppressed !== true)
+  if (!enabled || props.suppressed === true) {
     return null
   }
   return (

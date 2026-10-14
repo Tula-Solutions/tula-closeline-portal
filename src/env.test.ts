@@ -88,6 +88,13 @@ describe('the fake Google issuer host', () => {
     ).toThrow('VITE_GOOGLE_FAKE_ISSUER_HOST')
   })
 
+  test('is lower-cased, because a URL host always is', () => {
+    expect(
+      parseEnv({ VITE_ENVIRONMENT: 'local', VITE_GOOGLE_FAKE_ISSUER_HOST: 'LocalHost:3015' })
+        .googleFakeIssuerHost
+    ).toBe('localhost:3015')
+  })
+
   test('must be a host, not a URL', () => {
     expect(() =>
       parseEnv({

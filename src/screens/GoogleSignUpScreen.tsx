@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
-import { type FormEvent, useRef, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { organizationNameSchema } from 'tula-closeline-contract'
-import { CLIENT_ERRORS, clientError } from '~/api/errors'
+import { ApiError, CLIENT_ERRORS, clientError } from '~/api/errors'
 import { present } from '~/api/messages'
 import { useApp } from '~/app-context'
 import { AuthTitle } from '~/components/app/auth-title'
@@ -12,21 +12,30 @@ import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { useFocusOnError } from '~/ui/useFocusOnError'
 import { useSubmit } from '~/ui/useSubmit'
 
+const LINK_CLASS = 'font-semibold text-primary underline-offset-4 hover:underline'
+
 const START_AGAIN = (
-  <Link to='/sign-up' className='font-semibold text-primary underline-offset-4 hover:underline'>
+  <Link to='/sign-up' className={LINK_CLASS}>
     Start again
   </Link>
 )
 
+/** After a failed finish the account may already exist (the call can succeed and its answer be lost), so signing in is offered too. */
+const SIGN_IN_INSTEAD = (
+  <Link to='/sign-in' className={LINK_CLASS}>
+    Sign in with Google
+  </Link>
+)
+
 /**
- * The step after Google has vouched for a new person: name an Organization, or accept the
- * Invitation they came with, then finish. It completes exactly like the password sign-up (the same
- * session start); the attempt secret is a cookie only auth reads, and the address carries only the
- * attempt id.
+ * The step after Google has vouched for a new person: name an Organization, then finish. It
+ * completes exactly like the password sign-up (the same session start); the attempt secret is a
+ * cookie only auth reads, and the address carries only the attempt id. An Invitation is not
+ * handled here: it lives in memory and would not survive the trip to Google, so the sign-up screen
+ * hides the Google button while one is held and invited people use the email form.
  */
 export function GoogleSignUpScreen(props: { readonly attempt: string | undefined }) {
   const app = useApp()
-  const [invitation, setInvitation] = useState(() => app.invitation.current())
   const [organizationName, setOrganizationName] = useState('')
   const [fieldError, setFieldError] = useState<string | undefined>(undefined)
   const [formError, setFormError] = useState<string | null>(null)
@@ -34,6 +43,8 @@ export function GoogleSignUpScreen(props: { readonly attempt: string | undefined
   const { formRef, bannerRef, focusFirstError } = useFocusOnError()
   const headingRef = useRef<HTMLHeadingElement>(null)
   useDocumentTitle('Finish signing up')
+  // The step's heading takes focus on arrival, so a screen reader starts there.
+  useEffect(() => headingRef.current?.focus(), [])
 
   const complete = useSubmit<void>(
     async () => {
@@ -42,24 +53,22 @@ export function GoogleSignUpScreen(props: { readonly attempt: string | undefined
       }
       const response = await app.auth.completeGoogle({
         attemptId: props.attempt,
-        ...(invitation.status === 'present'
-          ? { invitationToken: invitation.token }
-          : { organizationName: organizationNameSchema.parse(organizationName) }),
+        organizationName: organizationNameSchema.parse(organizationName),
       })
       if (response.step.status !== 'complete' || !response.session) {
         throw clientError(CLIENT_ERRORS.badResponse, 200)
       }
       app.session.start(response.session)
-      app.invitation.clear()
     },
     {
       onError(error) {
         const shown = present(error, 'sign-up')
-        if (shown.invitationRefused) {
-          app.invitation.clear()
-          setInvitation({ status: 'malformed' })
-        }
-        setAgain(shown.restart === true || shown.invitationRefused === true)
+        // The attempt is gone, or the answer was lost: the account may exist already.
+        setAgain(
+          shown.restart === true ||
+            (error instanceof ApiError &&
+              (error.code === CLIENT_ERRORS.network || error.code === CLIENT_ERRORS.timeout))
+        )
         if (shown.field === 'organizationName') {
           setFieldError(shown.message)
           setFormError(null)
@@ -91,10 +100,7 @@ export function GoogleSignUpScreen(props: { readonly attempt: string | undefined
     if (complete.pending) {
       return
     }
-    if (
-      invitation.status !== 'present' &&
-      !organizationNameSchema.safeParse(organizationName).success
-    ) {
+    if (!organizationNameSchema.safeParse(organizationName).success) {
       setFieldError('Enter a valid Organization name.')
       setFormError(null)
       focusFirstError()
@@ -105,19 +111,14 @@ export function GoogleSignUpScreen(props: { readonly attempt: string | undefined
     complete.submit()
   }
 
-  const invited = invitation.status === 'present'
   return (
     <>
       <AuthTitle
         focusable
         headingRef={headingRef}
-        description={
-          invited
-            ? 'Google confirmed your email address. Accept the Invitation to join the Organization that invited you.'
-            : 'Google confirmed your email address. Name your Organization to finish. You will be its Owner.'
-        }
+        description='Google confirmed your email address. Name your Organization to finish. You will be its Owner.'
       >
-        {invited ? 'Accept your Invitation' : 'Finish signing up'}
+        Finish signing up
       </AuthTitle>
       <form ref={formRef} onSubmit={onSubmit} noValidate>
         {formError ? (
@@ -125,27 +126,24 @@ export function GoogleSignUpScreen(props: { readonly attempt: string | undefined
             {formError}
           </Banner>
         ) : null}
-        {invited ? null : (
-          <Field
-            label='Organization name'
-            name='organizationName'
-            autoComplete='organization'
-            value={organizationName}
-            onChange={(event) => setOrganizationName(event.target.value)}
-            error={fieldError}
-          />
-        )}
+        <Field
+          label='Organization name'
+          name='organizationName'
+          autoComplete='organization'
+          value={organizationName}
+          onChange={(event) => setOrganizationName(event.target.value)}
+          error={fieldError}
+        />
         <SubmitButton pending={complete.pending} className='w-full' size='lg'>
-          {invited
-            ? complete.pending
-              ? 'Accepting...'
-              : 'Accept Invitation'
-            : complete.pending
-              ? 'Creating...'
-              : 'Create Organization'}
+          {complete.pending ? 'Creating...' : 'Create Organization'}
         </SubmitButton>
       </form>
-      {again ? <p className='mt-6 text-center text-sm'>{START_AGAIN}</p> : null}
+      {again ? (
+        <p className='mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-center text-sm'>
+          {SIGN_IN_INSTEAD}
+          {START_AGAIN}
+        </p>
+      ) : null}
     </>
   )
 }

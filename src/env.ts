@@ -29,7 +29,8 @@ const envSchema = z
     VITE_ENVIRONMENT: z.enum(ENVIRONMENTS, `must be one of ${ENVIRONMENTS.join(', ')}`),
     VITE_SENTRY_DSN: dsnSchema,
     VITE_RELEASE: optionalString,
-    VITE_GOOGLE_FAKE_ISSUER_HOST: optionalString,
+    // A URL host is always lower case, so the configured one is too (or it could never match).
+    VITE_GOOGLE_FAKE_ISSUER_HOST: optionalString.transform((value) => value?.toLowerCase()),
   })
   .superRefine((value, ctx) => {
     if (value.VITE_GOOGLE_FAKE_ISSUER_HOST !== undefined) {

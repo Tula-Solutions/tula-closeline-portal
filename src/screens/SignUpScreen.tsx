@@ -257,7 +257,8 @@ export function SignUpScreen() {
       >
         {invited ? 'Accept your Invitation' : 'Create your Organization'}
       </AuthTitle>
-      <SocialSignIn intent='sign_up' />
+      {/* An Invitation lives in memory and would be lost on the trip to Google: invited people use this form. */}
+      <SocialSignIn intent='sign_up' suppressed={invitation.status !== 'none'} />
       <form ref={formRef} onSubmit={onDetails} noValidate>
         {banner}
         {invitation.status === 'malformed' && !errors.form ? (
