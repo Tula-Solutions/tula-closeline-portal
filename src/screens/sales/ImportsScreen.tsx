@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { FileSpreadsheet } from 'lucide-react'
 import { type DragEvent, useState } from 'react'
 import { MAX_DEAL_IMPORT_ROWS } from 'tula-closeline-contract'
 import { PageHeader } from '~/components/app/page-header'
@@ -36,6 +37,8 @@ export function ImportsScreen() {
   return (
     <>
       <PageHeader
+        icon={FileSpreadsheet}
+        eyebrow='Sales history'
         title='Deal imports'
         description="Upload a CSV with one row per Deal to set each Deal's Outcome in bulk. Each import gets a report that says what happened to every row."
       />
@@ -49,8 +52,14 @@ export function ImportsScreen() {
           </button>
         </Banner>
       ) : null}
-      <h2>Imports</h2>
-      <Paged noun='imports' emptyText='There are no imports yet.' state={imports.state}>
+      <h2 className='text-[0.9375rem] tracking-[-0.011em]'>Imports</h2>
+      <Paged
+        noun='imports'
+        emptyText='There are no imports yet.'
+        emptyIcon={FileSpreadsheet}
+        emptyHint='Upload a CSV above; its report shows here.'
+        state={imports.state}
+      >
         <ScrollRegion label='Imports'>
           <table>
             <thead>
@@ -125,7 +134,7 @@ function UploadSection() {
     take(event.dataTransfer.files)
   }
   return (
-    <section aria-labelledby='import-upload-heading'>
+    <section aria-labelledby='import-upload-heading' className='panel'>
       <h2 id='import-upload-heading'>Upload a CSV</h2>
       <fieldset
         className={over ? 'drop-area drop-area-over' : 'drop-area'}

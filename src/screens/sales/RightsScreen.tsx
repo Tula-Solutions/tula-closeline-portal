@@ -1,4 +1,5 @@
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
+import { ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { RightsWording } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS } from '~/api/errors'
@@ -62,7 +63,7 @@ export function RightsScreen() {
 
   return (
     <>
-      <PageHeader title='Rights confirmation' />
+      <PageHeader icon={ShieldCheck} eyebrow='Sales history' title='Rights confirmation' />
       <p role='status' aria-label='Notice' className='notice'>
         {notice}
       </p>
@@ -141,6 +142,7 @@ export function RightsForm(props: {
       ref={formRef}
       noValidate
       aria-labelledby='rights-heading'
+      className='panel max-w-2xl'
       onSubmit={(event) => {
         event.preventDefault()
         if (!ticked) {

@@ -1,4 +1,5 @@
 import { getRouteApi, Link } from '@tanstack/react-router'
+import { ArrowLeft, FileSpreadsheet } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { DealImportRow } from 'tula-closeline-contract'
 import { presentSales } from '~/api/sales-messages'
@@ -34,9 +35,12 @@ export function ImportScreen() {
   return (
     <>
       <PageHeader
+        icon={FileSpreadsheet}
+        eyebrow='Sales history'
         title='Deal import'
         actions={
           <Link to='/sales-history/imports' className='button button-quiet'>
+            <ArrowLeft aria-hidden='true' className='size-4' />
             Back to imports
           </Link>
         }

@@ -132,7 +132,7 @@ export function RecordingUpload() {
   }
 
   return (
-    <section aria-labelledby='recording-upload-heading'>
+    <section aria-labelledby='recording-upload-heading' className='panel'>
       <h2 id='recording-upload-heading'>Upload a Recording</h2>
       <form
         ref={formRef}

@@ -119,7 +119,7 @@ export function CallUpload() {
   }
 
   return (
-    <section aria-labelledby='call-upload-heading'>
+    <section aria-labelledby='call-upload-heading' className='panel'>
       <h2 id='call-upload-heading'>Upload a Transcript</h2>
       <form
         ref={formRef}

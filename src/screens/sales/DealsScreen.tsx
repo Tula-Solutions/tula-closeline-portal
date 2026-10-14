@@ -1,4 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
+import { Handshake } from 'lucide-react'
 import { useState } from 'react'
 import {
   lookupDealRequestSchema,
@@ -50,75 +51,103 @@ export function DealsScreen() {
   return (
     <>
       <PageHeader
+        icon={Handshake}
+        eyebrow='Sales history'
         title='Deals'
         description='A Deal is a sale. Its Outcome decides whether its Calls are used in search.'
       />
-      <LookupForm />
-      <h2>All Deals</h2>
-      <SelectField
-        label='Outcome'
-        name='outcome'
-        value={outcome ?? ''}
-        onChange={(event) => {
-          const parsed = outcomeSchema.safeParse(event.target.value)
-          setOutcome(parsed.success ? parsed.data : undefined)
-        }}
-        options={[
-          { value: '', text: 'Any Outcome' },
-          ...OUTCOMES.map((value) => ({ value, text: OUTCOME_LABEL[value] })),
-        ]}
-      />
-      <div className='field'>
-        <label htmlFor='deals-unseen'>
-          <input
-            id='deals-unseen'
-            type='checkbox'
-            checked={unseen}
-            onChange={(event) => setUnseen(event.target.checked)}
-          />{' '}
-          Only Deals no CSV has named (they came from a Call upload)
-        </label>
+      <div className='grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]'>
+        <div className='panel xl:sticky xl:top-6 xl:order-2'>
+          <LookupForm />
+        </div>
+        <div className='page-stack gap-3 xl:order-1'>
+          <div className='flex flex-wrap items-center justify-between gap-3'>
+            <h2 className='m-0 text-[0.9375rem] font-semibold tracking-[-0.011em]'>All Deals</h2>
+            <div className='flex flex-wrap items-center gap-x-4 gap-y-2'>
+              <div className='field'>
+                <label
+                  htmlFor='deals-unseen'
+                  className='flex items-center text-[0.8125rem] font-medium text-muted-foreground'
+                >
+                  <input
+                    id='deals-unseen'
+                    type='checkbox'
+                    checked={unseen}
+                    onChange={(event) => setUnseen(event.target.checked)}
+                  />{' '}
+                  Only Deals no CSV has named (they came from a Call upload)
+                </label>
+              </div>
+              <SelectField
+                inline
+                label='Outcome'
+                name='outcome'
+                value={outcome ?? ''}
+                onChange={(event) => {
+                  const parsed = outcomeSchema.safeParse(event.target.value)
+                  setOutcome(parsed.success ? parsed.data : undefined)
+                }}
+                options={[
+                  { value: '', text: 'Any Outcome' },
+                  ...OUTCOMES.map((value) => ({ value, text: OUTCOME_LABEL[value] })),
+                ]}
+              />
+            </div>
+          </div>
+          <Paged
+            noun='Deals'
+            emptyText='There are no Deals to show.'
+            emptyIcon={Handshake}
+            emptyHint='Deals arrive from a CSV import or with a Call upload.'
+            state={deals.state}
+          >
+            <ScrollRegion label='Deals'>
+              <table>
+                <thead>
+                  <tr>
+                    <th scope='col'>Deal id</th>
+                    <th scope='col'>Name</th>
+                    <th scope='col'>Outcome</th>
+                    <th scope='col'>Closed</th>
+                    <th scope='col' className='num'>
+                      Amount
+                    </th>
+                    <th scope='col' className='num'>
+                      Calls
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deals.items.map((deal) => (
+                    <tr key={deal.id}>
+                      <th scope='row'>
+                        {/* The address carries the opaque id; the customer's deal id is text only. */}
+                        <Link
+                          to='/sales-history/deals/$dealRecordId'
+                          params={{ dealRecordId: deal.id }}
+                        >
+                          <Untrusted value={deal.dealId} />
+                        </Link>
+                      </th>
+                      <td>{deal.name === null ? '-' : <Untrusted value={deal.name} />}</td>
+                      <td>
+                        <StatusBadge state={deal.outcome}>{outcomeLabel(deal.outcome)}</StatusBadge>
+                      </td>
+                      <td className='text-muted-foreground'>
+                        {deal.closedAt === null ? '-' : <DateOnly value={deal.closedAt} />}
+                      </td>
+                      <td className='num'>
+                        <Money amount={deal.amount} currency={deal.currency} />
+                      </td>
+                      <td className='num'>{deal.callCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </ScrollRegion>
+          </Paged>
+        </div>
       </div>
-      <Paged noun='Deals' emptyText='There are no Deals to show.' state={deals.state}>
-        <ScrollRegion label='Deals'>
-          <table>
-            <thead>
-              <tr>
-                <th scope='col'>Deal id</th>
-                <th scope='col'>Name</th>
-                <th scope='col'>Outcome</th>
-                <th scope='col'>Closed</th>
-                <th scope='col'>Amount</th>
-                <th scope='col'>Calls</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deals.items.map((deal) => (
-                <tr key={deal.id}>
-                  <th scope='row'>
-                    {/* The address carries the opaque id; the customer's deal id is text only. */}
-                    <Link
-                      to='/sales-history/deals/$dealRecordId'
-                      params={{ dealRecordId: deal.id }}
-                    >
-                      <Untrusted value={deal.dealId} />
-                    </Link>
-                  </th>
-                  <td>{deal.name === null ? '-' : <Untrusted value={deal.name} />}</td>
-                  <td>
-                    <StatusBadge state={deal.outcome}>{outcomeLabel(deal.outcome)}</StatusBadge>
-                  </td>
-                  <td>{deal.closedAt === null ? '-' : <DateOnly value={deal.closedAt} />}</td>
-                  <td>
-                    <Money amount={deal.amount} currency={deal.currency} />
-                  </td>
-                  <td>{deal.callCount}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </ScrollRegion>
-      </Paged>
     </>
   )
 }

@@ -457,6 +457,48 @@
     display: none;
   }
 
+  /*
+   * A titled card around a form or an upload: its first h2 becomes the card's header, ruled off
+   * from the body. Several panels in a row (`.panel-grid`) share one gap.
+   */
+  .panel {
+    min-width: 0;
+    max-width: none;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    box-shadow: var(--elev-1);
+  }
+
+  .panel > h2:first-child,
+  .panel > form > h2:first-child {
+    margin: -1.25rem -1.25rem 1.25rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9375rem;
+  }
+
+  .panel form {
+    max-width: none;
+  }
+
+  .panel-grid {
+    display: grid;
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .panel-grid > section:not(:first-child) {
+    margin-top: 0;
+  }
+
+  @media (min-width: 1280px) {
+    .panel-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
   .plain-list {
     display: grid;
     gap: 0.75rem;
