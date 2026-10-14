@@ -688,6 +688,36 @@ describe('Calls: the held Transcript is used once', () => {
     expect(screen.queryByText(/held\.txt is ready/)).toBeNull()
   })
 
+  test('under StrictMode the form is filled once and is empty on the next visit', async () => {
+    const { renderPortal } = await import('~/testing/render')
+    const portal = renderPortal({
+      url: '/sales-history/deals',
+      signedIn: tokens({ organization: { id: 'org_1', role: 'owner' } }),
+      strict: true,
+      handlers: [
+        route('GET', RIGHTS, json(200, rightsBody())),
+        route('GET', DEALS, json(200, page([]))),
+        listOf(),
+      ],
+    })
+    portal.app.pendingCall.hold({
+      organizationId: 'org_1',
+      file: transcript(),
+      dealId: 'D-77',
+      repLabel: 'Sam',
+    })
+    await portal.user.click(await screen.findByRole('link', { name: 'Calls' }))
+    expect(((await screen.findByLabelText("Customer's deal id")) as HTMLInputElement).value).toBe(
+      'D-77'
+    )
+    await portal.user.click(screen.getByRole('link', { name: 'Deals' }))
+    await screen.findByRole('heading', { name: 'Deals' })
+    await portal.user.click(screen.getByRole('link', { name: 'Calls' }))
+    expect(((await screen.findByLabelText("Customer's deal id")) as HTMLInputElement).value).toBe(
+      ''
+    )
+  })
+
   test('another Organization never sees it, and nothing is sent', async () => {
     const portal = visit('/sales-history/deals', 'owner', [
       route('GET', RIGHTS, json(200, rightsBody())),
