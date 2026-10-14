@@ -169,7 +169,7 @@ export function CallUpload() {
         </button>
       </form>
       <div role='status' aria-label='Call upload'>
-        <UploadResult state={upload.state} onRetry={upload.retry} />
+        <UploadResult state={upload.state} onRetry={upload.retry} onCancel={upload.cancel} />
       </div>
     </section>
   )
@@ -179,20 +179,41 @@ export function CallUpload() {
 export function UploadResult(props: {
   readonly state: CallUploadState
   readonly onRetry: () => void
+  readonly onCancel: () => void
 }) {
   const { state } = props
   if (state.kind === 'idle') {
     return null
   }
   if (state.kind === 'uploading') {
+    // The sentence changes at quarter steps only, because this is a live region; the bar
+    // beside it carries the exact value without being announced at every change.
+    const quarter =
+      state.progress === null || state.progress.total === 0
+        ? 0
+        : Math.min(100, Math.floor((state.progress.sent / state.progress.total) * 4) * 25)
     return (
-      <p>
-        Uploading <Untrusted value={state.name} />
-        ...
-        {state.progress === null || state.progress.total === 0
-          ? ''
-          : ` ${Math.min(100, Math.floor((state.progress.sent / state.progress.total) * 100))}% sent`}
-      </p>
+      <>
+        <p>
+          Uploading <Untrusted value={state.name} />
+          {quarter === 0 ? '...' : `: ${quarter}% sent`}
+        </p>
+        {state.progress === null ? null : (
+          <progress
+            aria-label={`Upload of ${plain(state.name, 'file')}`}
+            value={state.progress.sent}
+            max={state.progress.total}
+          />
+        )}
+        <button
+          type='button'
+          className='button button-quiet'
+          aria-label={`Cancel upload of ${plain(state.name, 'file')}`}
+          onClick={props.onCancel}
+        >
+          Cancel
+        </button>
+      </>
     )
   }
   if (state.kind === 'stored') {
@@ -200,6 +221,14 @@ export function UploadResult(props: {
       <p>
         Uploaded <Untrusted value={state.name} />. It appears in the list below and is processed in
         the background.
+      </p>
+    )
+  }
+  if (state.kind === 'cancelled') {
+    return (
+      <p>
+        Cancelled the upload of <Untrusted value={state.name} />. If it had already arrived, it will
+        appear in the list below.
       </p>
     )
   }

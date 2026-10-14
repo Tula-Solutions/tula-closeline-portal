@@ -6,6 +6,7 @@ import {
   ERRORS,
   SALES_HISTORY_ERRORS,
 } from 'tula-closeline-contract'
+import { recordingRepProblem } from '~/screens/sales/RecordingUpload'
 import { callBody, dealBody, hexId, page, rightsBody } from '~/testing/core-bodies'
 import { failure, json, route, tokens } from '~/testing/fixtures'
 import { gatedSleep, param, visit } from '~/testing/sales'
@@ -749,6 +750,67 @@ describe('Calls: uploading a Recording', () => {
     await waitFor(() => expect(status().textContent).toMatch(/Uploaded call\.mp3/))
   })
 
+  test('progress is a labelled progress bar, and the live region changes at most 5 times for 1000 updates', async () => {
+    let finish: () => void = () => undefined
+    let tick: (sent: number) => void = () => undefined
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('POST', CALLS, (made) => {
+        tick = (sent) => made.progress?.(sent, 1000)
+        return new Promise<Response>((resolve) => {
+          finish = () => resolve(json(201, recording()))
+        })
+      }),
+      listOf(),
+      confirmed,
+    ])
+    await ready(portal)
+    await send(portal)
+    await waitFor(() => expect(posts(portal)).toHaveLength(1))
+    const texts: string[] = []
+    for (let sent = 1; sent <= 1000; sent += 1) {
+      act(() => tick(sent))
+      const now = status().textContent ?? ''
+      if (texts[texts.length - 1] !== now) {
+        texts.push(now)
+      }
+    }
+    expect(texts.length).toBeLessThanOrEqual(5)
+    const bar = within(status()).getByRole('progressbar', { name: /Upload of call\.mp3/ })
+    expect(bar.getAttribute('value')).toBe('1000')
+    expect(bar.getAttribute('max')).toBe('1000')
+    finish()
+    await waitFor(() => expect(status().textContent).toMatch(/Uploaded call\.mp3/))
+  })
+
+  test('Cancel aborts the request and nothing more is sent', async () => {
+    let signal: AbortSignal | null | undefined
+    const portal = visit('/sales-history/calls', 'owner', [
+      route('POST', CALLS, (made) => {
+        signal = made.init.signal
+        return new Promise<Response>((_resolve, reject) => {
+          made.init.signal?.addEventListener('abort', () =>
+            reject(new DOMException('aborted', 'AbortError'))
+          )
+        })
+      }),
+      listOf(),
+      confirmed,
+    ])
+    await ready(portal)
+    await send(portal)
+    await portal.user.click(
+      await screen.findByRole('button', { name: 'Cancel upload of call.mp3' })
+    )
+    await waitFor(() => expect(status().textContent).toMatch(/Cancelled/))
+    expect(signal?.aborted).toBe(true)
+    expect(status().textContent).not.toMatch(/Nothing was stored/)
+    expect(status().textContent).toMatch(/If it had already arrived/)
+    expect(screen.queryByRole('button', { name: /Retry/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Cancel upload/ })).toBeNull()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(posts(portal)).toHaveLength(1)
+  })
+
   test('413 call.too_large from the service is explained with the Recording limit', async () => {
     const portal = visit('/sales-history/calls', 'owner', [
       route('POST', CALLS, failure(413, SALES_HISTORY_ERRORS['call.too_large'].code)),
@@ -784,6 +846,14 @@ describe('Calls: uploading a Recording', () => {
     await send(portal)
     await screen.findByRole('heading', { name: 'Rights confirmation' })
     expect(posts(portal)).toHaveLength(0)
+  })
+})
+
+describe('Calls: a Rep choice a Recording cannot take', () => {
+  test('is refused with words, so the form can show an error', () => {
+    expect(recordingRepProblem({ by: 'speaker', label: 'A' })).toMatch(/channel/)
+    expect(recordingRepProblem({ by: 'channel', channel: 'left' })).toBeNull()
+    expect(recordingRepProblem(null)).toBeNull()
   })
 })
 

@@ -22,7 +22,7 @@ const ACCEPT = ACCEPTED_RECORDING_EXTENSIONS.join(',')
 const EXTENSIONS = ACCEPTED_RECORDING_EXTENSIONS.join(', ')
 
 type Channel = '' | 'left' | 'right'
-type Problems = { file?: string; dealId?: string }
+type Problems = { file?: string; dealId?: string; rep?: string }
 
 /** What is wrong with the chosen file before any of it is sent, or null. Only the name and size are read, never the content. */
 function fileProblem(file: File): string | null {
@@ -43,6 +43,13 @@ function fileProblem(file: File): string | null {
   return checked.kind === 'recording'
     ? null
     : 'That is a Transcript. Upload it with "Upload a Transcript" above, or choose a Recording.'
+}
+
+/** Why a Rep choice cannot go with a Recording upload (only a channel, or nothing, can), or null if it can. */
+export function recordingRepProblem(rep: RepChoice | null): string | null {
+  return repChoiceSuits('recording', rep, 'upload')
+    ? null
+    : 'A Recording is uploaded with a channel as the Rep, or with none. Pick the speaker after it is transcribed.'
 }
 
 /** The Rep choice a Recording is sent with: a channel, or none so that the Rep is picked after transcription. */
@@ -93,13 +100,14 @@ export function RecordingUpload() {
       found.dealId =
         'Enter the deal id exactly as it is in your CRM or CSV: 1 to 128 characters, with no control characters.'
     }
-    setProblems(found)
     const rep = repOf(channel)
-    if (found.file !== undefined || !deal.success || file === null) {
-      focusFirstError()
-      return
+    const repText = recordingRepProblem(rep)
+    if (repText !== null) {
+      found.rep = repText
     }
-    if (!repChoiceSuits('recording', rep, 'upload')) {
+    setProblems(found)
+    if (found.file !== undefined || found.rep !== undefined || !deal.success || file === null) {
+      focusFirstError()
       return
     }
     const held = { file, dealId: deal.data }
@@ -160,10 +168,12 @@ export function RecordingUpload() {
         <SelectField
           label='Which channel is the Rep?'
           name='recordingRep'
+          error={problems.rep}
           value={channel}
           onChange={(event) => {
             const value = event.target.value
             setChannel(value === 'left' || value === 'right' ? value : '')
+            setProblems((now) => ({ ...now, rep: undefined }))
           }}
           options={[
             { value: '', text: 'Not sure: I will pick the Rep after it is transcribed' },
@@ -180,7 +190,7 @@ export function RecordingUpload() {
         </button>
       </form>
       <div role='status' aria-label='Recording upload'>
-        <UploadResult state={upload.state} onRetry={upload.retry} />
+        <UploadResult state={upload.state} onRetry={upload.retry} onCancel={upload.cancel} />
       </div>
     </section>
   )

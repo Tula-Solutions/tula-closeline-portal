@@ -130,8 +130,12 @@ row with the reason in words and can be downloaded as CSV with formula-looking c
 confirmation wording is the contract's (`RIGHTS_WORDINGS`, contract v0.9.0): the screen shows the text of the
 version it will send, marked as a draft while the contract says so (pending a lawyer's check).
 
-Calls (`/sales-history/calls`) are uploaded as Transcripts only (no Recording upload): the file, the
-customer's deal id and the Rep's speaker label go in the multipart body with an `Idempotency-Key`. If the
+Calls (`/sales-history/calls`) are uploaded as a Transcript (the file, the customer's deal id and the Rep's
+speaker label) or a Recording (the deal id, an optional Rep channel, then the file last; up to 500 MB, with a
+progress bar and Cancel, sent with XMLHttpRequest because `fetch` has no upload progress; the File is streamed
+by the browser, never read). The Recording's client timeout is 30 minutes, the same as the service's
+`RECORDING_BODY_TIMEOUT_MS`, so a 500 MB Recording needs about 2.2 Mbps of upload (500 MB x 8 / 1800 s);
+a slower line times out and the person can retry. Both go in the multipart body with an `Idempotency-Key`. If the
 rights wording is not confirmed, the chosen file and fields are held in memory (never in storage or an
 address) while the person confirms on the rights page, then restored. Each Call shows its state, why it is
 or is not in search, the fix the contract names for a failure, and offers Change Rep (from the Call's own

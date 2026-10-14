@@ -764,6 +764,13 @@ describe('sendWithProgress', () => {
     await expect(answer).rejects.toThrow()
   })
 
+  test('an empty responseURL is a failure, not a pass', async () => {
+    const answer = sendWithProgress('/v1/x', { method: 'POST' }, () => undefined)
+    FakeXhr.last.responseURL = ''
+    FakeXhr.last.onload?.()
+    await expect(answer).rejects.toThrow()
+  })
+
   test('an already-aborted signal rejects at once and sends nothing', async () => {
     const controller = new AbortController()
     controller.abort()

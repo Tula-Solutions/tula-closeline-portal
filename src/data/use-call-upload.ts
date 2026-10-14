@@ -18,6 +18,8 @@ export type CallUploadState =
       readonly progress: { readonly sent: number; readonly total: number } | null
     }
   | { readonly kind: 'stored'; readonly name: string }
+  /** The person cancelled the upload; the service usually did not get the whole file, but one that had just arrived may still be stored. */
+  | { readonly kind: 'cancelled'; readonly name: string }
   /** The service already had this content for this Deal (HTTP 200), so nothing new was stored. */
   | { readonly kind: 'duplicate'; readonly name: string }
   | {
@@ -44,15 +46,15 @@ export function useCallUpload(kind: 'transcript' | 'recording' = 'transcript') {
   const alive = useRef(true)
   const busy = useRef(false)
   const lastPercent = useRef(-1)
-  const controller = useRef<AbortController | null>(null)
+  // The request in flight: leaving the screen and Cancel both abort it.
+  const sending = useRef<AbortController | null>(null)
+  const cancelled = useRef(false)
 
   useEffect(() => {
     alive.current = true
-    const abort = new AbortController()
-    controller.current = abort
     return () => {
       alive.current = false
-      abort.abort()
+      sending.current?.abort()
     }
   }, [])
 
@@ -65,6 +67,9 @@ export function useCallUpload(kind: 'transcript' | 'recording' = 'transcript') {
       last.current = upload
       const name = upload.file.name
       lastPercent.current = -1
+      cancelled.current = false
+      const own = new AbortController()
+      sending.current = own
       setState({ kind: 'uploading', name, progress: null })
       const attempt = app.keys.begin(
         fingerprint.call(
@@ -79,7 +84,7 @@ export function useCallUpload(kind: 'transcript' | 'recording' = 'transcript') {
         const result = await app.salesHistory.uploadCall(
           upload,
           attempt.key,
-          controller.current?.signal,
+          own.signal,
           (sent, total) => {
             // The browser reports many times a second; the screen shows whole percents only.
             const percent = total === 0 ? 0 : Math.floor((sent / total) * 100)
@@ -105,6 +110,11 @@ export function useCallUpload(kind: 'transcript' | 'recording' = 'transcript') {
         attempt.failed(error)
         busy.current = false
         if (!alive.current) {
+          return 'failed'
+        }
+        if (cancelled.current) {
+          last.current = null
+          setState({ kind: 'cancelled', name })
           return 'failed'
         }
         if (
@@ -148,10 +158,15 @@ export function useCallUpload(kind: 'transcript' | 'recording' = 'transcript') {
     void send(last.current)
   }, [send, state])
 
+  const cancel = useCallback(() => {
+    cancelled.current = true
+    sending.current?.abort()
+  }, [])
+
   const report = useCallback((name: string, message: string) => {
     last.current = null
     setState({ kind: 'failed', name, message, retry: false, waiting: false })
   }, [])
 
-  return { state, send, retry, report }
+  return { state, send, retry, cancel, report }
 }

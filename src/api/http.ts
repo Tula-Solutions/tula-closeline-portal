@@ -33,6 +33,12 @@ export type Fetch = (
  * never read into memory by the page. It answers with a Response, as `fetch` would, except that
  * XMLHttpRequest cannot take `cache` or `referrerPolicy` (this path adds no referrer-sensitive data:
  * the address is a same-origin path).
+ *
+ * Redirects: unlike `redirect: 'error'`, XMLHttpRequest follows a redirect first (a 307 or 308
+ * resends the body) and this function can only notice afterwards, by comparing `responseURL` with
+ * the address asked for, and refuse the answer. What limits the damage is the Content-Security-Policy
+ * `connect-src 'self'` (plus the Sentry origin), which keeps the followed request on this origin
+ * (`src/csp.test.ts` pins that value). An empty `responseURL` is treated as a failure.
  */
 export function sendWithProgress(
   input: string,
@@ -64,7 +70,7 @@ export function sendWithProgress(
       done()
       // XMLHttpRequest follows redirects (and would resend the body); refuse an answer from anywhere else, as `redirect: 'error'` does.
       if (
-        request.responseURL !== '' &&
+        request.responseURL === '' ||
         request.responseURL !== new URL(input, location.href).href
       ) {
         reject(new TypeError('redirected'))
