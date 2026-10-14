@@ -12,23 +12,18 @@ export function When(props: { readonly iso: string }) {
 }
 
 const DAY = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' })
-const MS_PER_DAY = 86_400_000
 
 /**
- * A closing date as a date, and any other time as a date and time. Core stores a date-only closing
- * date (a CSV cell `2026-01-31`) as midnight UTC (`2026-01-31T00:00:00.000Z`) and has no way to say
- * "no time", so an instant exactly at midnight UTC is shown as its UTC date, which no time zone
- * can shift to the day before.
+ * A date that has no time of day (a Deal's closing date) as its UTC calendar date, such as
+ * "Jan 31, 2026". Core keeps these as a UTC timestamp, so the date is read in UTC: a reader's
+ * time zone must not move it to the day before. Other timestamps use {@link formatWhen}.
  */
-export function formatDayOrWhen(value: string): string {
+export function formatDateOnly(value: string): string {
   const time = Date.parse(value)
-  if (Number.isNaN(time)) {
-    return value
-  }
-  return time % MS_PER_DAY === 0 ? DAY.format(time) : formatWhen(value)
+  return Number.isNaN(time) ? value : DAY.format(time)
 }
 
-/** A closing date as a date (see {@link formatDayOrWhen}), and a timestamp as a date and time. */
-export function DayOrWhen(props: { readonly value: string }) {
-  return <time dateTime={props.value}>{formatDayOrWhen(props.value)}</time>
+/** A date with no time of day (see {@link formatDateOnly}). */
+export function DateOnly(props: { readonly value: string }) {
+  return <time dateTime={props.value}>{formatDateOnly(props.value)}</time>
 }

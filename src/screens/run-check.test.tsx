@@ -15,6 +15,7 @@ import {
 import { failure, json, route, tokens } from '~/testing/fixtures'
 import { completeBody, renderPortal, startedBody } from '~/testing/render'
 import { visit } from '~/testing/sales'
+import { formatWhen } from '~/ui/When'
 
 const PB = '/v1/playbook'
 const CALLS = `${PB}/calls`
@@ -55,8 +56,8 @@ describe('run check 1: a date without a time is a date', () => {
     expect((await screen.findByText('Jan 31, 2026')).tagName).toBe('TIME')
   })
 
-  test('a full timestamp still shows its time', async () => {
-    process.env.TZ = 'UTC'
+  test('every closedAt is its UTC calendar date with no time, whatever the time of day', async () => {
+    process.env.TZ = 'America/Chicago'
     visit('/sales-history/deals', 'owner', [
       route(
         'GET',
@@ -65,7 +66,15 @@ describe('run check 1: a date without a time is a date', () => {
       ),
     ])
     const row = (await screen.findByText('D-1')).closest('tr') as HTMLElement
-    expect(row.textContent).toMatch(/3:30/)
+    expect(row.textContent).toContain('Jan 31, 2026')
+    expect(row.textContent).not.toMatch(/3:30|9:30/)
+  })
+
+  test('any other timestamp, even at exactly midnight UTC, shows local date and time', () => {
+    const local = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    expect(formatWhen('2026-10-13T00:00:00Z')).toBe(
+      local.format(Date.parse('2026-10-13T00:00:00Z'))
+    )
   })
 })
 
