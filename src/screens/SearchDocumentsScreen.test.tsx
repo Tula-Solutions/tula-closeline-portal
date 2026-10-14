@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { screen, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import { hexId } from '~/testing/core-bodies'
-import { failure, json, route } from '~/testing/fixtures'
+import { failure, json, route, tokens } from '~/testing/fixtures'
 import { visit } from '~/testing/sales'
 
 const SEARCH = '/v1/playbook/search/documents'
@@ -106,5 +106,74 @@ describe('search over Documents: the answer', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Search is busy, try again in 5 seconds'
     )
+  })
+
+  test('after the results arrive focus moves to the results heading', async () => {
+    const portal = open('owner')
+    await ask(portal)
+    const heading = await screen.findByRole('heading', { name: 'Results' })
+    await waitFor(() => expect(document.activeElement).toBe(heading))
+  })
+
+  test('editing a turn or the limit clears the results', async () => {
+    const portal = open('owner')
+    await ask(portal)
+    await screen.findByRole('list', { name: 'Matching Document text' })
+    await portal.user.type(screen.getByLabelText('What was said, turn 1'), 'x')
+    expect(screen.queryByRole('list', { name: 'Matching Document text' })).toBeNull()
+    await portal.user.click(screen.getByRole('button', { name: 'Search' }))
+    await screen.findByRole('list', { name: 'Matching Document text' })
+    await portal.user.selectOptions(screen.getByLabelText('Number of results'), '10')
+    expect(screen.queryByRole('list', { name: 'Matching Document text' })).toBeNull()
+  })
+
+  test('an answer that arrives after an edit is dropped', async () => {
+    let release: (response: Response) => void = () => undefined
+    const late = new Promise<Response>((resolve) => {
+      release = resolve
+    })
+    const portal = visit(URL, 'owner', [route('POST', SEARCH, () => late)])
+    await ask(portal)
+    await portal.user.type(screen.getByLabelText('What was said, turn 1'), ' and more')
+    await act(async () => {
+      release(answer([hit(1)]))
+      await new Promise((done) => setTimeout(done, 100))
+    })
+    expect(screen.queryByRole('list', { name: 'Matching Document text' })).toBeNull()
+    expect(screen.queryByText('Passage text 1')).toBeNull()
+  })
+
+  test('another Organization sees neither the old turns nor the old results', async () => {
+    const portal = visit(URL, 'owner', [
+      route('POST', SEARCH, answer([hit(1)])),
+      route('POST', '/v1/client/sessions/refresh', () =>
+        json(200, tokens({ accessToken: 'access-2', organization: { id: 'org_2', role: 'owner' } }))
+      ),
+    ])
+    await ask(portal)
+    await screen.findByRole('list', { name: 'Matching Document text' })
+    // The answer is held by a mutation until the session changes; the check after must not be vacuous.
+    expect(portal.app.queryClient.getMutationCache().getAll()).toHaveLength(1)
+    await act(() => portal.app.session.refresh('access-1'))
+    await waitFor(() =>
+      expect(screen.queryByRole('list', { name: 'Matching Document text' })).toBeNull()
+    )
+    expect((screen.getByLabelText('What was said, turn 1') as HTMLTextAreaElement).value).toBe('')
+    expect(screen.queryByText('Passage text 1')).toBeNull()
+    expect(portal.app.queryClient.getMutationCache().getAll()).toHaveLength(0)
+  })
+
+  test('after sign-out the results and turns are gone', async () => {
+    const portal = visit(URL, 'owner', [
+      route('POST', SEARCH, answer([hit(1)])),
+      route('POST', '/v1/client/sessions/sign-out', json(204)),
+    ])
+    await ask(portal)
+    await screen.findByRole('list', { name: 'Matching Document text' })
+    expect(portal.app.queryClient.getMutationCache().getAll()).toHaveLength(1)
+    await act(() => portal.app.session.signOut())
+    await waitFor(() => expect(screen.queryByLabelText('What was said, turn 1')).toBeNull())
+    expect(screen.queryByText('Passage text 1')).toBeNull()
+    expect(portal.app.queryClient.getMutationCache().getAll()).toHaveLength(0)
   })
 })
