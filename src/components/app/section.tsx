@@ -34,7 +34,7 @@ export function Section(props: {
           {Icon ? (
             <span
               aria-hidden='true'
-              className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'
+              className='flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground'
             >
               <Icon className='size-4' />
             </span>

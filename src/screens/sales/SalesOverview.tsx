@@ -35,7 +35,7 @@ function AreaCard(props: { readonly area: Area }) {
       <div className='flex items-center justify-between'>
         <span
           aria-hidden='true'
-          className='flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary'
+          className='flex size-9 items-center justify-center rounded-lg bg-muted text-foreground'
         >
           <Icon className='size-[18px]' />
         </span>

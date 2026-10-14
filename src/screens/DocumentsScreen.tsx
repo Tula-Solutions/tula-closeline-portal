@@ -311,12 +311,13 @@ function UploadSection() {
           multiple
           accept={ACCEPT}
           aria-describedby='upload-hint'
+          className='max-w-full'
           onChange={(event) => {
             take(event.target.files)
             event.target.value = ''
           }}
         />
-        <p className='hint' id='upload-hint'>
+        <p className='hint max-w-full' id='upload-hint'>
           Or drop files here. {ACCEPTED_DOCUMENT_EXTENSIONS.join(', ')}, up to {MAX_UPLOAD_WORDS}{' '}
           each.
         </p>

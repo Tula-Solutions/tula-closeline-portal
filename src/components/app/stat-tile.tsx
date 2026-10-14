@@ -35,7 +35,7 @@ export function StatTile(props: {
         <span className='flex items-center gap-2 text-[0.8125rem] font-medium text-muted-foreground'>
           <span
             aria-hidden='true'
-            className='flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary'
+            className='flex size-7 items-center justify-center rounded-md bg-muted text-foreground'
           >
             <Icon className='size-4' />
           </span>

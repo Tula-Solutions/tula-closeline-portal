@@ -442,10 +442,6 @@
       border-color 150ms var(--ease);
   }
 
-  .drop-area > * {
-    max-width: 100%;
-  }
-
   .drop-area-over {
     border-color: var(--primary);
     background: color-mix(in oklab, var(--primary) 8%, var(--card));
