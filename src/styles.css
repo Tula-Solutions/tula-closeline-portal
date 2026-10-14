@@ -56,6 +56,11 @@
     gap: 1rem;
   }
 
+  /* Sections of a page (an upload, a result list) are set apart from what is above them. */
+  section:not(:first-child) {
+    margin-top: 2.5rem;
+  }
+
   fieldset {
     display: grid;
     min-width: 0;

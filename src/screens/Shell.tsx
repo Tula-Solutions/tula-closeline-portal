@@ -39,8 +39,15 @@ export function Shell() {
   const toggleRef = useRef<HTMLButtonElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const mainRef = useRef<HTMLElement>(null)
+  const asideRef = useRef<HTMLElement>(null)
+  // Where focus goes once the drawer is closed (the rest of the page is inert until then).
+  const returnFocus = useRef<'toggle' | 'main' | null>(null)
   const openRef = useRef(open)
   openRef.current = open
+  const close = (to: 'toggle' | 'main') => {
+    returnFocus.current = to
+    setOpen(false)
+  }
   const organization = useQuery({
     queryKey: ['organization', session.status === 'signed_in' ? session.organization.id : null],
     queryFn: ({ signal }) => app.core.getOrganization(signal),
@@ -50,25 +57,54 @@ export function Shell() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: the drawer closes when the page changes
   useEffect(() => {
     if (openRef.current) {
-      mainRef.current?.focus()
+      returnFocus.current = 'main'
     }
     setOpen(false)
   }, [pathname])
-  // Opening the drawer moves focus into it, so a keyboard user is not left behind it.
+  // The drawer is modal: focus moves into it when it opens and back out when it closes.
   useEffect(() => {
     if (open) {
       closeRef.current?.focus()
+      return
     }
+    if (returnFocus.current === 'toggle') {
+      toggleRef.current?.focus()
+    } else if (returnFocus.current === 'main') {
+      mainRef.current?.focus()
+    }
+    returnFocus.current = null
   }, [open])
-  // Escape closes it too.
+  // Escape closes it, and Tab wraps inside it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: close only sets a ref and state
   useEffect(() => {
     if (!open) {
       return undefined
     }
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setOpen(false)
-        toggleRef.current?.focus()
+        close('toggle')
+        return
+      }
+      if (event.key !== 'Tab' || asideRef.current === null) {
+        return
+      }
+      const items = [...asideRef.current.querySelectorAll<HTMLElement>('a[href], button')].filter(
+        (item) => !item.hasAttribute('disabled')
+      )
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (
+        event.shiftKey &&
+        (document.activeElement === first || !asideRef.current.contains(document.activeElement))
+      ) {
+        event.preventDefault()
+        last?.focus()
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last || !asideRef.current.contains(document.activeElement))
+      ) {
+        event.preventDefault()
+        first?.focus()
       }
     }
     document.addEventListener('keydown', onKey)
@@ -87,17 +123,21 @@ export function Shell() {
   return (
     <div className='min-h-dvh md:grid md:grid-cols-[17rem_minmax(0,1fr)]'>
       <a
+        inert={open}
         className='sr-only z-[60] rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3'
         href='#main'
       >
         Skip to content
       </a>
-      <div className='sticky top-0 z-30 flex items-center gap-3 border-b bg-background/90 px-4 py-2 backdrop-blur md:hidden'>
+      <div
+        inert={open}
+        className='sticky top-0 z-30 flex items-center gap-3 border-b bg-background/90 px-4 py-2 backdrop-blur md:hidden'
+      >
         <Button
           ref={toggleRef}
           variant='ghost'
           size='icon'
-          aria-label={open ? 'Close navigation' : 'Open navigation'}
+          aria-label='Navigation menu'
           aria-expanded={open}
           aria-controls='app-sidebar'
           onClick={() => setOpen((now) => !now)}
@@ -112,13 +152,11 @@ export function Shell() {
           aria-label='Close the navigation backdrop'
           tabIndex={-1}
           className='fixed inset-0 z-40 bg-foreground/40 md:hidden'
-          onClick={() => {
-            setOpen(false)
-            toggleRef.current?.focus()
-          }}
+          onClick={() => close('toggle')}
         />
       ) : null}
       <aside
+        ref={asideRef}
         id='app-sidebar'
         className={cn(
           'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-4 border-r border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground transition-[transform,visibility] duration-200 md:sticky md:top-0 md:z-auto md:h-dvh md:w-auto md:max-w-none md:translate-x-0 md:visible',
@@ -133,10 +171,7 @@ export function Shell() {
             size='icon'
             className='md:hidden'
             aria-label='Close menu'
-            onClick={() => {
-              setOpen(false)
-              toggleRef.current?.focus()
-            }}
+            onClick={() => close('toggle')}
           >
             <X aria-hidden='true' />
           </Button>
@@ -226,6 +261,7 @@ export function Shell() {
       </aside>
       <main
         ref={mainRef}
+        inert={open}
         id='main'
         tabIndex={-1}
         className='min-w-0 px-4 py-8 outline-none md:px-10 md:py-10'

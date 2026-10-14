@@ -212,15 +212,26 @@ describe('the navigation drawer on a narrow screen', () => {
   test('opening it moves focus into the menu, Escape returns it to the toggle, and a page change lands on the page', async () => {
     const user = userEvent.setup()
     renderPortal({ url: '/', signedIn: true })
-    const toggle = await screen.findByRole('button', { name: 'Open navigation' })
+    const toggle = await screen.findByRole('button', { name: 'Navigation menu' })
     await user.click(toggle)
     const sidebar = document.getElementById('app-sidebar')
     await waitFor(() => expect(sidebar?.contains(document.activeElement)).toBe(true))
+    // It is modal: the page behind it is inert and Tab wraps inside it.
+    const main = document.getElementById('main')
+    expect(
+      main?.hasAttribute('inert') || (main as HTMLElement & { inert?: boolean }).inert === true
+    ).toBe(true)
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    screen.getByRole('button', { name: 'Sign out' }).focus()
+    await user.tab()
+    expect(sidebar?.contains(document.activeElement)).toBe(true)
+    await user.tab({ shift: true })
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Sign out' }))
     await user.keyboard('{Escape}')
     await waitFor(() =>
-      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Open navigation' }))
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Navigation menu' }))
     )
-    await user.click(screen.getByRole('button', { name: 'Open navigation' }))
+    await user.click(screen.getByRole('button', { name: 'Navigation menu' }))
     await user.click(screen.getByRole('link', { name: 'Teams' }))
     await waitFor(() => expect(document.activeElement).toBe(document.getElementById('main')))
   })
