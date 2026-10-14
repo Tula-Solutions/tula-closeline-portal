@@ -60,19 +60,6 @@ a {
   outline-offset: 2px;
 }
 
-.skip-link {
-  position: absolute;
-  inset-inline-start: var(--gutter);
-  inset-block-start: -4rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--fg);
-  color: var(--bg);
-}
-
-.skip-link:focus {
-  inset-block-start: var(--gutter);
-}
-
 /* Public screens: one column, centred, usable at 320 px. */
 .public,
 .page-centered {
@@ -219,37 +206,6 @@ textarea[aria-invalid="true"] {
   margin-block-start: 1rem;
 }
 
-.shell-header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem var(--gutter);
-  border-block-end: 2px solid var(--fg);
-}
-
-.shell-org {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1 1 12rem;
-}
-
-.org-name {
-  font-weight: 700;
-}
-
-.role {
-  color: var(--fg-muted);
-  font-size: 0.875rem;
-}
-
-main#main:not(.public) {
-  max-width: 60rem;
-  padding: 1.5rem var(--gutter);
-}
-
 .boot-error {
   margin: var(--gutter);
   white-space: pre-wrap;
@@ -263,26 +219,6 @@ main#main:not(.public) {
       opacity 120ms ease,
       border-color 120ms ease;
   }
-}
-
-/* Navigation, lists and tables of the signed-in screens. */
-.main-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 1.5rem;
-  padding: 0.25rem var(--gutter);
-  border-block-end: 1px solid var(--line);
-}
-
-.main-nav a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2.75rem;
-}
-
-.main-nav a[aria-current="page"] {
-  font-weight: 700;
-  text-decoration-thickness: 3px;
 }
 
 .sr-only {
@@ -422,11 +358,6 @@ option {
 h2 {
   font-size: 1.25rem;
   margin: 1.5rem 0 0.5rem;
-}
-
-.sub-nav {
-  margin-top: 0;
-  margin-bottom: 1.5rem;
 }
 
 dl dt {

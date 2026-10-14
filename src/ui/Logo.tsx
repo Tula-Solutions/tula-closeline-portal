@@ -1,15 +1,57 @@
-import lockupInk from '../../brand/lockup-horizontal-ink.svg'
-import lockupPaper from '../../brand/lockup-horizontal-paper-on-ink.svg'
+import { cn } from '~/lib/utils'
 
 /**
- * The horizontal lockup, unaltered: ink on paper, and the paper-on-ink master in a dark scheme.
- * It is never drawn smaller than 120 px wide, and the CSS keeps clear space around it.
+ * The horizontal Tula lockup, drawn from the brand master: ink on paper in the light theme and
+ * paper on ink in the dark one (it takes the text colour). It is never drawn smaller than 120 px
+ * wide, and the caller keeps clear space around it.
  */
-export function Logo() {
+export function Logo(props: { readonly className?: string }) {
   return (
-    <picture className='logo'>
-      <source srcSet={lockupPaper} media='(prefers-color-scheme: dark)' />
-      <img src={lockupInk} alt='Tula Solution' width='160' height='53' />
-    </picture>
+    <svg
+      role='img'
+      aria-label='Tula Solution'
+      viewBox='0 0 720 240'
+      width='160'
+      height='53'
+      className={cn('h-auto w-40 text-foreground', props.className)}
+    >
+      <g
+        transform='translate(108 112) scale(0.92)'
+        stroke='currentColor'
+        strokeWidth='6.5'
+        strokeLinecap='round'
+      >
+        <line x1='0' y1='-52' x2='0' y2='56' />
+        <line x1='-60' y1='-34' x2='60' y2='-34' />
+        <line x1='-26' y1='56' x2='26' y2='56' />
+        <line x1='-60' y1='-34' x2='-60' y2='-10' />
+        <line x1='60' y1='-34' x2='60' y2='-10' />
+        <circle cx='-60' cy='4' r='15' fill='currentColor' stroke='none' />
+        <circle cx='60' cy='4' r='15' fill='none' />
+      </g>
+      <text
+        x='222'
+        y='112'
+        fontFamily='Helvetica, Arial, sans-serif'
+        fontSize='76'
+        fontWeight='700'
+        fill='currentColor'
+        letterSpacing='-2'
+      >
+        tula
+      </text>
+      <text
+        x='226'
+        y='156'
+        fontFamily='Helvetica, Arial, sans-serif'
+        fontSize='24'
+        fontWeight='500'
+        fill='currentColor'
+        fillOpacity='0.7'
+        letterSpacing='11'
+      >
+        SOLUTION
+      </text>
+    </svg>
   )
 }
