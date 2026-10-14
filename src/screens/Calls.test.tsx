@@ -110,10 +110,60 @@ describe('Calls: a page with something this portal cannot read', () => {
     ])
     expect(await screen.findByText('call-1.txt')).toBeTruthy()
     expect(screen.getByText('call-3.txt')).toBeTruthy()
-    const placeholder = screen.getByText(/cannot be shown by this version of the portal/)
+    const placeholder = screen.getByText(
+      /This Call cannot be shown\. Reload the page; if it stays, contact support\./
+    )
     const row = placeholder.closest('tr') as HTMLElement
     expect(within(row).queryAllByRole('button')).toHaveLength(0)
     expect(row.textContent).not.toContain('call-2.txt')
+  })
+
+  test('an item that fails a refinement is a placeholder, and exactly one report is made, without Call data', async () => {
+    const portal = visit('/sales-history/calls', 'owner', [
+      route(
+        'GET',
+        CALLS,
+        json(
+          200,
+          page([
+            callBody(1),
+            {
+              ...callBody(2, { fileName: 'secret-name.txt' }),
+              state: 'failed',
+              failureReason: 'no_turns',
+              inSearch: true,
+            },
+          ])
+        )
+      ),
+      route('GET', RIGHTS, json(200, rightsBody())),
+    ])
+    expect(await screen.findByText(/This Call cannot be shown/)).toBeTruthy()
+    expect(screen.getByText('call-1.txt')).toBeTruthy()
+    expect(portal.reports).toHaveLength(1)
+    const text = `${portal.reports[0]?.message} ${portal.reports[0]?.stack ?? ''}`
+    expect(portal.reports[0]?.message).toBe('API 200 client.bad_response')
+    expect(text).not.toContain('secret-name')
+    expect(text).not.toContain(hexId('call', 2))
+  })
+
+  test('a page with nothing unreadable reports nothing', async () => {
+    const portal = visit('/sales-history/calls', 'owner', [
+      listOf(callBody(1)),
+      route('GET', RIGHTS, json(200, rightsBody())),
+    ])
+    await screen.findByText('call-1.txt')
+    expect(portal.reports).toHaveLength(0)
+  })
+
+  test('more items than the page size fails the list', async () => {
+    const items = Array.from({ length: 101 }, (_, n) => callBody(n + 1))
+    visit('/sales-history/calls', 'owner', [
+      route('GET', CALLS, json(200, page(items))),
+      route('GET', RIGHTS, json(200, rightsBody())),
+    ])
+    expect((await screen.findAllByRole('alert')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('call-1.txt')).toBeNull()
   })
 
   test.each([

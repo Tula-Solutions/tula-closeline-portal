@@ -115,7 +115,7 @@ export function CallsScreen() {
                 isUnreadable(call) ? (
                   <tr key={call.id}>
                     <td colSpan={7}>
-                      This Call cannot be shown by this version of the portal. Reload the page.
+                      This Call cannot be shown. Reload the page; if it stays, contact support.
                     </td>
                   </tr>
                 ) : (

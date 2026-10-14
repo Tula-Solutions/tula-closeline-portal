@@ -1,5 +1,5 @@
 import { getRouteApi, Link } from '@tanstack/react-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { OUTCOMES, type Outcome, outcomeSchema } from 'tula-closeline-contract'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
@@ -92,8 +92,10 @@ function OutcomeForm(props: {
   const [chosen, setChosen] = useState<Outcome | null>(null)
   const outcome = chosen ?? current
   const readAtNow = useRef(props.readAt)
-  // Written during render on purpose: it is only read later, when the save answers, never to render.
-  readAtNow.current = props.readAt
+  // Kept current after each commit; it is only read later, when the save answers.
+  useLayoutEffect(() => {
+    readAtNow.current = props.readAt
+  }, [props.readAt])
   // The Outcome just saved and when the Deal was last read, until a newer read arrives.
   const [saved, setSaved] = useState<{ outcome: Outcome; readAt: number } | null>(null)
   useEffect(() => {

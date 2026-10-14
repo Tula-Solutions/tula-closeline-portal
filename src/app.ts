@@ -119,7 +119,7 @@ export function createApp(init: AppInit): App {
     auth,
     core: createCoreApi(coreHttp),
     playbook: createPlaybookApi(coreHttp),
-    salesHistory: createSalesHistoryApi(coreHttp),
+    salesHistory: createSalesHistoryApi(coreHttp, init.reporter.report),
     sleep,
     session,
     reporter: init.reporter,

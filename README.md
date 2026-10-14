@@ -136,7 +136,7 @@ rights wording is not confirmed, the chosen file and fields are held in memory (
 address) while the person confirms on the rights page, then restored. Each Call shows its state, why it is
 or is not in search, the fix the contract names for a failure, and offers Change Rep (from the Call's own
 speaker labels, disabled where the contract refuses), delete and restore. The uploader is not shown (the
-service returns only a user id). The Calls list reads each Call on its own, so one with a state this build does not know becomes a placeholder row instead of failing the page.
+service returns only a user id). The Calls list reads each Call on its own, so one with a state this build does not know becomes a placeholder row instead of failing the page (reported once per page, status and code only).
 
 ## Sessions
 

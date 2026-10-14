@@ -17,6 +17,7 @@ import {
   listDealImportsResponseSchema,
   listDealsResponseSchema,
   MAX_CURSOR_LENGTH,
+  MAX_PAGE_SIZE,
   type Outcome,
   type RightsStatus,
   rightsStatusSchema,
@@ -24,6 +25,7 @@ import {
 } from 'tula-closeline-contract'
 import { z } from 'zod'
 import { PAGE_SIZE, type PageRequest } from '~/api/core'
+import { ApiError, CLIENT_ERRORS } from '~/api/errors'
 import type { HttpClient } from '~/api/http'
 import { onlyStatus, UPLOAD_TIMEOUT_MS } from '~/api/playbook'
 
@@ -56,7 +58,8 @@ export function isUnreadable(item: CallListItem): item is UnreadableCall {
 }
 
 const callsEnvelopeSchema = z.object({
-  items: z.array(z.unknown()),
+  // A list longer than the contract's page size is not a page this service sent.
+  items: z.array(z.unknown()).max(MAX_PAGE_SIZE),
   nextCursor: z.string().min(1).max(MAX_CURSOR_LENGTH).nullable(),
 })
 const withIdSchema = z.object({ id: callIdSchema })
@@ -64,17 +67,24 @@ const withIdSchema = z.object({ id: callIdSchema })
 /**
  * Reads a page of Calls: the envelope and every id strictly (a failure fails the page), each Call
  * on its own, so one the contract of this build does not know becomes a placeholder instead of
- * hiding the others.
+ * hiding the others. `onUnreadable` is called once per page that has any: a Call the contract of
+ * this build rejects may be malformed data from the service, which is worth a report.
  */
-function parseCallsPage(json: unknown): CallsPage {
+function parseCallsPage(json: unknown, onUnreadable: () => void): CallsPage {
   const envelope = callsEnvelopeSchema.parse(json)
-  return {
-    nextCursor: envelope.nextCursor,
-    items: envelope.items.map((item): CallListItem => {
-      const call = callSchema.safeParse(item)
-      return call.success ? call.data : { unreadable: true, id: withIdSchema.parse(item).id }
-    }),
+  let unreadable = false
+  const items = envelope.items.map((item): CallListItem => {
+    const call = callSchema.safeParse(item)
+    if (call.success) {
+      return call.data
+    }
+    unreadable = true
+    return { unreadable: true, id: withIdSchema.parse(item).id }
+  })
+  if (unreadable) {
+    onUnreadable()
   }
+  return { nextCursor: envelope.nextCursor, items }
 }
 
 /** One page request for Calls: with a state only Calls in it; with a Deal (by its opaque id) only its Calls. */
@@ -138,7 +148,10 @@ const segment = encodeURIComponent
 const BASE = '/v1/playbook'
 
 /** Builds the sales-history routes over an HTTP client for same-origin paths, which sends the access token. */
-export function createSalesHistoryApi(http: HttpClient): SalesHistoryApi {
+export function createSalesHistoryApi(
+  http: HttpClient,
+  report: (error: unknown) => void
+): SalesHistoryApi {
   const signalOf = (signal?: AbortSignal) => (signal ? { signal } : {})
   return {
     getRights: (signal) =>
@@ -246,7 +259,11 @@ export function createSalesHistoryApi(http: HttpClient): SalesHistoryApi {
         },
         auth: true,
         ...signalOf(page.signal),
-        parse: parseCallsPage,
+        parse: (json, status) =>
+          parseCallsPage(json, () =>
+            // Status and code only: the reporter reduces it, and no Call data is in it.
+            report(new ApiError({ code: CLIENT_ERRORS.badResponse, status }))
+          ),
       }),
     uploadCall: (upload, idempotencyKey, signal) => {
       const form = new FormData()
