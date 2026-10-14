@@ -67,29 +67,40 @@ export function DealScreen() {
           {deal.data.appearedInImport ? null : (
             <p className='hint'>No CSV has named it: it was created by a Call upload.</p>
           )}
-          <OutcomeForm key={deal.data.id} id={deal.data.id} current={deal.data.outcome} />
+          <OutcomeForm
+            key={deal.data.id}
+            id={deal.data.id}
+            current={deal.data.outcome}
+            readAt={deal.dataUpdatedAt}
+          />
         </>
       )}
     </>
   )
 }
 
-function OutcomeForm(props: { readonly id: string; readonly current: string }) {
+function OutcomeForm(props: {
+  readonly id: string
+  readonly current: string
+  /** When the Deal was last read successfully: a newer value means a read finished. */
+  readonly readAt: number
+}) {
   const app = useApp()
   const parsed = outcomeSchema.safeParse(props.current)
   const current: Outcome = parsed.success ? parsed.data : 'open'
   // Null until the person touches the select: it then follows the Outcome as the service has it.
   const [chosen, setChosen] = useState<Outcome | null>(null)
   const outcome = chosen ?? current
-  // The Outcome just saved, until a read of the Deal shows it.
-  const [saved, setSaved] = useState<Outcome | null>(null)
+  // The Outcome just saved and when the Deal was last read, until a newer read arrives.
+  const [saved, setSaved] = useState<{ outcome: Outcome; readAt: number } | null>(null)
   useEffect(() => {
-    if (saved !== null && current === saved) {
-      // Follow the service again, unless a different choice was made meanwhile.
-      setChosen((now) => (now === saved ? null : now))
+    if (saved !== null && props.readAt !== saved.readAt) {
+      // A read finished after the save: follow what the service now says (another Admin may
+      // have changed it too), unless a different choice was made while it was in flight.
+      setChosen((now) => (now === saved.outcome ? null : now))
       setSaved(null)
     }
-  }, [current, saved])
+  }, [props.readAt, saved])
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const save = useSubmit<Outcome>(
@@ -97,9 +108,9 @@ function OutcomeForm(props: { readonly id: string; readonly current: string }) {
       setError(null)
       await app.salesHistory.setDealOutcome(props.id, chosen)
       setNotice('Outcome saved.')
-      // The select keeps showing what was saved until a read of the Deal says so (the effect
+      // The select keeps showing what was saved until a read of the Deal succeeds (the effect
       // above). A failed read is the page's own error, not this save's.
-      setSaved(chosen)
+      setSaved({ outcome: chosen, readAt: props.readAt })
       await refresh(app, 'deals')
     },
     { onError: (caught) => setError(presentSales(caught, 'outcome').message) }
