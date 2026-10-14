@@ -13,17 +13,24 @@ export function When(props: { readonly iso: string }) {
 
 const DAY = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' })
 
+const CALENDAR_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
+
 /**
- * A date that has no time of day (a Deal's closing date) as its UTC calendar date, such as
- * "Jan 31, 2026". Core keeps these as a UTC timestamp, so the date is read in UTC: a reader's
- * time zone must not move it to the day before. Other timestamps use {@link formatWhen}.
+ * A calendar date (`YYYY-MM-DD`, a Deal's closing date) as that date, such as "Jan 31, 2026". It has
+ * no time and no time zone, so it is built from its own year, month and day and formatted in UTC:
+ * never `new Date('2026-01-31')` shown in local time, which moves it to the day before west of UTC.
+ * A value that is not a calendar date is returned as it came. Timestamps use {@link formatWhen}.
  */
 export function formatDateOnly(value: string): string {
-  const time = Date.parse(value)
-  return Number.isNaN(time) ? value : DAY.format(time)
+  const match = CALENDAR_DATE.exec(value)
+  if (match === null) {
+    return value
+  }
+  const day = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+  return Number.isNaN(day.getTime()) ? value : DAY.format(day)
 }
 
-/** A date with no time of day (see {@link formatDateOnly}). A CSV `closed_at` given with an offset is stored as a UTC instant, so its UTC date can differ from the one typed: that needs a date-only `closedAt` in the contract. */
+/** A calendar date with no time of day (see {@link formatDateOnly}). */
 export function DateOnly(props: { readonly value: string }) {
   return <time dateTime={props.value}>{formatDateOnly(props.value)}</time>
 }

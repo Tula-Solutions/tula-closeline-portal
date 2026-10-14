@@ -231,6 +231,18 @@ export function useDeal(dealRecordId: string) {
   })
 }
 
+/** One Call read alone, which (unlike a page of Calls) carries the speaker excerpts; only while `enabled`. */
+export function useCallSpeakers(callId: string, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.calls(organizationId), 'one', callId],
+    queryFn: ({ signal }) => app.salesHistory.getCall(callId, signal),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+}
+
 /** Deal imports, a page at a time, newest first. */
 export function useDealImports() {
   const app = useApp()

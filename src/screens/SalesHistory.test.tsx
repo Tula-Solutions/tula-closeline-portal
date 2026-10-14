@@ -208,7 +208,7 @@ describe('Sales history: Deals', () => {
               dealId: 'D-100',
               name: 'Acme renewal',
               outcome: 'won',
-              closedAt: '2026-01-31T00:00:00Z',
+              closedAt: '2026-01-31',
               amount: '12000.00',
               currency: 'EUR',
               callCount: 2,

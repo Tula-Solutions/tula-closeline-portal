@@ -130,10 +130,10 @@ row with the reason in words and can be downloaded as CSV with formula-looking c
 confirmation wording is the contract's (`RIGHTS_WORDINGS`, contract v0.9.0): the screen shows the text of the
 version it will send, marked as a draft while the contract says so (pending a lawyer's check).
 
-A Deal's `closedAt` is shown as its UTC calendar date (`formatDateOnly`, no time). Core keeps it as a UTC
-timestamp, so a CSV `closed_at` written with an offset (`2026-01-31T23:00:00-05:00`) is stored as an instant and
-its UTC date (Feb 1) can differ from the date typed; a plain `2026-01-31` is exact. The proper fix is a date-only
-`closedAt` in the contract.
+A Deal's `closedAt` is a calendar date `YYYY-MM-DD` (contract v0.11.0): it is shown as that date (`formatDateOnly`,
+built from its own year, month and day, never `new Date('YYYY-MM-DD')` in local time) and the Outcome form sends
+it from a date input. A speaker's excerpt on a Recording waiting for its Rep comes from reading that one Call
+(`GET /calls/{id}`) when the picker opens, and is shown as text.
 
 Calls (`/sales-history/calls`) are uploaded as a Transcript (the file, the customer's deal id and the Rep's
 speaker label) or a Recording (the deal id, an optional Rep channel, then the file last; up to 500 MB, with a
