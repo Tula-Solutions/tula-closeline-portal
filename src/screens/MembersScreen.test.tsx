@@ -47,6 +47,11 @@ describe('members: the list', () => {
         .getAllByRole('columnheader')
         .map((cell) => cell.textContent)
     ).toContain('Email address')
+    // Review F2: an sr-only (absolutely positioned) cell can lose its table-cell semantics.
+    expect(table.querySelectorAll('th.sr-only, td.sr-only')).toHaveLength(0)
+    expect(within(rows[1] as HTMLElement).getAllByRole('cell')[0]?.textContent).toBe(
+      'member1@northline.app'
+    )
   })
 
   test('loads one page at a time and "Load more" asks for the next cursor', async () => {

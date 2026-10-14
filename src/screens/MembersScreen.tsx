@@ -69,10 +69,7 @@ export function MembersScreen() {
                 <thead>
                   <tr>
                     <th scope='col'>Member</th>
-                    {/* The address shows under the name; this column carries it for assistive technology. */}
-                    <th scope='col' className='sr-only'>
-                      Email address
-                    </th>
+                    <th scope='col'>Email address</th>
                     <th scope='col'>Role</th>
                     {can.manageMembers(role) ? (
                       <th scope='col' className='w-0 text-end'>
@@ -171,23 +168,12 @@ function MemberRow(props: {
         <th scope='row' className='font-normal'>
           <div className='flex min-w-0 items-center gap-3'>
             <Avatar name={display} toneKey={member.id} />
-            <div className='flex min-w-0 flex-col leading-tight'>
-              <span className='font-semibold'>
-                <Untrusted value={display} />
-              </span>
-              {member.name === null ? null : (
-                // A copy for the eye: the Email address cell carries it for assistive technology.
-                <span
-                  aria-hidden='true'
-                  className='clip mt-0.5 text-[0.8125rem] text-muted-foreground'
-                >
-                  {member.email}
-                </span>
-              )}
-            </div>
+            <span className='min-w-0 font-semibold'>
+              <Untrusted value={display} />
+            </span>
           </div>
         </th>
-        <td className='sr-only'>
+        <td className='text-muted-foreground'>
           <Untrusted value={member.email} />
         </td>
         <td>

@@ -95,7 +95,7 @@ export function SearchForm<Answer>(props: {
   }
   return (
     <div className='grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]'>
-      <div className='flex min-w-0 flex-col gap-4 lg:sticky lg:top-6'>
+      <div className='flex min-w-0 flex-col gap-4 lg:sticky lg:top-6 lg:-m-1 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:p-1'>
         <p className='m-0 max-w-prose text-sm text-muted-foreground'>{props.intro}</p>
         <form
           ref={formRef}
