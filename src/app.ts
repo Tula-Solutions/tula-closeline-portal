@@ -25,6 +25,8 @@ export type App = {
   readonly rightsWording: (version: number) => RightsWording | undefined
   /** Waits `milliseconds` (the injected `sleep` in tests): the document poll and a `Retry-After` wait use it. */
   readonly sleep: (milliseconds: number) => Promise<void>
+  /** Leaves the page for another address (`location.assign`; tests stand in a recorder). */
+  readonly assign: (url: string) => void
   readonly session: Session
   readonly reporter: Reporter
   readonly queryClient: QueryClient
@@ -44,6 +46,8 @@ export type AppInit = {
   readonly fetch?: Fetch
   readonly sleep?: (milliseconds: number) => Promise<void>
   readonly random?: () => number
+  /** Leaves the page for another address; `location.assign` when omitted. */
+  readonly assign?: (url: string) => void
   readonly now?: () => number
   readonly timeoutMs?: number
   /** The line to the other tabs; none when omitted (tests), so apps in one process never hear each other. */
@@ -126,6 +130,7 @@ export function createApp(init: AppInit): App {
     playbook: createPlaybookApi(coreHttp),
     salesHistory: createSalesHistoryApi(coreHttp, init.reporter.report),
     sleep,
+    assign: init.assign ?? ((url) => window.location.assign(url)),
     session,
     reporter: init.reporter,
     queryClient,

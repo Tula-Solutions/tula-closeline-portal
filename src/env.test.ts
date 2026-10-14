@@ -23,6 +23,7 @@ describe('parseEnv', () => {
       environment: 'prod',
       sentryDsn: 'https://abc123@o1.ingest.sentry.io/42',
       release: 'v1.2.3',
+      googleFakeIssuerHost: undefined,
     })
   })
 
@@ -68,5 +69,38 @@ describe('parseEnv', () => {
       VITE_CORE_BASE_URL: 'https://core.closeline.example',
     })
     expect(JSON.stringify(env)).not.toContain('closeline.example')
+  })
+})
+
+describe('the fake Google issuer host', () => {
+  test('is read in the local environment and refused anywhere else', () => {
+    expect(
+      parseEnv({ VITE_ENVIRONMENT: 'local', VITE_GOOGLE_FAKE_ISSUER_HOST: '127.0.0.1:3015' })
+        .googleFakeIssuerHost
+    ).toBe('127.0.0.1:3015')
+    expect(parseEnv({ VITE_ENVIRONMENT: 'local' }).googleFakeIssuerHost).toBeUndefined()
+    expect(() =>
+      parseEnv({
+        VITE_ENVIRONMENT: 'prod',
+        VITE_SENTRY_DSN: 'https://k@o.ingest.sentry.io/1',
+        VITE_GOOGLE_FAKE_ISSUER_HOST: 'evil.example',
+      })
+    ).toThrow('VITE_GOOGLE_FAKE_ISSUER_HOST')
+  })
+
+  test('is lower-cased, because a URL host always is', () => {
+    expect(
+      parseEnv({ VITE_ENVIRONMENT: 'local', VITE_GOOGLE_FAKE_ISSUER_HOST: 'LocalHost:3015' })
+        .googleFakeIssuerHost
+    ).toBe('localhost:3015')
+  })
+
+  test('must be a host, not a URL', () => {
+    expect(() =>
+      parseEnv({
+        VITE_ENVIRONMENT: 'local',
+        VITE_GOOGLE_FAKE_ISSUER_HOST: 'http://127.0.0.1:3015/x',
+      })
+    ).toThrow('VITE_GOOGLE_FAKE_ISSUER_HOST')
   })
 })

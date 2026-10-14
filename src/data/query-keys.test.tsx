@@ -14,7 +14,7 @@ import { json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
 
 /** Keys that hold public data, the same for everyone; every other key must name an Organization. */
-const PUBLIC_KEYS = [['password-policy']]
+const PUBLIC_KEYS = [['password-policy'], ['auth-options']]
 
 function cachedKeys(portal: ReturnType<typeof renderPortal>) {
   return portal.app.queryClient

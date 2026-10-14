@@ -311,6 +311,13 @@ describe('sign-up: every error the start step can return has its own words', () 
       AUTH_ERRORS['auth.invalid_credentials'].code,
       AUTH_ERRORS['auth.user_banned'].code,
       AUTH_ERRORS['auth.no_organization'].code,
+      // The Google codes are tested in GoogleSignIn.test.tsx.
+      AUTH_ERRORS['oidc.disabled'].code,
+      AUTH_ERRORS['oidc.state_invalid'].code,
+      AUTH_ERRORS['oidc.email_unverified'].code,
+      AUTH_ERRORS['oidc.provider_unavailable'].code,
+      AUTH_ERRORS['oidc.invitation_mismatch'].code,
+      AUTH_ERRORS['oidc.access_denied'].code,
       'server.timeout',
       'client.timeout',
       'client.network',
