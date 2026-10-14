@@ -1,5 +1,5 @@
 import { getRouteApi, Link } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { OUTCOMES, type Outcome, outcomeSchema } from 'tula-closeline-contract'
 import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
@@ -81,6 +81,15 @@ function OutcomeForm(props: { readonly id: string; readonly current: string }) {
   // Null until the person touches the select: it then follows the Outcome as the service has it.
   const [chosen, setChosen] = useState<Outcome | null>(null)
   const outcome = chosen ?? current
+  // The Outcome just saved, until a read of the Deal shows it.
+  const [saved, setSaved] = useState<Outcome | null>(null)
+  useEffect(() => {
+    if (saved !== null && current === saved) {
+      // Follow the service again, unless a different choice was made meanwhile.
+      setChosen((now) => (now === saved ? null : now))
+      setSaved(null)
+    }
+  }, [current, saved])
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const save = useSubmit<Outcome>(
@@ -88,14 +97,10 @@ function OutcomeForm(props: { readonly id: string; readonly current: string }) {
       setError(null)
       await app.salesHistory.setDealOutcome(props.id, chosen)
       setNotice('Outcome saved.')
-      // Saved whatever happens to this read: a failed refresh is the page's own error, and the
-      // select keeps showing what was saved until the read succeeds.
-      try {
-        await refresh(app, 'deals')
-        setChosen(null)
-      } catch {
-        // The page shows the last Deal it read.
-      }
+      // The select keeps showing what was saved until a read of the Deal says so (the effect
+      // above). A failed read is the page's own error, not this save's.
+      setSaved(chosen)
+      await refresh(app, 'deals')
     },
     { onError: (caught) => setError(presentSales(caught, 'outcome').message) }
   )

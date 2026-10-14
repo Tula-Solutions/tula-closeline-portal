@@ -905,25 +905,84 @@ describe('Sales history review round 1', () => {
     expect(await screen.findByRole('heading', { name: 'Deal imports' })).toBeTruthy()
   })
 
-  test('an Outcome that was saved is not reported as failed when the read after it fails', async () => {
+  test('an Outcome that was saved is not reported as failed when the read after it fails, and the select keeps showing it', async () => {
     const deal = dealBody(1)
     let saved = false
-    visit(`/sales-history/deals/${deal.id}`, 'owner', [
+    let failing = true
+    let outcome = 'open'
+    const portal = visit(`/sales-history/deals/${deal.id}`, 'owner', [
       route('PUT', `${DEALS}/${deal.id}/outcome`, () => {
         saved = true
-        return json(200, { ...deal, outcome: 'won' })
+        outcome = 'won'
+        return json(200, { ...deal, outcome })
       }),
       route('GET', `${DEALS}/${deal.id}`, () =>
-        saved ? failure(500, ERRORS['server.unavailable'].code) : json(200, deal)
+        saved && failing
+          ? failure(500, ERRORS['server.unavailable'].code)
+          : json(200, { ...deal, outcome })
       ),
     ])
-    const user = (await import('@testing-library/user-event')).default.setup()
-    await user.selectOptions(await screen.findByLabelText('Outcome'), 'won')
-    await user.click(screen.getByRole('button', { name: 'Save Outcome' }))
+    const select = (await screen.findByLabelText('Outcome')) as HTMLSelectElement
+    await portal.user.selectOptions(select, 'won')
+    await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
     await waitFor(() =>
       expect(screen.getByRole('status', { name: 'Notice' }).textContent).toContain('Outcome saved')
     )
     expect(screen.queryByRole('alert')).toBeNull()
+    expect(select.value).toBe('won')
+    // Once a read shows the saved Outcome the select follows the service again.
+    failing = false
+    const reads = () =>
+      portal.calls.filter((call) => call.method === 'GET' && call.path === `${DEALS}/${deal.id}`)
+        .length
+    const before = reads()
+    void portal.app.queryClient.invalidateQueries()
+    await waitFor(() => {
+      if (reads() === before) {
+        throw new Error('no read yet')
+      }
+    })
+    outcome = 'lost'
+    void portal.app.queryClient.invalidateQueries()
+    await waitFor(() => {
+      if (select.value !== 'lost') {
+        throw new Error(`the select still shows ${select.value}`)
+      }
+    })
+  })
+
+  test('a choice made while the read after a save is in flight is kept', async () => {
+    const deal = dealBody(1)
+    let saved = false
+    let release: () => void = () => {}
+    let inFlight = false
+    const portal = visit(`/sales-history/deals/${deal.id}`, 'owner', [
+      route('PUT', `${DEALS}/${deal.id}/outcome`, () => {
+        saved = true
+        return json(200, { ...deal, outcome: 'won' })
+      }),
+      route('GET', `${DEALS}/${deal.id}`, async () => {
+        if (saved) {
+          inFlight = true
+          await new Promise<void>((resolve) => {
+            release = resolve
+          })
+        }
+        return json(200, { ...deal, outcome: saved ? 'won' : 'open' })
+      }),
+    ])
+    const select = (await screen.findByLabelText('Outcome')) as HTMLSelectElement
+    await portal.user.selectOptions(select, 'won')
+    await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
+    await waitFor(() => {
+      if (!inFlight) {
+        throw new Error('the read after the save has not started')
+      }
+    })
+    await portal.user.selectOptions(select, 'lost')
+    release()
+    await waitFor(() => expect(screen.getAllByText('Won').length).toBeGreaterThan(0))
+    expect(select.value).toBe('lost')
   })
 
   test('the Outcome select follows a change made elsewhere until the person touches it', async () => {
