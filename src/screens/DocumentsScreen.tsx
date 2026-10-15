@@ -118,7 +118,7 @@ function DocumentsView(props: { readonly manage: boolean }) {
           state={documents.state}
         >
           <ScrollRegion label='Documents' bare>
-            <table>
+            <table className='ledger-stack'>
               <thead>
                 <tr>
                   <th scope='col'>Name</th>
@@ -202,9 +202,13 @@ function DocumentRow(props: {
           <Untrusted value={document.fileName} />
         </span>
       </th>
-      <td className='text-muted-foreground'>{typeLabel(document.mediaType)}</td>
-      <td className='num'>{formatBytes(document.sizeBytes)}</td>
-      <td>
+      <td data-label='Type' className='text-muted-foreground'>
+        {typeLabel(document.mediaType)}
+      </td>
+      <td data-label='Size' className='num'>
+        {formatBytes(document.sizeBytes)}
+      </td>
+      <td data-label='Status'>
         <StatusBadge state={document.state}>{stateLabel(document.state)}</StatusBadge>
         {document.failureReason === null ? null : (
           <p className='hint'>{failureWords(document.failureReason)}</p>
@@ -215,8 +219,10 @@ function DocumentRow(props: {
           </p>
         ) : null}
       </td>
-      <td className='num'>{document.pageCount ?? '-'}</td>
-      <td className='text-muted-foreground'>
+      <td data-label='Pages' className='num'>
+        {document.pageCount ?? '-'}
+      </td>
+      <td data-label='Added' className='text-muted-foreground'>
         <When iso={document.createdAt} />
       </td>
       {props.manage ? (

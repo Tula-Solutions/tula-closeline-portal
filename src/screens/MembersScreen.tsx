@@ -14,6 +14,7 @@ import { refresh, useMembers } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { cn } from '~/lib/utils'
 import { Confirm } from '~/ui/Confirm'
+import { flash } from '~/ui/motion'
 import { Paged } from '~/ui/Paged'
 import { plain } from '~/ui/plain'
 import { ScrollRegion } from '~/ui/ScrollRegion'
@@ -119,6 +120,7 @@ function MemberRow(props: {
   }
   const [error, setError] = useState<string | null>(null)
   const select = useRef<HTMLSelectElement>(null)
+  const row = useRef<HTMLTableRowElement>(null)
   const errorId = `${member.id}-error`
   const choices = assignableRoles(viewerRole, member.role)
   const clearError = useCallback(() => setError(null), [])
@@ -133,6 +135,7 @@ function MemberRow(props: {
       setError(null)
       await app.core.changeMemberRole(member.id, next)
       await refresh(app, 'members')
+      flash(row.current)
       props.onDone('Role updated.')
       select.current?.focus()
     },
@@ -160,7 +163,7 @@ function MemberRow(props: {
   const manage = can.manageMembers(viewerRole)
   return (
     <>
-      <tr>
+      <tr ref={row}>
         <th scope='row' className='font-normal'>
           <div className='flex min-w-0 items-baseline'>
             <Monogram name={display} />

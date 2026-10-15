@@ -42,7 +42,7 @@ export function NativeSelect({
         className={cn(
           selectVariants({ size: controlSize }),
           'focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-          'aria-invalid:border-destructive aria-invalid:border-dashed',
+          'aria-invalid:border-destructive aria-invalid:shadow-[inset_2px_0_0_var(--danger)]',
           className
         )}
         {...props}

@@ -58,35 +58,53 @@ export function ImportsScreen() {
         state={imports.state}
       >
         <ScrollRegion label='Imports' bare>
-          <table>
+          <table className='ledger-stack'>
             <thead>
               <tr>
                 <th scope='col'>Uploaded</th>
                 <th scope='col'>Status</th>
-                <th scope='col'>Rows</th>
-                <th scope='col'>Applied</th>
-                <th scope='col'>Rejected</th>
-                <th scope='col'>Report</th>
+                <th scope='col' className='num'>
+                  Rows
+                </th>
+                <th scope='col' className='num'>
+                  Applied
+                </th>
+                <th scope='col' className='num'>
+                  Rejected
+                </th>
+                <th scope='col' className='text-end'>
+                  Report
+                </th>
               </tr>
             </thead>
             <tbody>
               {imports.items.map((item) => (
-                <tr key={item.id}>
+                <tr key={item.id} className='ink-hover'>
                   <th scope='row'>
                     <When iso={item.createdAt} />
                   </th>
-                  <td>
+                  <td data-label='Status'>
                     <StatusBadge state={item.state}>{importStateLabel(item.state)}</StatusBadge>
                   </td>
-                  <td>{item.rowCount ?? '-'}</td>
-                  <td>{item.appliedCount ?? '-'}</td>
-                  <td>{item.rejectedCount ?? '-'}</td>
-                  <td>
+                  <td data-label='Rows' className='num'>
+                    {item.rowCount ?? '-'}
+                  </td>
+                  <td data-label='Applied' className='num'>
+                    {item.appliedCount ?? '-'}
+                  </td>
+                  <td data-label='Rejected' className='num'>
+                    {item.rejectedCount ?? '-'}
+                  </td>
+                  <td data-label='Report' className='text-end'>
                     {IMPORT_PENDING_STATES.includes(item.state) ? (
                       // There is no report until the import has been processed.
                       'Not ready yet'
                     ) : (
-                      <Link to='/sales-history/imports/$importId' params={{ importId: item.id }}>
+                      <Link
+                        to='/sales-history/imports/$importId'
+                        params={{ importId: item.id }}
+                        className='ink-link row-link'
+                      >
                         Report
                         <span className='sr-only'>
                           {' '}

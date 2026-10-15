@@ -28,6 +28,7 @@ import { CallUpload } from '~/screens/sales/CallUpload'
 import { RecordingUpload } from '~/screens/sales/RecordingUpload'
 import { Banner } from '~/ui/Banner'
 import { Confirm } from '~/ui/Confirm'
+import { flash } from '~/ui/motion'
 import { Paged } from '~/ui/Paged'
 import { plain } from '~/ui/plain'
 import { ScrollRegion } from '~/ui/ScrollRegion'
@@ -114,7 +115,7 @@ export function CallsScreen() {
           state={calls.state}
         >
           <ScrollRegion label='Calls'>
-            <table>
+            <table className='ledger-stack'>
               <thead>
                 <tr>
                   <th scope='col'>File</th>
@@ -123,7 +124,9 @@ export function CallsScreen() {
                   <th scope='col'>Search</th>
                   <th scope='col'>Rep</th>
                   <th scope='col'>Added</th>
-                  <th scope='col'>Actions</th>
+                  <th scope='col' className='text-end'>
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -202,12 +205,15 @@ function CallRow(props: {
   const canChange = repChangeAllowed(call.state, call.failureReason)
   // What each speaker said comes from reading this one Call (a page of Calls does not carry it), only while the picker is open.
   const speakers = useCallSpeakers(call.id, editing && canChange).data?.speakers
+  // The row flashes once an action on it has landed.
+  const row = useRef<HTMLTableRowElement>(null)
 
   const remove = useSubmit<void>(
     async () => {
       setError(null)
       const gone = await app.salesHistory.deleteCall(call.id)
       await refresh(app, 'calls').catch(() => undefined)
+      flash(row.current)
       props.onDone(
         gone.purgeAt === null
           ? `Deleted ${label}.`
@@ -222,6 +228,7 @@ function CallRow(props: {
       setError(null)
       await app.salesHistory.restoreCall(call.id)
       await refresh(app, 'calls').catch(() => undefined)
+      flash(row.current)
       props.onDone(`Restored ${label}. It is processed again.`)
       props.heading.current?.focus()
     },
@@ -236,22 +243,23 @@ function CallRow(props: {
         `Rep of ${label} changed. The Call is out of search until it has been processed again.`
       )
       await refresh(app, 'calls').catch(() => undefined)
+      flash(row.current)
     },
     { onError: (failure) => setError(presentSales(failure, 'call-rep').message) }
   )
 
   return (
-    <tr>
+    <tr ref={row}>
       <th scope='row'>
         <Untrusted value={call.fileName} />
       </th>
-      <td>
+      <td data-label='Deal'>
         {/* The address carries the opaque id; the customer's deal id is text only. */}
         <Link to='/sales-history/deals/$dealRecordId' params={{ dealRecordId: call.dealRecordId }}>
           <Untrusted value={call.dealId} />
         </Link>
       </td>
-      <td>
+      <td data-label='Status'>
         <StatusBadge state={call.state}>{callStateLabel(call.state)}</StatusBadge>
         {call.state === 'awaiting_rep' ? (
           <p className='hint'>
@@ -268,14 +276,14 @@ function CallRow(props: {
           </p>
         ) : null}
       </td>
-      <td>{inSearchWords(call)}</td>
-      <td>
+      <td data-label='Search'>{inSearchWords(call)}</td>
+      <td data-label='Rep'>
         <RepText rep={call.rep} />
       </td>
-      <td>
+      <td data-label='Added'>
         <When iso={call.createdAt} />
       </td>
-      <td>
+      <td className='text-end'>
         {call.state === 'deleted' ? (
           <button
             type='button'

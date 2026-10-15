@@ -12,7 +12,9 @@ import {
 import { presentSales } from '~/api/sales-messages'
 import { EmptyState } from '~/components/app/empty-state'
 import { Button } from '~/components/ui/button'
+import { Skeleton } from '~/components/ui/skeleton'
 import { cn } from '~/lib/utils'
+import { searchTerms } from '~/screens/search/highlight'
 import { Banner } from '~/ui/Banner'
 import { SelectField } from '~/ui/SelectField'
 import { useFocusOnError } from '~/ui/useFocusOnError'
@@ -49,7 +51,8 @@ export function SearchForm<Answer>(props: {
   readonly label: string
   readonly intro: string
   readonly run: (request: SearchMomentsRequest) => Promise<Answer>
-  readonly children: (answer: Answer) => ReactNode
+  /** Draws the answer; `terms` are the search's words worth marking in it. */
+  readonly children: (answer: Answer, terms: readonly string[]) => ReactNode
 }) {
   const nextKey = useRef(2)
   const [turns, setTurns] = useState<readonly Turn[]>([{ key: 1, role: 'rep', text: '' }])
@@ -246,9 +249,8 @@ export function SearchForm<Answer>(props: {
             <p className='m-0'>
               <Button
                 type='button'
-                variant='outline'
+                variant='link'
                 size='sm'
-                className='w-full border-dashed'
                 onClick={() => {
                   const key = nextKey.current
                   nextKey.current += 1
@@ -294,15 +296,28 @@ export function SearchForm<Answer>(props: {
           </Banner>
         ) : null}
         {answer === null ? (
-          failure ? null : (
+          failure ? null : search.pending ? (
+            <div>
+              <p role='status' className='hint mt-0'>
+                Looking for text that sounds like this conversation.
+              </p>
+              <div aria-hidden='true' className='border-t border-rule-strong'>
+                {[0, 1, 2].map((row) => (
+                  <div key={row} className='flex flex-col gap-3 border-b py-6'>
+                    <Skeleton className='h-4 w-1/3' />
+                    <Skeleton className='h-3 w-full' />
+                    <Skeleton className='h-3 w-4/5' />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
             <EmptyState title='Results show here'>
-              {search.pending
-                ? 'Looking for text that sounds like this conversation.'
-                : 'Write at least one turn of the conversation, then search.'}
+              Write at least one turn of the conversation, then search.
             </EmptyState>
           )
         ) : (
-          props.children(answer)
+          props.children(answer, searchTerms(turns.map((turn) => turn.text)))
         )}
       </div>
     </div>
