@@ -8,6 +8,8 @@ export function createAppRouter(app: App, history?: RouterHistory) {
     routeTree,
     context: { app },
     defaultPreload: 'intent',
+    // Page changes run as view transitions where the browser has them (the CSS is in index.css).
+    defaultViewTransition: true,
     ...(history ? { history } : {}),
   })
 }

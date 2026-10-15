@@ -6,6 +6,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
+import { withViewTransition } from '~/ui/motion'
 import { setThemeChoice, type ThemeChoice, useThemeChoice } from '~/ui/theme'
 
 const CHOICES: readonly { value: ThemeChoice; label: string }[] = [
@@ -37,7 +38,7 @@ export function ThemeMenu() {
           value={choice}
           onValueChange={(value) => {
             if (value === 'light' || value === 'dark' || value === 'system') {
-              setThemeChoice(value)
+              withViewTransition(() => setThemeChoice(value), 'theme')
             }
           }}
         >

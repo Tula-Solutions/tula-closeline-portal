@@ -125,3 +125,29 @@ describe('focus and paper', () => {
     expect(css).toMatch(/body\s*\{[^}]*background-image:\s*var\(--grain\)/)
   })
 })
+
+describe('motion under reduced motion', () => {
+  const reduced = [...css.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/g)]
+    .map((match) => match[1])
+    .join('\n')
+
+  test('CSS animations and transitions collapse, delays included, so nothing waits hidden', () => {
+    expect(reduced).toMatch(/animation-duration:\s*0\.01ms/)
+    expect(reduced).toMatch(/animation-delay:\s*0ms/)
+    expect(reduced).toMatch(/transition-duration:\s*0\.01ms/)
+  })
+
+  test('every view-transition animation is declared only for people who did not ask for less motion', () => {
+    const outside = css.replace(
+      /@media \(prefers-reduced-motion: (?:reduce|no-preference)\) \{[\s\S]*?\n\}/g,
+      ''
+    )
+    expect(outside).not.toMatch(/::view-transition-/)
+  })
+
+  test('the view-transition pseudo-elements, which the universal rule misses, are stopped too', () => {
+    expect(reduced).toMatch(
+      /::view-transition-group\(\*\),\s*::view-transition-old\(\*\),\s*::view-transition-new\(\*\)\s*\{\s*animation:\s*none;/
+    )
+  })
+})

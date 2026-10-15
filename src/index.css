@@ -204,14 +204,87 @@
   }
 }
 
+/*
+ * Motion. Every movement explains a change, then gets out of the way: 3 to 8 px of travel, exits at
+ * about 0.65 times their entrance, and nothing loops but the skeleton shimmer and the "processing"
+ * dot. Script-driven motion (src/ui/motion.ts) reads the same values.
+ */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-move: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-press: 80ms;
+  --dur-hover: 120ms;
+  --dur-ui: 180ms;
+  --dur-page: 260ms;
+  --dur-hero: 700ms;
+}
+
+/*
+ * Page changes run as view transitions (the router's defaultViewTransition). The sidebar and the
+ * phone's top bar are named so they hold still; the page fades out quickly and the new one rises.
+ * All of it sits behind no-preference, so under reduced motion only the rule further down applies
+ * (a named pseudo-element here would otherwise outrank its `*`).
+ */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(page) {
+    animation: vt-out 120ms var(--ease-in) both;
+  }
+  ::view-transition-new(page) {
+    animation: vt-in var(--dur-page) var(--ease-out) both;
+  }
+  ::view-transition-group(*) {
+    animation-duration: var(--dur-page);
+    animation-timing-function: var(--ease-move);
+  }
+  /* A theme change crossfades the whole page, with nothing moving. */
+  html[data-transition="theme"]::view-transition-old(*),
+  html[data-transition="theme"]::view-transition-new(*) {
+    animation-duration: 240ms;
+    animation-timing-function: var(--ease-move);
+  }
+  html[data-transition="theme"]::view-transition-new(page) {
+    animation-name: vt-fade-in;
+  }
+  /* A removed row fades and the rows below close up. */
+  html[data-transition="remove"]::view-transition-group(*) {
+    animation-duration: var(--dur-ui);
+  }
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms;
+    animation-delay: 0ms;
     animation-iteration-count: 1;
     transition-duration: 0.01ms;
+    transition-delay: 0ms;
     scroll-behavior: auto;
+  }
+  /* The rule above does not reach the view-transition pseudo-elements: they need their own. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
   }
 }
 

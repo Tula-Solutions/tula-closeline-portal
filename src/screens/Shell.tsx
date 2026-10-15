@@ -133,7 +133,7 @@ export function Shell() {
       </a>
       <div
         inert={open}
-        className='sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3 md:hidden'
+        className='sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3 [view-transition-name:topbar] md:hidden'
       >
         <Button
           ref={toggleRef}
@@ -161,7 +161,7 @@ export function Shell() {
         ref={asideRef}
         id='app-sidebar'
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-4 border-r border-sidebar-border bg-sidebar py-6 pr-5 pl-3 text-sidebar-foreground shadow-elev-3 transition-[transform,visibility] duration-200 ease-snappy md:sticky md:top-0 md:z-auto md:h-dvh md:w-auto md:max-w-none md:translate-x-0 md:shadow-none md:visible',
+          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-4 border-r border-sidebar-border bg-sidebar py-6 pr-5 pl-3 text-sidebar-foreground shadow-elev-3 transition-[transform,visibility] duration-200 ease-snappy md:sticky md:top-0 md:z-auto md:h-dvh md:w-auto md:max-w-none md:translate-x-0 md:shadow-none md:visible md:[view-transition-name:sidebar]',
           open ? 'visible translate-x-0' : 'max-md:invisible max-md:-translate-x-full'
         )}
       >
@@ -248,7 +248,7 @@ export function Shell() {
         inert={open}
         id='main'
         tabIndex={-1}
-        className='relative min-w-0 px-4 py-8 outline-hidden md:px-12 md:py-12 xl:px-16'
+        className='relative min-w-0 px-4 py-8 outline-hidden [view-transition-name:page] md:px-12 md:py-12 xl:px-16'
       >
         <div className='w-full max-w-[72rem]'>
           {/* Keyed by Organization: another Organization starts every screen fresh, with no state of the last. */}

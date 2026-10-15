@@ -76,7 +76,7 @@ export function PublicLayout() {
       </aside>
       <main
         id='main'
-        className='flex flex-col justify-center px-5 py-12 sm:px-12 lg:col-span-5 xl:px-16'
+        className='flex flex-col justify-center px-5 py-12 [view-transition-name:page] sm:px-12 lg:col-span-5 xl:px-16'
       >
         <div className='mx-auto w-full max-w-[24rem] motion-safe:animate-rise lg:mx-0'>
           <Logo className='mb-12 w-28 lg:hidden' />
