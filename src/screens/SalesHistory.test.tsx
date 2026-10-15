@@ -256,6 +256,30 @@ describe('Sales history: Deals', () => {
     expect(within(row).getByText('EUR', { exact: false })).toBeTruthy()
   })
 
+  test('opening a Deal from its row shows it at once, named as the page heading, then reads it fresh', async () => {
+    const deal = dealBody(1, { dealId: 'D-100', name: 'Acme renewal' })
+    let release: () => void = () => undefined
+    const held = new Promise<void>((done) => {
+      release = done
+    })
+    const portal = visit('/sales-history/deals', 'owner', [
+      route('GET', `${DEALS}/${deal.id}`, async () => {
+        await held
+        return json(200, deal)
+      }),
+      route('GET', DEALS, json(200, page([deal]))),
+    ])
+    const link = await screen.findByRole('link', { name: 'D-100' })
+    await portal.user.click(link)
+    // The id moves into the page (a shared view transition) and the page does not wait for the read.
+    expect(link.style.getPropertyValue('view-transition-name')).toBe(`deal-${deal.id}`)
+    expect(await screen.findByRole('heading', { level: 1, name: 'Acme renewal' })).toBeTruthy()
+    release()
+    await waitFor(() =>
+      expect(portal.calls.some((call) => call.path === `${DEALS}/${deal.id}`)).toBe(true)
+    )
+  })
+
   test.each(['=HYPERLINK("http://evil.example","x")', '+1+1', '-2+3', '@SUM(A1)'])(
     'a deal id that begins like a formula (%s) is shown as plain text, never in an address',
     async (dealId) => {

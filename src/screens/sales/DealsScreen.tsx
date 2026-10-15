@@ -12,7 +12,7 @@ import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
 import { StatusBadge } from '~/components/app/status-badge'
-import { useDeals } from '~/data/queries'
+import { useDeals, useSeedDeal } from '~/data/queries'
 import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
 import { Banner } from '~/ui/Banner'
 import { Field } from '~/ui/Field'
@@ -48,6 +48,7 @@ export function DealsScreen() {
   const [outcome, setOutcome] = useState<Outcome | undefined>(undefined)
   const [unseen, setUnseen] = useState(false)
   const deals = useDeals({ outcome, unseen })
+  const seed = useSeedDeal()
   return (
     <>
       <PageHeader
@@ -124,13 +125,14 @@ export function DealsScreen() {
                           to='/sales-history/deals/$dealRecordId'
                           params={{ dealRecordId: deal.id }}
                           className='ink-link row-link'
-                          onClick={(event) =>
-                            // The id moves from this row to the Deal's heading.
+                          onClick={(event) => {
+                            // The Deal opens at once from this row, and its id moves into the page.
+                            seed(deal)
                             event.currentTarget.style.setProperty(
                               'view-transition-name',
                               dealTransitionName(deal.id)
                             )
-                          }
+                          }}
                         >
                           <Untrusted value={deal.dealId} />
                         </Link>

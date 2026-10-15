@@ -1,6 +1,7 @@
 import { type InfiniteData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import {
   type CallState,
+  type Deal,
   type DocumentState,
   type ListDealImportRowsResponse,
   type ListDealImportsResponse,
@@ -230,6 +231,23 @@ export function useDeal(dealRecordId: string) {
     queryFn: ({ signal }) => app.salesHistory.getDeal(dealRecordId, signal),
     enabled: organizationId !== '',
   })
+}
+
+/**
+ * Puts a Deal already read in a list into the cache of its own page, so the page opens with it at
+ * once (and the Deal id can move into it as a view transition); the page still reads it fresh.
+ */
+export function useSeedDeal() {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return (deal: Deal) => {
+    if (organizationId !== '') {
+      // Dated the epoch, so it counts as stale and the page reads the Deal again as it opens.
+      app.queryClient.setQueryData([...KEYS.deals(organizationId), 'one', deal.id], deal, {
+        updatedAt: 0,
+      })
+    }
+  }
 }
 
 /** One Call read alone, which (unlike a page of Calls) carries the speaker excerpts; only while `enabled`. */

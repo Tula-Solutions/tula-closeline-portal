@@ -47,10 +47,11 @@ export function DealScreen() {
             'Deal'
           ) : deal.data.name === null ? (
             <span ref={transitionName(dealTransitionName(deal.data.id))}>
-              <Untrusted value={deal.data.dealId} />
+              <bdi>{deal.data.dealId}</bdi>
             </span>
           ) : (
-            <Untrusted value={deal.data.name} />
+            // The heading wraps instead of clipping: the whole name is the page's title.
+            <bdi>{deal.data.name}</bdi>
           )
         }
         actions={
