@@ -1,15 +1,16 @@
 import { type InfiniteData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import type {
-  CallState,
-  DocumentState,
-  ListDealImportRowsResponse,
-  ListDealImportsResponse,
-  ListDealsResponse,
-  ListDocumentsResponse,
-  ListInvitationsResponse,
-  ListMembersResponse,
-  ListTeamsResponse,
-  Outcome,
+import {
+  type CallState,
+  type DocumentState,
+  type ListDealImportRowsResponse,
+  type ListDealImportsResponse,
+  type ListDealsResponse,
+  type ListDocumentsResponse,
+  type ListInvitationsResponse,
+  type ListMembersResponse,
+  type ListTeamsResponse,
+  MAX_PAGE_SIZE,
+  type Outcome,
 } from 'tula-closeline-contract'
 import type { CallsPage } from '~/api/sales-history'
 import type { App } from '~/app'
@@ -303,6 +304,79 @@ export function useImportRows(importId: string, rejectedOnly: boolean, enabled: 
     enabled: enabled && organizationId !== '',
   })
   return pagedStateBy(query, (row) => String(row.rowNumber))
+}
+
+/**
+ * One list read once for a dashboard count: a single page at the largest size the server allows,
+ * never a second page. `more` says a next cursor came back, so the count is a floor ("100+").
+ */
+export type FirstPage<T> = {
+  readonly isPending: boolean
+  readonly isError: boolean
+  readonly items: readonly T[]
+  readonly more: boolean
+}
+
+function useFirstPage<T>(
+  key: readonly unknown[],
+  read: (signal: AbortSignal) => Promise<Page<T>>,
+  enabled: boolean
+): FirstPage<T> {
+  const query = useQuery({
+    queryKey: key,
+    queryFn: ({ signal }) => read(signal),
+    enabled,
+  })
+  return {
+    isPending: query.isPending,
+    isError: query.isError,
+    items: query.data?.items ?? [],
+    more: query.data !== undefined && query.data.nextCursor !== null,
+  }
+}
+
+/** The members' first page for Home's count; no request for a role that may not list them. */
+export function useMembersFirstPage(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useFirstPage(
+    [...KEYS.members(organizationId), 'first-page'],
+    (signal) => app.core.listMembers({ limit: MAX_PAGE_SIZE, signal }),
+    enabled && organizationId !== ''
+  )
+}
+
+/** The current documents' first page (newest first) for Home's count and recent list. */
+export function useDocumentsFirstPage() {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useFirstPage(
+    [...KEYS.documents(organizationId), 'first-page'],
+    (signal) => app.playbook.listDocuments({ limit: MAX_PAGE_SIZE, signal }),
+    organizationId !== ''
+  )
+}
+
+/** The won Deals' first page for Home's count; no request unless `enabled`. */
+export function useWonDealsFirstPage(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useFirstPage(
+    [...KEYS.deals(organizationId), 'first-page', 'won'],
+    (signal) => app.salesHistory.listDeals({ limit: MAX_PAGE_SIZE, outcome: 'won', signal }),
+    enabled && organizationId !== ''
+  )
+}
+
+/** The current Calls' first page for Home's count; no request unless `enabled`. */
+export function useCallsFirstPage(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useFirstPage(
+    [...KEYS.calls(organizationId), 'first-page'],
+    (signal) => app.salesHistory.listCalls({ limit: MAX_PAGE_SIZE, signal }),
+    enabled && organizationId !== ''
+  )
 }
 
 /** Calls, a page at a time, newest first; with a state only Calls in it, with a Deal (opaque id) only its Calls. */

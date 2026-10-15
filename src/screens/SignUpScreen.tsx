@@ -333,7 +333,7 @@ export function SignUpScreen() {
         ) : null}
         <Link
           to='/sign-in'
-          className='font-semibold text-primary underline-offset-4 hover:underline'
+          className='font-medium text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-current'
         >
           Sign in instead
         </Link>

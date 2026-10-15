@@ -36,6 +36,7 @@ export function ImportsScreen() {
   return (
     <>
       <PageHeader
+        eyebrow='Sales history'
         title='Deal imports'
         description="Upload a CSV with one row per Deal to set each Deal's Outcome in bulk. Each import gets a report that says what happened to every row."
       />
@@ -49,9 +50,14 @@ export function ImportsScreen() {
           </button>
         </Banner>
       ) : null}
-      <h2>Imports</h2>
-      <Paged noun='imports' emptyText='There are no imports yet.' state={imports.state}>
-        <ScrollRegion label='Imports'>
+      <h2 className='mb-0 border-t border-rule-strong pt-4'>Imports</h2>
+      <Paged
+        noun='imports'
+        emptyText='There are no imports yet.'
+        emptyHint='Upload a CSV above; its report shows here.'
+        state={imports.state}
+      >
+        <ScrollRegion label='Imports' bare>
           <table>
             <thead>
               <tr>
@@ -125,7 +131,7 @@ function UploadSection() {
     take(event.dataTransfer.files)
   }
   return (
-    <section aria-labelledby='import-upload-heading'>
+    <section aria-labelledby='import-upload-heading' className='panel'>
       <h2 id='import-upload-heading'>Upload a CSV</h2>
       <fieldset
         className={over ? 'drop-area drop-area-over' : 'drop-area'}

@@ -61,75 +61,88 @@ export function CallsScreen() {
   return (
     <>
       <PageHeader
+        eyebrow='Sales history'
         title='Calls'
         description='A Call is one past conversation, uploaded as a Transcript or a Recording for a Deal. Only ready Calls of won Deals are used in search.'
         headingRef={headingRef}
         headingProps={{ tabIndex: -1 }}
       />
-      <RightsNotice />
-      <CallUpload />
-      <RecordingUpload />
-      <h2>All Calls</h2>
-      {dealRecordId === undefined ? null : <DealFilter id={dealRecordId} />}
-      <SelectField
-        label='Show'
-        name='state'
-        value={state ?? ''}
-        onChange={(event) => {
-          const parsed = callStateSchema.safeParse(event.target.value)
-          setState(parsed.success ? parsed.data : undefined)
-          setNotice('')
-        }}
-        options={[
-          { value: '', text: 'All current Calls' },
-          ...CALL_STATES.map((value) => ({ value, text: CALL_FILTER_LABEL[value] })),
-        ]}
-      />
-      <p role='status' aria-label='Notice' className='notice'>
-        {notice}
-      </p>
-      {poll.paused ? (
-        <Banner kind='info'>
-          Some Calls are still being processed, but we stopped checking for updates.{' '}
-          <button type='button' className='button button-quiet' onClick={poll.resume}>
-            Check again
-          </button>
-        </Banner>
-      ) : null}
-      <p className='hint' id={REP_WHY_ID}>
-        The Rep can be changed when the Call is ready, waiting for a Rep, or failed because of the
-        Rep.
-      </p>
-      <Paged noun='Calls' emptyText='There are no Calls to show.' state={calls.state}>
-        <ScrollRegion label='Calls'>
-          <table>
-            <thead>
-              <tr>
-                <th scope='col'>File</th>
-                <th scope='col'>Deal</th>
-                <th scope='col'>Status</th>
-                <th scope='col'>Search</th>
-                <th scope='col'>Rep</th>
-                <th scope='col'>Added</th>
-                <th scope='col'>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {calls.items.map((call) =>
-                isUnreadable(call) ? (
-                  <tr key={call.id}>
-                    <td colSpan={7}>
-                      This Call cannot be shown. Reload the page; if it stays, contact support.
-                    </td>
-                  </tr>
-                ) : (
-                  <CallRow key={call.id} call={call} onDone={setNotice} heading={headingRef} />
-                )
-              )}
-            </tbody>
-          </table>
-        </ScrollRegion>
-      </Paged>
+      <div className='page-stack'>
+        <RightsNotice />
+        <div className='panel-grid'>
+          <CallUpload />
+          <RecordingUpload />
+        </div>
+        <div className='flex flex-wrap items-end justify-between gap-3 border-t border-rule-strong pt-4'>
+          <h2 className='m-0'>All Calls</h2>
+          <SelectField
+            inline
+            label='Show'
+            name='state'
+            value={state ?? ''}
+            onChange={(event) => {
+              const parsed = callStateSchema.safeParse(event.target.value)
+              setState(parsed.success ? parsed.data : undefined)
+              setNotice('')
+            }}
+            options={[
+              { value: '', text: 'All current Calls' },
+              ...CALL_STATES.map((value) => ({ value, text: CALL_FILTER_LABEL[value] })),
+            ]}
+          />
+        </div>
+        {dealRecordId === undefined ? null : <DealFilter id={dealRecordId} />}
+        <p role='status' aria-label='Notice' className='notice'>
+          {notice}
+        </p>
+        {poll.paused ? (
+          <Banner kind='info'>
+            Some Calls are still being processed, but we stopped checking for updates.{' '}
+            <button type='button' className='button button-quiet' onClick={poll.resume}>
+              Check again
+            </button>
+          </Banner>
+        ) : null}
+        <p className='hint' id={REP_WHY_ID}>
+          The Rep can be changed when the Call is ready, waiting for a Rep, or failed because of the
+          Rep.
+        </p>
+        <Paged
+          noun='Calls'
+          emptyText='There are no Calls to show.'
+          emptyHint='Upload a Transcript or a Recording above to add the first one.'
+          state={calls.state}
+        >
+          <ScrollRegion label='Calls'>
+            <table>
+              <thead>
+                <tr>
+                  <th scope='col'>File</th>
+                  <th scope='col'>Deal</th>
+                  <th scope='col'>Status</th>
+                  <th scope='col'>Search</th>
+                  <th scope='col'>Rep</th>
+                  <th scope='col'>Added</th>
+                  <th scope='col'>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {calls.items.map((call) =>
+                  isUnreadable(call) ? (
+                    <tr key={call.id}>
+                      <td colSpan={7}>
+                        This Call cannot be shown. Reload the page; if it stays, contact support.
+                      </td>
+                    </tr>
+                  ) : (
+                    <CallRow key={call.id} call={call} onDone={setNotice} heading={headingRef} />
+                  )
+                )}
+              </tbody>
+            </table>
+          </ScrollRegion>
+        </Paged>
+      </div>
     </>
   )
 }
@@ -350,6 +363,7 @@ function CallRow(props: {
                   can be restored for a while before it is removed for good.
                 </>
               }
+              tone='quiet-destructive'
               confirmLabel='Delete Call'
               pending={remove.pending}
               describedBy={error ? errorId : undefined}

@@ -68,7 +68,7 @@ export function createPlaybookApi(http: HttpClient): PlaybookApi {
     listDocuments: (page) =>
       http.request({
         path: '/v1/playbook/documents',
-        query: { cursor: page.cursor, limit: PAGE_SIZE, state: page.state },
+        query: { cursor: page.cursor, limit: page.limit ?? PAGE_SIZE, state: page.state },
         auth: true,
         ...(page.signal ? { signal: page.signal } : {}),
         parse: (json) => listDocumentsResponseSchema.parse(json),

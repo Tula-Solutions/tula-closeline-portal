@@ -2,10 +2,12 @@ import { Link } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
 import type { SearchMomentsResponse } from 'tula-closeline-contract'
 import { useApp } from '~/app-context'
+import { EmptyState } from '~/components/app/empty-state'
 import { PageHeader } from '~/components/app/page-header'
 import { Progress } from '~/components/ui/progress'
 import { can } from '~/data/permissions'
 import { useRole } from '~/data/session-role'
+import { Rank, ResultsHeader } from '~/screens/search/ResultsHeader'
 import { percent, plural, SearchForm } from '~/screens/search/SearchForm'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 
@@ -25,48 +27,57 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
   useEffect(() => heading.current?.focus(), [])
   const { items, evidence } = props.answer
   return (
-    <section aria-labelledby='search-results-heading' className='mt-10'>
-      <h2 id='search-results-heading' tabIndex={-1} ref={heading}>
-        Results
-      </h2>
+    <section
+      aria-labelledby='search-results-heading'
+      className='m-0 flex flex-col gap-3 motion-safe:animate-rise'
+    >
+      <ResultsHeader
+        id='search-results-heading'
+        headingRef={heading}
+        evidence={items.length === 0 ? null : <Evidence evidence={evidence} />}
+      />
       {items.length === 0 ? (
-        <p>No Moments from won Deals matched this conversation. Try other words, or add a turn.</p>
+        <EmptyState title='No matches'>
+          No Moments from won Deals matched this conversation. Try other words, or add a turn.
+        </EmptyState>
       ) : (
         <>
-          <Evidence evidence={evidence} />
-          <ol aria-label='Matching Moments' className='grid gap-4'>
+          <ol aria-label='Matching Moments' className='m-0 list-none p-0'>
             {items.map((item, index) => {
               const score = percent(item.score)
               return (
                 <li
                   key={`${item.callId}-${item.score}-${item.prospect}-${item.repNext}`}
-                  className='rounded-xl border bg-card p-5 shadow-xs'
+                  className='border-b py-6'
                 >
-                  <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
-                    <h3 className='text-base font-semibold'>
-                      Moment {index + 1}
-                      {score === null ? '' : ` (${score}% similar)`}
-                    </h3>
+                  <div className='mb-4 flex flex-wrap items-baseline justify-between gap-3'>
+                    <div className='flex items-baseline gap-3'>
+                      <Rank n={index + 1} />
+                      <h3 className='m-0 font-serif text-xl font-normal tabular-nums'>
+                        Moment {index + 1}
+                        {score === null ? '' : ` (${score}% similar)`}
+                      </h3>
+                    </div>
                     {score === null ? null : (
-                      <div aria-hidden='true' className='w-28'>
-                        <Progress value={score} aria-label='Similarity' />
+                      <div aria-hidden='true' className='flex w-32 items-center gap-2'>
+                        <Progress value={score} aria-label='Similarity' className='h-1.5' />
                       </div>
                     )}
                   </div>
-                  <div className='grid gap-3'>
-                    <blockquote className='m-0 rounded-lg border-l-4 border-muted-foreground/40 bg-muted/60 px-4 py-3'>
-                      <p className='mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase'>
+                  <div className='grid gap-4 sm:grid-cols-2 sm:gap-8'>
+                    <blockquote className='m-0 border-l border-border-strong pl-4'>
+                      <p className='label-mono mb-1.5'>
                         <strong>Prospect said</strong>
                       </p>
-                      <p className='m-0'>
+                      <p className='m-0 font-serif text-[1.0625rem] leading-relaxed'>
                         <bdi>{item.prospect}</bdi>
                       </p>
                     </blockquote>
-                    <blockquote className='m-0 rounded-lg border-l-4 border-primary bg-primary/10 px-4 py-3'>
-                      <p className='mb-1 text-xs font-semibold tracking-wide text-primary uppercase'>
+                    <blockquote className='m-0 border-l-2 border-foreground pl-4'>
+                      <p className='label-mono mb-1.5 text-foreground'>
                         <strong>Rep said next</strong>
                       </p>
-                      <p className='m-0'>
+                      <p className='m-0 font-serif text-[1.0625rem] leading-relaxed'>
                         {item.repNext === '' ? (
                           <em>Nothing, the Call ended.</em>
                         ) : (
@@ -75,13 +86,13 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
                       </p>
                     </blockquote>
                   </div>
-                  <p className='mt-4 mb-0 flex flex-wrap gap-x-5 gap-y-1 text-sm font-medium'>
+                  <p className='mt-4 mb-0 flex flex-wrap gap-x-5 gap-y-1 text-[0.8125rem]'>
                     {/* There is no page for one Call: this lists the Calls of its Deal. */}
                     <Link
                       to='/sales-history/calls'
                       search={{ deal: item.dealRecordId }}
                       aria-label={`Calls of this Deal for Moment ${index + 1}`}
-                      className='text-primary underline-offset-4 hover:underline'
+                      className='rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
                     >
                       Calls of this Deal
                     </Link>
@@ -89,7 +100,7 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
                       aria-label={`Deal for Moment ${index + 1}`}
                       to='/sales-history/deals/$dealRecordId'
                       params={{ dealRecordId: item.dealRecordId }}
-                      className='text-primary underline-offset-4 hover:underline'
+                      className='rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
                     >
                       Deal
                     </Link>
@@ -126,7 +137,7 @@ export function SearchScreen() {
   }
   return (
     <>
-      <PageHeader className='mb-3' title='Search won Deals' />
+      <PageHeader eyebrow='Sales history' className='mb-6' title='Search won Deals' />
       <SearchForm
         label='Search won Deals'
         intro='Write what was said so far. The search finds Moments from your won Deals that sound like it.'

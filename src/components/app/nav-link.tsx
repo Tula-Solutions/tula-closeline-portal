@@ -1,33 +1,25 @@
 import { Link, type LinkProps } from '@tanstack/react-router'
-import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { cn } from '~/lib/utils'
 
+// Text navigation. The page you are on is set in ink and marked by a short rule in the margin;
+// the others are quieter. No icons and no filled rows: the type does the work.
 const BASE =
-  'group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/80 transition-colors outline-none hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-[3px] focus-visible:ring-ring aria-[current=page]:bg-sidebar-accent aria-[current=page]:text-sidebar-foreground pointer-coarse:py-3'
+  "relative block rounded-sm py-1.5 pl-4 text-[0.9375rem] text-muted-foreground transition-colors duration-150 outline-hidden hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring before:absolute before:top-1/2 before:left-0 before:h-px before:w-2.5 before:bg-foreground before:opacity-0 before:transition-opacity before:content-[''] aria-[current=page]:font-medium aria-[current=page]:text-foreground aria-[current=page]:before:opacity-100 pointer-coarse:py-2.5"
 
-/** A link of the sidebar: an icon and a label, drawn as selected on its own page. */
+/** A link of the sidebar, set as text; on its own page it is in ink with a rule in the margin. */
 export function NavLink(props: {
   readonly to: LinkProps['to']
-  readonly icon: LucideIcon
   readonly exact?: boolean
   readonly children: ReactNode
 }) {
-  const Icon = props.icon
   return (
     <Link to={props.to} activeOptions={{ exact: props.exact === true }} className={BASE}>
-      <Icon
-        aria-hidden='true'
-        className={cn(
-          'size-[18px] shrink-0 text-muted-foreground group-aria-[current=page]:text-primary'
-        )}
-      />
-      <span>{props.children}</span>
+      {props.children}
     </Link>
   )
 }
 
-/** A link inside an open section of the sidebar: the label only, indented under its section. */
+/** A link inside an open section of the sidebar, indented under its section and a size smaller. */
 export function SubNavLink(props: {
   readonly to: LinkProps['to']
   readonly exact?: boolean
@@ -37,9 +29,27 @@ export function SubNavLink(props: {
     <Link
       to={props.to}
       activeOptions={{ exact: props.exact === true }}
-      className='block rounded-md py-1.5 pr-3 pl-3 text-sm text-sidebar-foreground/75 transition-colors outline-none hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-[3px] focus-visible:ring-ring aria-[current=page]:font-semibold aria-[current=page]:text-primary pointer-coarse:py-2.5'
+      className='block rounded-sm py-1 pl-7 text-[0.8125rem] text-muted-foreground transition-colors duration-150 outline-hidden hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:font-medium aria-[current=page]:text-foreground pointer-coarse:py-2.5'
     >
       {props.children}
     </Link>
+  )
+}
+
+/** A labelled group of sidebar links ("Organization", "Sales"). The label names the group for assistive technology. */
+export function NavGroup(props: {
+  readonly id: string
+  readonly label: string
+  readonly children: ReactNode
+}) {
+  const labelId = `nav-group-${props.id}`
+  return (
+    // biome-ignore lint/a11y/useSemanticElements: a fieldset is for form controls; this groups links
+    <div role='group' aria-labelledby={labelId} className='flex flex-col'>
+      <span id={labelId} className='label-mono pt-6 pb-2 pl-4'>
+        {props.label}
+      </span>
+      {props.children}
+    </div>
   )
 }

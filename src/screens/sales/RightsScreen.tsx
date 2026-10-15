@@ -62,7 +62,7 @@ export function RightsScreen() {
 
   return (
     <>
-      <PageHeader title='Rights confirmation' />
+      <PageHeader eyebrow='Sales history' title='Rights confirmation' />
       <p role='status' aria-label='Notice' className='notice'>
         {notice}
       </p>
@@ -141,6 +141,7 @@ export function RightsForm(props: {
       ref={formRef}
       noValidate
       aria-labelledby='rights-heading'
+      className='panel max-w-2xl'
       onSubmit={(event) => {
         event.preventDefault()
         if (!ticked) {

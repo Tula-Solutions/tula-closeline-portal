@@ -17,6 +17,8 @@ export function Confirm(props: {
   readonly pending: boolean
   readonly onConfirm: () => void
   readonly describedBy?: string | undefined
+  /** How the trigger looks: an outline button (the default), or quiet red text for a row's destructive action. */
+  readonly tone?: 'outline' | 'quiet-destructive'
 }) {
   const [open, setOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -38,7 +40,7 @@ export function Confirm(props: {
     return (
       <Button
         type='button'
-        variant='outline'
+        variant={props.tone === 'quiet-destructive' ? 'ghost-destructive' : 'outline'}
         size='sm'
         ref={trigger}
         aria-label={props.pending ? props.pendingAccessibleName : props.accessibleName}
@@ -56,7 +58,7 @@ export function Confirm(props: {
   }
   return (
     <fieldset
-      className='confirm flex min-w-56 flex-col gap-3 rounded-lg border border-warning/40 bg-warning-soft p-3 text-sm text-warning'
+      className='confirm flex max-w-sm min-w-56 flex-col gap-3 text-start text-sm whitespace-normal motion-safe:animate-rise'
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           close()

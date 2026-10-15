@@ -1,4 +1,5 @@
 import { getRouteApi, Link } from '@tanstack/react-router'
+import { ArrowLeft } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { calendarDateSchema, OUTCOMES, type Outcome, outcomeSchema } from 'tula-closeline-contract'
 import { presentSales } from '~/api/sales-messages'
@@ -27,9 +28,11 @@ export function DealScreen() {
   return (
     <>
       <PageHeader
+        eyebrow='Sales history'
         title='Deal'
         actions={
           <Link to='/sales-history/deals' className='button button-quiet'>
+            <ArrowLeft aria-hidden='true' className='size-4' />
             Back to Deals
           </Link>
         }
@@ -153,6 +156,7 @@ function OutcomeForm(props: {
       ref={formRef}
       noValidate
       aria-labelledby='outcome-heading'
+      className='panel max-w-2xl'
       onSubmit={(event) => {
         event.preventDefault()
         setNotice('')

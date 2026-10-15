@@ -2,7 +2,22 @@ import { Outlet, useNavigate, useRouter, useRouterState } from '@tanstack/react-
 import { useEffect, useRef } from 'react'
 import { useSessionState } from '~/app-context'
 import { parseReturnPath } from '~/data/return-path'
-import { Logo } from '~/ui/Logo'
+import { Logo, ScalesMark } from '~/ui/Logo'
+
+const POINTS = [
+  {
+    title: 'Copilot',
+    text: 'Advises your Rep live, during the conversation.',
+  },
+  {
+    title: 'Inbound Agent',
+    text: 'Qualifies the Prospects who reach out, then books them or hands them to a Rep.',
+  },
+  {
+    title: 'Playbook',
+    text: 'The material you uploaded and what your won Deals teach.',
+  },
+] as const
 
 /**
  * The frame around sign-in and sign-up: the logo above a single column. A signed-in person is sent
@@ -32,45 +47,40 @@ export function PublicLayout() {
     }
   }, [signedIn, navigate, back, router])
   return (
-    <div className='grid min-h-dvh lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]'>
+    <div className='grid min-h-dvh lg:grid-cols-12'>
       <aside
-        className='relative hidden flex-col justify-between overflow-hidden bg-[#1a1a18] p-12 text-[#f1efe8] lg:flex'
+        className='relative isolate hidden flex-col justify-between overflow-hidden border-r px-14 py-12 lg:col-span-7 lg:flex xl:px-20'
         aria-label='About Closeline'
       >
-        <Logo className='w-44 text-[#f1efe8]' />
-        <svg
-          aria-hidden='true'
-          viewBox='-80 -80 160 160'
-          className='pointer-events-none absolute -right-24 -bottom-24 size-[28rem] text-[#f1efe8] opacity-[0.06]'
-          fill='none'
-          stroke='currentColor'
-          strokeWidth='3'
-          strokeLinecap='round'
-        >
-          <line x1='0' y1='-52' x2='0' y2='56' />
-          <line x1='-60' y1='-34' x2='60' y2='-34' />
-          <line x1='-26' y1='56' x2='26' y2='56' />
-          <line x1='-60' y1='-34' x2='-60' y2='-10' />
-          <line x1='60' y1='-34' x2='60' y2='-10' />
-          <circle cx='-60' cy='4' r='15' fill='currentColor' />
-          <circle cx='60' cy='4' r='15' />
-        </svg>
-        <div className='relative max-w-md'>
-          <p className='text-3xl leading-tight font-semibold tracking-tight text-balance'>
+        <Logo className='w-32' />
+        <ScalesMark className='pointer-events-none absolute top-[4%] -right-56 -z-10 w-[46rem] text-foreground/15' />
+        <div className='max-w-[40rem] motion-safe:animate-rise'>
+          <p className='m-0 font-serif text-[3.5rem] leading-[1] font-normal tracking-[-0.03em] text-balance xl:text-[4.5rem]'>
             Live guidance for every Rep. Agents for the rest.
           </p>
-          <p className='mt-4 text-base leading-relaxed text-[#f1efe8]/75'>
+          <p className='mt-6 mb-0 max-w-[46ch] text-[1.0625rem] leading-relaxed text-muted-foreground'>
             Closeline learns from your own Playbook and your won Deals, so what it suggests sounds
             like your best seller.
           </p>
         </div>
+        <ul className='m-0 grid max-w-[44rem] list-none grid-cols-3 gap-8 border-t border-rule-strong p-0 pt-5'>
+          {POINTS.map((point) => (
+            <li key={point.title}>
+              <span className='label-mono block text-foreground'>{point.title}</span>
+              <span className='mt-2 block text-sm leading-snug text-muted-foreground'>
+                {point.text}
+              </span>
+            </li>
+          ))}
+        </ul>
       </aside>
-      <main id='main' className='flex flex-col items-center justify-center px-4 py-10 sm:px-8'>
-        <div className='w-full max-w-md'>
-          <Logo className='mb-8 w-36 lg:hidden' />
-          <div className='rounded-2xl border bg-card p-6 shadow-sm sm:p-8'>
-            <Outlet />
-          </div>
+      <main
+        id='main'
+        className='flex flex-col justify-center px-5 py-12 sm:px-12 lg:col-span-5 xl:px-16'
+      >
+        <div className='mx-auto w-full max-w-[24rem] motion-safe:animate-rise lg:mx-0'>
+          <Logo className='mb-12 w-28 lg:hidden' />
+          <Outlet />
         </div>
       </main>
     </div>

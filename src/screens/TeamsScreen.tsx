@@ -5,6 +5,8 @@ import { fingerprint } from '~/api/idempotency'
 import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
+import { Section } from '~/components/app/section'
+import { Monogram } from '~/components/ui/avatar'
 import { can } from '~/data/permissions'
 import { refresh, useMembers, useTeams } from '~/data/queries'
 import { useRole } from '~/data/session-role'
@@ -41,30 +43,57 @@ export function TeamsScreen() {
   return (
     <>
       <PageHeader
+        eyebrow='Organization'
         title='Teams'
         description='Group Reps into Teams so a Manager can see how each one is doing.'
         headingRef={headingRef}
         headingProps={{ tabIndex: -1 }}
       />
-      {manage ? <CreateTeamForm onDone={feedback.done} onFail={feedback.failed} /> : null}
-      <p role='status' className='notice'>
-        {feedback.notice}
-      </p>
-      <Paged noun='Teams' emptyText='There are no Teams yet.' state={teams.state}>
-        <ul className='plain-list' aria-label='Teams'>
-          {teams.items.map((team) => (
-            <TeamItem
-              key={team.id}
-              team={team}
-              manage={manage}
-              onDone={feedback.done}
-              onFail={feedback.failed}
-              serial={feedback.serial}
-              onDeleted={() => headingRef.current?.focus()}
-            />
-          ))}
-        </ul>
-      </Paged>
+      <div className='grid items-start gap-12 lg:grid-cols-12'>
+        {manage ? (
+          <Section
+            id='create-team'
+            title='Create a Team'
+            description='A name your Managers will recognise.'
+            className='lg:sticky lg:top-8 lg:order-2 lg:col-span-4'
+          >
+            <CreateTeamForm onDone={feedback.done} onFail={feedback.failed} />
+          </Section>
+        ) : null}
+        <div className='flex min-w-0 flex-col gap-4 lg:order-1 lg:col-span-8'>
+          <p role='status' className='notice'>
+            {feedback.notice}
+          </p>
+          <h2 className='m-0 border-t border-rule-strong pt-4'>All Teams</h2>
+          <Paged
+            noun='Teams'
+            emptyText='There are no Teams yet.'
+            emptyHint={
+              manage
+                ? 'Create the first one with the form on this page.'
+                : 'An Owner or Admin of your Organization creates Teams.'
+            }
+            state={teams.state}
+          >
+            <ul
+              className='m-0 list-none divide-y border-y p-0 motion-safe:animate-fade'
+              aria-label='Teams'
+            >
+              {teams.items.map((team) => (
+                <TeamItem
+                  key={team.id}
+                  team={team}
+                  manage={manage}
+                  onDone={feedback.done}
+                  onFail={feedback.failed}
+                  serial={feedback.serial}
+                  onDeleted={() => headingRef.current?.focus()}
+                />
+              ))}
+            </ul>
+          </Paged>
+        </div>
+      </div>
     </>
   )
 }
@@ -119,8 +148,13 @@ function CreateTeamForm(props: {
     create.submit(parsed.data)
   }
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate aria-labelledby='create-team-heading'>
-      <h2 id='create-team-heading'>Create a Team</h2>
+    <form
+      ref={formRef}
+      onSubmit={onSubmit}
+      noValidate
+      aria-labelledby='create-team-heading'
+      className='gap-0'
+    >
       {errors.form ? (
         <Banner kind='error' innerRef={bannerRef}>
           {errors.form}
@@ -137,7 +171,7 @@ function CreateTeamForm(props: {
         />
       </div>
       <div>
-        <button type='submit' className='button' aria-disabled={create.pending}>
+        <button type='submit' className='button w-full' aria-disabled={create.pending}>
           {create.pending ? 'Creating...' : 'Create Team'}
         </button>
       </div>
@@ -188,11 +222,14 @@ function TeamItem(props: {
     }
   )
   return (
-    <li className='list-item'>
+    <li className='py-4'>
       <div className='list-item-head'>
-        <h2 className='item-title'>
-          <Untrusted value={team.name} />
-        </h2>
+        <div className='flex min-w-0 items-baseline'>
+          <Monogram name={team.name} />
+          <h3 className='item-title m-0 font-serif text-xl font-normal tracking-[-0.01em]'>
+            <Untrusted value={team.name} />
+          </h3>
+        </div>
         {props.manage ? (
           <div className='row-actions'>
             <button
@@ -226,6 +263,7 @@ function TeamItem(props: {
                   Organization.
                 </>
               }
+              tone='quiet-destructive'
               confirmLabel='Delete Team'
               pending={remove.pending}
               describedBy={error ? errorId : undefined}
@@ -302,6 +340,7 @@ function RenameForm(props: {
       onSubmit={onSubmit}
       noValidate
       aria-label='Rename Team'
+      className='mt-3 max-w-none gap-0 border-l-2 border-rule-strong pl-4 motion-safe:animate-rise'
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           props.onClose()
@@ -402,7 +441,11 @@ function TeamMembersPanel(props: { readonly team: Team; readonly onFail: () => v
     }
   )
   return (
-    <section id={`${props.team.id}-members`} aria-label={`Members of ${label}`}>
+    <section
+      id={`${props.team.id}-members`}
+      aria-label={`Members of ${label}`}
+      className='mt-3 flex flex-col gap-3 border-l-2 border-rule-strong pl-4 motion-safe:animate-rise'
+    >
       <p className='hint'>
         The list of who is in a Team is not available yet. Choose a member to add or remove.
       </p>
