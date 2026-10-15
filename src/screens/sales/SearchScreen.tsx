@@ -92,7 +92,7 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
                       to='/sales-history/calls'
                       search={{ deal: item.dealRecordId }}
                       aria-label={`Calls of this Deal for Moment ${index + 1}`}
-                      className='rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+                      className='rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
                     >
                       Calls of this Deal
                     </Link>
@@ -100,7 +100,7 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
                       aria-label={`Deal for Moment ${index + 1}`}
                       to='/sales-history/deals/$dealRecordId'
                       params={{ dealRecordId: item.dealRecordId }}
-                      className='rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+                      className='rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
                     >
                       Deal
                     </Link>

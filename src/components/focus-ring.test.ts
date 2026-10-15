@@ -11,7 +11,9 @@ async function outlineless(): Promise<{ file: string; classes: string }[]> {
       continue
     }
     const source = await Bun.file(`${root}${path}`).text()
-    for (const match of source.matchAll(/(['"`])((?:(?!\1).)*outline-none(?:(?!\1).)*)\1/g)) {
+    for (const match of source.matchAll(
+      /(['"`])((?:(?!\1).)*outline-(?:none|hidden)(?:(?!\1).)*)\1/g
+    )) {
       found.push({ file: path, classes: match[2] ?? '' })
     }
   }

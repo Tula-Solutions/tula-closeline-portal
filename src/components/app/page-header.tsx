@@ -29,7 +29,7 @@ export function PageHeader(props: {
         <h1
           ref={props.headingRef}
           {...props.headingProps}
-          className='m-0 font-serif text-[2.5rem] leading-[1.02] font-normal tracking-[-0.022em] text-balance outline-none md:text-[3.25rem]'
+          className='m-0 font-serif text-[2.5rem] leading-[1.02] font-normal tracking-[-0.022em] text-balance outline-hidden md:text-[3.25rem]'
         >
           {props.title}
         </h1>

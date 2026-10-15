@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 // Text navigation. The page you are on is set in ink and marked by a short rule in the margin;
 // the others are quieter. No icons and no filled rows: the type does the work.
 const BASE =
-  "relative block rounded-sm py-1.5 pl-4 text-[0.9375rem] text-muted-foreground transition-colors duration-150 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring before:absolute before:top-1/2 before:left-0 before:h-px before:w-2.5 before:bg-foreground before:opacity-0 before:transition-opacity before:content-[''] aria-[current=page]:font-medium aria-[current=page]:text-foreground aria-[current=page]:before:opacity-100 pointer-coarse:py-2.5"
+  "relative block rounded-sm py-1.5 pl-4 text-[0.9375rem] text-muted-foreground transition-colors duration-150 outline-hidden hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring before:absolute before:top-1/2 before:left-0 before:h-px before:w-2.5 before:bg-foreground before:opacity-0 before:transition-opacity before:content-[''] aria-[current=page]:font-medium aria-[current=page]:text-foreground aria-[current=page]:before:opacity-100 pointer-coarse:py-2.5"
 
 /** A link of the sidebar, set as text; on its own page it is in ink with a rule in the margin. */
 export function NavLink(props: {
@@ -29,7 +29,7 @@ export function SubNavLink(props: {
     <Link
       to={props.to}
       activeOptions={{ exact: props.exact === true }}
-      className='block rounded-sm py-1 pl-7 text-[0.8125rem] text-muted-foreground transition-colors duration-150 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:font-medium aria-[current=page]:text-foreground pointer-coarse:py-2.5'
+      className='block rounded-sm py-1 pl-7 text-[0.8125rem] text-muted-foreground transition-colors duration-150 outline-hidden hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:font-medium aria-[current=page]:text-foreground pointer-coarse:py-2.5'
     >
       {props.children}
     </Link>

@@ -20,7 +20,7 @@ function AreaLine(props: { readonly area: Area }) {
     <li className='grid items-baseline gap-x-8 gap-y-1 border-b py-5 sm:grid-cols-[minmax(0,18rem)_minmax(0,1fr)]'>
       <Link
         to={props.area.to}
-        className='w-fit rounded-sm font-serif text-2xl leading-tight tracking-[-0.012em] underline decoration-border-strong decoration-1 underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+        className='w-fit rounded-sm font-serif text-2xl leading-tight tracking-[-0.012em] underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
       >
         {props.area.title}
       </Link>
@@ -31,7 +31,7 @@ function AreaLine(props: { readonly area: Area }) {
 
 const DOT = 'size-1.5 shrink-0 -translate-y-px rounded-full'
 const LINK =
-  'rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+  'rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
 
 /** The start of sales history: whether the rights are confirmed, and where to go next. */
 export function SalesOverview() {

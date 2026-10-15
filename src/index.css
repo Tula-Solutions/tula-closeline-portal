@@ -37,7 +37,7 @@
   --border: rgb(26 26 24 / 0.12);
   /* A heavier rule: the top of a ledger, the edge of a section. */
   --rule-strong: rgb(26 26 24 / 0.72);
-  /* Field edges, 3.6:1 on paper. */
+  /* Field edges, 3.4:1 on paper. */
   --input: #85816f;
   --ring: #1f4fc7;
   --success: #14663a;
@@ -52,13 +52,14 @@
   --sidebar-foreground: #1a1a18;
   --sidebar-accent: #e7e4da;
   --sidebar-border: rgb(26 26 24 / 0.12);
-  --border-strong: rgb(26 26 24 / 0.32);
+  /* The at-rest underline of a link set in ink: its only cue besides position: 3.2:1 on paper. */
+  --border-strong: rgb(26 26 24 / 0.5);
   --elev-1: none;
   --elev-2: 0 1px 2px rgb(26 26 24 / 0.06), 0 8px 24px -8px rgb(26 26 24 / 0.18);
   --elev-3: 0 2px 4px rgb(26 26 24 / 0.06), 0 16px 40px -10px rgb(26 26 24 / 0.22);
   --highlight: none;
-  /* The paper grain: a faint multiply over the page; off in dark mode. */
-  --grain-opacity: 0.55;
+  /* The paper grain, drawn as the page background under the content; off in dark mode. */
+  --grain: url("/paper-grain.svg");
   color-scheme: light;
 }
 
@@ -82,6 +83,7 @@
   --destructive-foreground: #2a0f0c;
   --border: rgb(241 239 232 / 0.13);
   --rule-strong: rgb(241 239 232 / 0.7);
+  /* 3.9:1 on ink. */
   --input: #7a776c;
   --ring: #8daeff;
   --success: #6fd39a;
@@ -96,10 +98,11 @@
   --sidebar-foreground: #f1efe8;
   --sidebar-accent: #2a2a27;
   --sidebar-border: rgb(241 239 232 / 0.13);
-  --border-strong: rgb(241 239 232 / 0.32);
+  /* 4.7:1 on ink. */
+  --border-strong: rgb(241 239 232 / 0.5);
   --elev-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.5);
   --elev-3: 0 2px 6px rgb(0 0 0 / 0.35), 0 16px 40px -10px rgb(0 0 0 / 0.6);
-  --grain-opacity: 0;
+  --grain: none;
   color-scheme: dark;
 }
 
@@ -185,17 +188,10 @@
     font-variant-numeric: tabular-nums;
     text-rendering: optimizeLegibility;
   }
-  /* The paper: a fixed, non-interactive grain over everything, served as a file (img-src 'self'). */
-  body::before {
-    position: fixed;
-    z-index: 60;
-    inset: 0;
-    background-image: url("/paper-grain.svg");
+  /* The paper grain is the page background (a file, for img-src 'self'), so nothing lies over the text. */
+  body {
+    background-image: var(--grain);
     background-size: 240px 240px;
-    content: "";
-    mix-blend-mode: multiply;
-    opacity: var(--grain-opacity);
-    pointer-events: none;
   }
   h1,
   h2,
@@ -222,9 +218,15 @@
 @media (prefers-contrast: more) {
   :root {
     --border: rgb(26 26 24 / 0.4);
-    --grain-opacity: 0;
+    --border-strong: rgb(26 26 24 / 0.72);
+    /* 5.8:1 on paper; the underline 6.4:1. */
+    --input: #5f5c4f;
+    --grain: none;
   }
   .dark {
     --border: rgb(241 239 232 / 0.4);
+    --border-strong: rgb(241 239 232 / 0.72);
+    /* 6.6:1 on ink; the underline 8.3:1. */
+    --input: #a29f93;
   }
 }

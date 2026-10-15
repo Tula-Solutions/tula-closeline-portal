@@ -8,7 +8,7 @@ export function ResultsHeader(props: {
 }) {
   return (
     <div className='flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-rule-strong pt-4'>
-      <h2 id={props.id} tabIndex={-1} ref={props.headingRef} className='m-0 outline-none'>
+      <h2 id={props.id} tabIndex={-1} ref={props.headingRef} className='m-0 outline-hidden'>
         Results
       </h2>
       {props.evidence}

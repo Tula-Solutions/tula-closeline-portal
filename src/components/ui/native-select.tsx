@@ -4,7 +4,7 @@ import type { ComponentProps } from 'react'
 import { cn } from '~/lib/utils'
 
 const selectVariants = cva(
-  'w-full min-w-0 cursor-pointer appearance-none text-foreground transition-[border-color,background-color] duration-150 ease-snappy outline-none disabled:cursor-not-allowed disabled:opacity-50',
+  'w-full min-w-0 cursor-pointer appearance-none text-foreground transition-[border-color,background-color] duration-150 ease-snappy outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
   {
     variants: {
       size: {

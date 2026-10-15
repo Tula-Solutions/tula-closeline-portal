@@ -236,7 +236,7 @@ export function Shell() {
           <ThemeMenu />
           <button
             type='button'
-            className='rounded-sm py-1.5 text-left text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:py-2.5'
+            className='rounded-sm py-1.5 text-left text-sm text-muted-foreground outline-hidden hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:py-2.5'
             onClick={() => app.session.signOut()}
           >
             Sign out
@@ -248,7 +248,7 @@ export function Shell() {
         inert={open}
         id='main'
         tabIndex={-1}
-        className='relative min-w-0 px-4 py-8 outline-none md:px-12 md:py-12 xl:px-16'
+        className='relative min-w-0 px-4 py-8 outline-hidden md:px-12 md:py-12 xl:px-16'
       >
         <div className='w-full max-w-[72rem]'>
           {/* Keyed by Organization: another Organization starts every screen fresh, with no state of the last. */}

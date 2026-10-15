@@ -1,0 +1,127 @@
+import { describe, expect, test } from 'bun:test'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+
+const css = readFileSync(new URL('./index.css', import.meta.url), 'utf8')
+const button = readFileSync(new URL('./components/ui/button.tsx', import.meta.url), 'utf8')
+
+type Rgba = { r: number; g: number; b: number; a: number }
+
+/** The declarations of the first rule whose selector is exactly `selector`, after `from`. */
+function block(selector: string, from = 0): Record<string, string> {
+  const start = css.indexOf(`${selector} {`, from)
+  if (start === -1) {
+    return {}
+  }
+  const body = css.slice(css.indexOf('{', start) + 1, css.indexOf('}', start))
+  const out: Record<string, string> = {}
+  for (const match of body.matchAll(/(--[\w-]+):\s*([^;]+);/g)) {
+    out[match[1] as string] = (match[2] as string).trim()
+  }
+  return out
+}
+
+function parse(value: string): Rgba {
+  const hex = value.match(/^#([0-9a-f]{6})$/i)?.[1]
+  if (hex) {
+    const n = Number.parseInt(hex, 16)
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255, a: 1 }
+  }
+  const rgb = value.match(/^rgb\((\d+) (\d+) (\d+)(?: \/ ([\d.]+))?\)$/)
+  if (rgb) {
+    return { r: Number(rgb[1]), g: Number(rgb[2]), b: Number(rgb[3]), a: Number(rgb[4] ?? 1) }
+  }
+  throw new Error(`Not a colour: ${value}`)
+}
+
+function over(top: Rgba, under: Rgba): Rgba {
+  const mix = (t: number, u: number) => t * top.a + u * (1 - top.a)
+  return { r: mix(top.r, under.r), g: mix(top.g, under.g), b: mix(top.b, under.b), a: 1 }
+}
+
+function luminance(c: Rgba): number {
+  const lin = (v: number) => {
+    const s = v / 255
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b)
+}
+
+function ratio(fg: Rgba, bg: Rgba): number {
+  const [hi, lo] = [luminance(over(fg, bg)), luminance(bg)].sort((x, y) => y - x) as [
+    number,
+    number,
+  ]
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+const light = block(':root')
+const dark = block('.dark')
+const contrastAt = css.indexOf('@media (prefers-contrast: more)')
+const moreLight = block(':root', contrastAt)
+const moreDark = block('.dark', contrastAt)
+
+const themes = [
+  ['light', light],
+  ['dark', dark],
+] as const
+
+describe('theme tokens', () => {
+  test.each(themes)('the at-rest link underline is 3:1 or more on the page (%s)', (_, t) => {
+    const bg = parse(t['--background'] as string)
+    expect(ratio(parse(t['--border-strong'] as string), bg)).toBeGreaterThanOrEqual(3)
+  })
+
+  test.each(themes)('field edges are 3:1 or more on the page (%s)', (_, t) => {
+    const bg = parse(t['--background'] as string)
+    expect(ratio(parse(t['--input'] as string), bg)).toBeGreaterThanOrEqual(3)
+  })
+
+  test.each(themes)('a destructive text action is underlined at 3:1 or more (%s)', (_, t) => {
+    const alpha = Number(button.match(/decoration-destructive\/(\d+)/)?.[1] ?? 100) / 100
+    const red = { ...parse(t['--destructive'] as string), a: alpha }
+    expect(ratio(red, parse(t['--background'] as string))).toBeGreaterThanOrEqual(3)
+  })
+
+  test('more contrast raises the underline and the field edge in both themes', () => {
+    for (const [base, more] of [
+      [light, moreLight],
+      [dark, moreDark],
+    ] as const) {
+      const bg = parse(base['--background'] as string)
+      for (const token of ['--border-strong', '--input']) {
+        expect(more[token]).toBeDefined()
+        expect(ratio(parse(more[token] as string), bg)).toBeGreaterThan(
+          ratio(parse(base[token] as string), bg)
+        )
+      }
+    }
+  })
+})
+
+describe('focus and paper', () => {
+  test('no source hides the outline outright, so forced-colours mode keeps a focus outline', () => {
+    const found: string[] = []
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const path = `${dir}/${name}`
+        if (statSync(path).isDirectory()) {
+          walk(path)
+        } else if (/\.(tsx?|css)$/.test(name) && !name.endsWith('.test.ts')) {
+          if (readFileSync(path, 'utf8').includes('outline-none')) {
+            found.push(path)
+          }
+        }
+      }
+    }
+    walk(new URL('.', import.meta.url).pathname.replace(/\/$/, ''))
+    expect(found).toEqual([])
+  })
+
+  test('the grain is the page background, not a layer over the content, and is off in dark and more contrast', () => {
+    expect(css).not.toContain('body::before')
+    expect(light['--grain']).toContain('/paper-grain.svg')
+    expect(dark['--grain']).toBe('none')
+    expect(moreLight['--grain']).toBe('none')
+    expect(css).toMatch(/body\s*\{[^}]*background-image:\s*var\(--grain\)/)
+  })
+})

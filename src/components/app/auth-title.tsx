@@ -12,7 +12,7 @@ export function AuthTitle(props: {
       <h1
         ref={props.headingRef}
         tabIndex={props.focusable ? -1 : undefined}
-        className='font-serif text-[2.25rem] leading-[1.05] font-normal tracking-[-0.02em] outline-none'
+        className='font-serif text-[2.25rem] leading-[1.05] font-normal tracking-[-0.02em] outline-hidden'
       >
         {props.children}
       </h1>
