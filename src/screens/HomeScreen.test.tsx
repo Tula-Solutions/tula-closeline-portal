@@ -36,16 +36,16 @@ describe('home: the briefing', () => {
     )
     const list = await counts()
     await waitFor(() =>
-      expect(list.getByRole('link', { name: /^3 Members in the Organization$/ })).toBeTruthy()
+      expect(list.getByRole('link', { name: /^3 Members in the Organization\.$/ })).toBeTruthy()
     )
     await waitFor(() =>
-      expect(list.getByRole('link', { name: /^2\+ Documents in the Playbook$/ })).toBeTruthy()
+      expect(list.getByRole('link', { name: /^2\+ Documents in the Playbook\.$/ })).toBeTruthy()
     )
     await waitFor(() =>
-      expect(list.getByRole('link', { name: /^1 won Deal teaches search$/ })).toBeTruthy()
+      expect(list.getByRole('link', { name: /^1 won Deal teaches search\.$/ })).toBeTruthy()
     )
     await waitFor(() =>
-      expect(list.getByRole('link', { name: /^0 Calls on record$/ })).toBeTruthy()
+      expect(list.getByRole('link', { name: /^0 Calls on record\.$/ })).toBeTruthy()
     )
     // Only won Deals are counted: the Outcome goes to the service as a filter.
     const deals = portal.calls.find((call) => call.path === DEALS)
@@ -64,7 +64,7 @@ describe('home: the briefing', () => {
     const list = await counts()
     await waitFor(() =>
       expect(
-        list.getByRole('link', { name: `${MAX_PAGE_SIZE}+ Members in the Organization` })
+        list.getByRole('link', { name: `${MAX_PAGE_SIZE}+ Members in the Organization.` })
       ).toBeTruthy()
     )
     for (const path of [MEMBERS, DOCS, DEALS, CALLS]) {
@@ -80,7 +80,9 @@ describe('home: the briefing', () => {
     visit('rep', route('GET', DOCS, json(200, page([documentBody(1)]))))
     const numbers = await screen.findByRole('list', { name: 'Your Organization in numbers' })
     expect(numbers.getAttribute('role')).toBe('list')
-    const link = await within(numbers).findByRole('link', { name: /^1 Document in the Playbook$/ })
+    const link = await within(numbers).findByRole('link', {
+      name: /^1 Document in the Playbook\.$/,
+    })
     const classes = link.className.split(/\s+/)
     expect(classes).toContain('underline')
     expect(classes).toContain('decoration-border-strong')
@@ -90,12 +92,45 @@ describe('home: the briefing', () => {
     const portal = visit('rep', route('GET', DOCS, json(200, page([documentBody(1)]))))
     const list = await counts()
     await waitFor(() =>
-      expect(list.getByRole('link', { name: /^1 Document in the Playbook$/ })).toBeTruthy()
+      expect(list.getByRole('link', { name: /^1 Document in the Playbook\.$/ })).toBeTruthy()
     )
     expect(list.getAllByRole('listitem')).toHaveLength(1)
     expect(portal.calls.some((call) => call.path === MEMBERS)).toBe(false)
     expect(portal.calls.some((call) => call.path === DEALS || call.path === CALLS)).toBe(false)
     expect(screen.queryByRole('link', { name: 'Invite people' })).toBeNull()
+  })
+
+  test('every count link is named by the words it shows, loading, unread or counted, and stands on its own line on a phone', async () => {
+    let release: () => void = () => {}
+    const held = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    visit(
+      'manager',
+      route('GET', MEMBERS, failure(403, 'auth.forbidden')),
+      route('GET', DOCS, async () => {
+        await held
+        return json(200, page([documentBody(1)]))
+      })
+    )
+    const list = await counts()
+    const named = () =>
+      list.getAllByRole('link').map((link) => ({
+        label: link.getAttribute('aria-label'),
+        text: link.textContent?.trim(),
+      }))
+    const loading = await list.findByRole('link', { name: 'Documents: loading' })
+    expect(loading.textContent?.trim()).toBe('Documents: loading')
+    await list.findByRole('link', { name: 'Members could not be counted.' })
+    release()
+    await list.findByRole('link', { name: '1 Document in the Playbook.' })
+    for (const { label, text } of named()) {
+      expect(label).toBeNull()
+      expect(text).toBeTruthy()
+    }
+    for (const item of list.getAllByRole('listitem')) {
+      expect(item.className.split(/\s+/)).toEqual(expect.arrayContaining(['block', 'sm:inline']))
+    }
   })
 
   test('a count that cannot be read says so, not a number', async () => {
@@ -106,7 +141,7 @@ describe('home: the briefing', () => {
     )
     const list = await counts()
     await waitFor(() =>
-      expect(list.getByRole('link', { name: 'Members: could not be counted' })).toBeTruthy()
+      expect(list.getByRole('link', { name: 'Members could not be counted.' })).toBeTruthy()
     )
   })
 

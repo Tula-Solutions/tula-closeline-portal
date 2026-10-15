@@ -50,21 +50,19 @@ function CountLine(props: {
   const { value } = props
   const plural = value.kind === 'count' && (value.count !== 1 || value.more)
   const words = plural ? props.many : props.one
-  const label =
-    value.kind === 'loading'
-      ? `${props.what}: loading`
-      : value.kind === 'unavailable'
-        ? `${props.what}: could not be counted`
-        : `${countText(value)} ${words}`
   return (
-    <li className='inline'>
+    <li className='block sm:inline'>
       <Link
         to={props.to}
-        aria-label={label}
         className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-[0.18em] outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
       >
         {value.kind === 'loading' ? (
-          <Skeleton className='inline-block h-[0.8em] w-[1.6em] align-baseline' />
+          <>
+            <span className='sr-only'>{props.what}: loading</span>
+            <span aria-hidden='true'>
+              <Skeleton className='inline-block h-[0.8em] w-[1.6em] align-baseline' />
+            </span>
+          </>
         ) : value.kind === 'unavailable' ? (
           <span className='text-muted-foreground'>{props.what} could not be counted.</span>
         ) : (
