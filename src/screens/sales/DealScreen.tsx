@@ -35,10 +35,7 @@ export function DealScreen() {
             'Sales history'
           ) : (
             <>
-              Deal{' '}
-              <span ref={transitionName(dealTransitionName(deal.data.id))}>
-                <Untrusted value={deal.data.dealId} />
-              </span>
+              Deal <Untrusted value={deal.data.dealId} />
             </>
           )
         }
@@ -50,8 +47,11 @@ export function DealScreen() {
               <bdi>{deal.data.dealId}</bdi>
             </span>
           ) : (
-            // The heading wraps instead of clipping: the whole name is the page's title.
-            <bdi>{deal.data.name}</bdi>
+            // The heading wraps instead of clipping: the whole name is the page's title. It is the
+            // name from the Deals row, moved here as a shared view transition.
+            <bdi data-deal-name ref={transitionName(dealTransitionName(deal.data.id))}>
+              {deal.data.name}
+            </bdi>
           )
         }
         actions={

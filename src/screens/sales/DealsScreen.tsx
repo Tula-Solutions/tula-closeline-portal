@@ -130,9 +130,16 @@ export function DealsScreen() {
                             if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
                               return
                             }
-                            // The Deal opens at once from this row, and its id moves into the page.
+                            // The Deal opens at once from this row, and its name (the same words as the
+                            // page heading) moves into the page; with no name, the id does.
                             seed(deal)
-                            event.currentTarget.style.setProperty(
+                            const moving =
+                              deal.name === null
+                                ? event.currentTarget
+                                : event.currentTarget
+                                    .closest('tr')
+                                    ?.querySelector<HTMLElement>('[data-deal-name]')
+                            moving?.style.setProperty(
                               'view-transition-name',
                               dealTransitionName(deal.id)
                             )
@@ -141,7 +148,15 @@ export function DealsScreen() {
                           <Untrusted value={deal.dealId} />
                         </Link>
                       </th>
-                      <td>{deal.name === null ? '-' : <Untrusted value={deal.name} />}</td>
+                      <td>
+                        {deal.name === null ? (
+                          '-'
+                        ) : (
+                          <span data-deal-name>
+                            <Untrusted value={deal.name} />
+                          </span>
+                        )}
+                      </td>
                       <td data-label='Outcome'>
                         <StatusBadge state={deal.outcome}>{outcomeLabel(deal.outcome)}</StatusBadge>
                       </td>

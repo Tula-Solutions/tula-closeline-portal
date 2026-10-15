@@ -285,6 +285,7 @@ describe('Sales history: Deals', () => {
     await portal.user.click(link)
     await portal.user.keyboard('{/Meta}')
     expect(link.style.getPropertyValue('view-transition-name')).toBe('')
+    expect(document.querySelector('[style*="view-transition-name"]')).toBeNull()
   })
 
   test('opening a Deal from its row shows it at once, named as the page heading, then reads it fresh', async () => {
@@ -301,10 +302,18 @@ describe('Sales history: Deals', () => {
       route('GET', DEALS, json(200, page([deal]))),
     ])
     const link = await screen.findByRole('link', { name: 'D-100' })
+    const name = within(link.closest('tr') as HTMLElement).getByText('Acme renewal')
     await portal.user.click(link)
-    // The id moves into the page (a shared view transition) and the page does not wait for the read.
-    expect(link.style.getPropertyValue('view-transition-name')).toBe(`deal-${deal.id}`)
-    expect(await screen.findByRole('heading', { level: 1, name: 'Acme renewal' })).toBeTruthy()
+    // The name (not the id) moves into the page's heading, the same words at another size, and the
+    // page does not wait for the read.
+    const from = name.closest<HTMLElement>('[data-deal-name]')
+    expect(from?.style.getPropertyValue('view-transition-name')).toBe(`deal-${deal.id}`)
+    expect(link.style.getPropertyValue('view-transition-name')).toBe('')
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Acme renewal' })
+    const target = heading.querySelector<HTMLElement>('[data-deal-name]')
+    expect(target?.style.getPropertyValue('view-transition-name')).toBe(`deal-${deal.id}`)
+    // The id stays a plain label above it.
+    expect(screen.getByText('D-100').closest('h1')).toBeNull()
     release()
     await waitFor(() =>
       expect(portal.calls.some((call) => call.path === `${DEALS}/${deal.id}`)).toBe(true)
