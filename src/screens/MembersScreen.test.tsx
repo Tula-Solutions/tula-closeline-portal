@@ -61,6 +61,30 @@ describe('members: the list', () => {
     )
   })
 
+  test('on a phone each row stacks, and a member with no name shows the address once', async () => {
+    visit(
+      'owner',
+      route(
+        'GET',
+        MEMBERS,
+        json(
+          200,
+          page([
+            memberBody(1, { name: 'Maya Chen', role: 'owner' }),
+            memberBody(2, { name: null, email: 'noname@northline.app', role: 'manager' }),
+          ])
+        )
+      )
+    )
+    const table = await screen.findByRole('table')
+    expect(table.classList.contains('ledger-stack')).toBe(true)
+    const rows = within(table).getAllByRole('row')
+    const emailCell = (row: HTMLElement | undefined) =>
+      within(row as HTMLElement).getAllByRole('cell')[0] as HTMLElement
+    expect(emailCell(rows[1]).classList.contains('max-sm:hidden')).toBe(false)
+    expect(emailCell(rows[2]).classList.contains('max-sm:hidden')).toBe(true)
+  })
+
   test('loads one page at a time and "Load more" asks for the next cursor', async () => {
     const portal = visit(
       'admin',

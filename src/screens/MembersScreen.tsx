@@ -12,6 +12,7 @@ import { NativeSelect } from '~/components/ui/native-select'
 import { assignableRoles, can, canRemoveMember, ROLE_LABEL } from '~/data/permissions'
 import { refresh, useMembers } from '~/data/queries'
 import { useRole } from '~/data/session-role'
+import { cn } from '~/lib/utils'
 import { Confirm } from '~/ui/Confirm'
 import { Paged } from '~/ui/Paged'
 import { plain } from '~/ui/plain'
@@ -60,7 +61,7 @@ export function MembersScreen() {
             state={members.state}
           >
             <ScrollRegion label='Members'>
-              <table>
+              <table className='ledger-stack'>
                 <thead>
                   <tr>
                     <th scope='col'>Member</th>
@@ -168,10 +169,16 @@ function MemberRow(props: {
             </span>
           </div>
         </th>
-        <td className='font-mono text-[0.8125rem] text-muted-foreground'>
+        <td
+          className={cn(
+            'font-mono text-[0.8125rem] text-muted-foreground',
+            // With no separate name the address is already the row's heading: on a phone, say it once.
+            member.name === null && 'max-sm:hidden'
+          )}
+        >
           <Untrusted value={member.email} />
         </td>
-        <td>
+        <td className={manage ? 'ledger-pair' : undefined}>
           {manage && choices.length > 0 ? (
             <div className='flex flex-nowrap items-center gap-4'>
               <label className='sr-only' htmlFor={`${member.id}-role`}>
@@ -210,7 +217,7 @@ function MemberRow(props: {
           )}
         </td>
         {manage ? (
-          <td>
+          <td className='ledger-pair'>
             <div className='row-actions flex-nowrap justify-end'>
               {canRemoveMember(viewerRole, member.role) ? (
                 <Confirm
