@@ -54,7 +54,7 @@ function CountLine(props: {
     <li className='block sm:inline'>
       <Link
         to={props.to}
-        className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-[0.18em] outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+        className='rounded-sm ink-link outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
       >
         {value.kind === 'loading' ? (
           <>
@@ -94,7 +94,7 @@ function Latest(props: { readonly documents: FirstPage<PlaybookDocument> }) {
       actions={
         <Link
           to='/playbook'
-          className='rounded-sm text-sm font-medium underline decoration-border-strong underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+          className='rounded-sm text-sm font-medium ink-link outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
         >
           All documents
         </Link>
@@ -233,7 +233,7 @@ export function HomeScreen() {
                 <li key={item.label}>
                   <Link
                     to={item.to}
-                    className='rounded-sm text-[0.9375rem] font-medium underline decoration-border-strong underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+                    className='rounded-sm text-[0.9375rem] font-medium ink-link outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
                   >
                     {item.label}
                   </Link>

@@ -10,6 +10,7 @@ import { can } from '~/data/permissions'
 import { cn } from '~/lib/utils'
 import type { Role } from '~/session/session'
 import { Logo } from '~/ui/Logo'
+import { DUR, reveal } from '~/ui/motion'
 
 const ROLE_LABEL: Record<Role, string> = {
   owner: 'Owner',
@@ -53,6 +54,13 @@ export function Shell() {
   useEffect(() => {
     if (open) {
       closeRef.current?.focus()
+      // The links follow the drawer in, 20 ms apart.
+      reveal(asideRef.current?.querySelectorAll('nav a') ?? [], {
+        delay: 60,
+        step: 20,
+        rise: '0px',
+        duration: DUR.ui,
+      })
       return
     }
     if (returnFocus.current === 'toggle') {
@@ -146,17 +154,23 @@ export function Shell() {
         >
           {open ? <X aria-hidden='true' /> : <Menu aria-hidden='true' />}
         </Button>
-        <span className='font-serif text-lg tracking-[-0.01em]'>Closeline</span>
+        <Logo className='w-[7.5rem]' />
       </div>
-      {open ? (
-        <button
-          type='button'
-          aria-label='Close the navigation backdrop'
-          tabIndex={-1}
-          className='fixed inset-0 z-40 bg-foreground/40 md:hidden'
-          onClick={() => close('toggle')}
-        />
-      ) : null}
+      {/* Kept mounted so it can fade out as well as in; closed, it is hidden and inert. */}
+      <button
+        type='button'
+        aria-label='Close the navigation backdrop'
+        aria-hidden={!open}
+        inert={!open}
+        tabIndex={-1}
+        className={cn(
+          'fixed inset-0 z-40 bg-[rgb(26_26_24/0.48)] transition-[opacity,visibility] md:hidden',
+          open
+            ? 'visible opacity-100 duration-200 ease-(--ease-out)'
+            : 'invisible opacity-0 duration-160 ease-(--ease-in)'
+        )}
+        onClick={() => close('toggle')}
+      />
       <aside
         ref={asideRef}
         id='app-sidebar'
@@ -166,7 +180,7 @@ export function Shell() {
         )}
       >
         <div className='flex items-center justify-between pl-4'>
-          <Logo className='w-28' />
+          <Logo className='w-[7.5rem]' />
           <Button
             ref={closeRef}
             variant='ghost'

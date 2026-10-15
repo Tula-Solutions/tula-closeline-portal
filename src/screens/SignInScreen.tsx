@@ -146,10 +146,7 @@ export function SignInScreen() {
       </form>
       <p className='mt-6 text-center text-sm text-muted-foreground'>
         New to Closeline?{' '}
-        <Link
-          to='/sign-up'
-          className='font-medium text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-current'
-        >
+        <Link to='/sign-up' className='font-medium text-foreground ink-link'>
           Create an Organization
         </Link>
       </p>

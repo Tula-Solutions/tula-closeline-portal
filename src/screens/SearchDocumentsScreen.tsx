@@ -58,7 +58,7 @@ function Results(props: { readonly answer: SearchDocumentsResponse }) {
                 <Link
                   to='/playbook'
                   aria-label={`Documents screen, for result ${index + 1}`}
-                  className='rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+                  className='rounded-sm font-medium text-foreground ink-link outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
                 >
                   Documents screen
                 </Link>

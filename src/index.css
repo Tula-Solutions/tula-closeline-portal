@@ -58,7 +58,7 @@
   --elev-2: 0 1px 2px rgb(26 26 24 / 0.06), 0 8px 24px -8px rgb(26 26 24 / 0.18);
   --elev-3: 0 2px 4px rgb(26 26 24 / 0.06), 0 16px 40px -10px rgb(26 26 24 / 0.22);
   --highlight: none;
-  /* The paper grain, drawn as the page background under the content; off in dark mode. */
+  /* The paper grain, drawn as the page background under the content; off under more contrast. */
   --grain: url("/paper-grain.svg");
   color-scheme: light;
 }
@@ -102,7 +102,8 @@
   --border-strong: rgb(241 239 232 / 0.5);
   --elev-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.5);
   --elev-3: 0 2px 6px rgb(0 0 0 / 0.35), 0 16px 40px -10px rgb(0 0 0 / 0.6);
-  --grain: none;
+  /* Light specks at about 3.5 %, so the dark page is paper too. */
+  --grain: url("/paper-grain-dark.svg");
   color-scheme: dark;
 }
 
@@ -301,5 +302,6 @@
     --border-strong: rgb(241 239 232 / 0.72);
     /* 6.6:1 on ink; the underline 8.3:1. */
     --input: #a29f93;
+    --grain: none;
   }
 }

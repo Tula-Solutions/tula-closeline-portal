@@ -84,8 +84,7 @@ describe('home: the briefing', () => {
       name: /^1 Document in the Playbook\.$/,
     })
     const classes = link.className.split(/\s+/)
-    expect(classes).toContain('underline')
-    expect(classes).toContain('decoration-border-strong')
+    expect(classes).toContain('ink-link')
   })
 
   test('a Rep sees the documents count only, and nothing it may not read is requested', async () => {

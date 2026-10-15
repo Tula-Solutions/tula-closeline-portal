@@ -24,7 +24,7 @@ export function ThemeMenu() {
       <DropdownMenuTrigger asChild>
         <button
           type='button'
-          className='flex w-full items-baseline justify-between rounded-sm py-1.5 text-left text-sm text-muted-foreground outline-hidden hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:py-2.5'
+          className='flex w-full items-baseline justify-between rounded-sm px-1 py-1.5 text-left text-sm text-muted-foreground outline-hidden hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:py-2.5'
         >
           Appearance
           <span aria-hidden='true' className='label-mono'>
@@ -33,7 +33,7 @@ export function ThemeMenu() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='start' side='top'>
-        <DropdownMenuLabel>Theme</DropdownMenuLabel>
+        <DropdownMenuLabel>Appearance</DropdownMenuLabel>
         <DropdownMenuRadioGroup
           value={choice}
           onValueChange={(value) => {
