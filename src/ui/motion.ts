@@ -195,6 +195,8 @@ export function useCountUp(
   format: (n: number) => string
 ): void {
   const shown = useRef<number | null>(null)
+  // What a cleanup undid, so the same value run again (StrictMode) animates from where it was.
+  const replay = useRef<{ before: number | null; value: number } | null>(null)
   const formatRef = useRef(format)
   formatRef.current = format
   // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the value changes; the ref and formatter are read fresh
@@ -204,14 +206,22 @@ export function useCountUp(
     if (element === null || value === null) {
       return undefined
     }
-    const before = shown.current
+    // StrictMode runs this effect, its cleanup, then the effect again with the same value: the
+    // cleanup leaves what was shown before, so the second run animates instead of seeing no change.
+    const again = replay.current
+    replay.current = null
+    const before = again !== null && again.value === value ? again.before : shown.current
     shown.current = value
     element.textContent = format(value)
     if (prefersReducedMotion() || before === value) {
       return undefined
     }
+    const undo = (animation: Animation | null) => () => {
+      animation?.cancel()
+      replay.current = { before, value }
+    }
     if (before !== null) {
-      play(
+      const slide = play(
         element,
         [
           { transform: 'translateY(100%)', opacity: 0 },
@@ -222,10 +232,10 @@ export function useCountUp(
           easing: EASE.out,
         }
       )
-      return undefined
+      return undo(slide)
     }
     if (value < 10 || typeof requestAnimationFrame !== 'function') {
-      play(
+      const rise = play(
         element,
         [
           { transform: 'translateY(0.35em)', opacity: 0 },
@@ -237,7 +247,7 @@ export function useCountUp(
           fill: 'backwards',
         }
       )
-      return undefined
+      return undo(rise)
     }
     let frame = 0
     const start = performance.now()
@@ -254,6 +264,7 @@ export function useCountUp(
     return () => {
       cancelAnimationFrame(frame)
       element.textContent = format(value)
+      replay.current = { before, value }
     }
   }, [value])
 }

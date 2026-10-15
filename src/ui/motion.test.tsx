@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { render } from '@testing-library/react'
-import { useRef } from 'react'
+import { StrictMode, useRef } from 'react'
 import {
   firstTimeThisSession,
   flash,
@@ -25,7 +25,7 @@ function setReducedMotion(reduce: boolean) {
 
 function animatable() {
   const element = document.createElement('div')
-  const animate = mock(() => ({ finished: Promise.resolve() }) as unknown as Animation)
+  const animate = mock(() => ({ finished: Promise.resolve(), cancel() {} }) as unknown as Animation)
   Object.assign(element, { animate })
   return { element, animate }
 }
@@ -122,6 +122,52 @@ describe('motion: full motion', () => {
     await finished
     await Promise.resolve()
     expect(document.documentElement.dataset.transition).toBeUndefined()
+  })
+
+  test('under StrictMode (effect, cleanup, effect again) a count still counts up from zero', () => {
+    const realRaf = globalThis.requestAnimationFrame
+    const realCancel = globalThis.cancelAnimationFrame
+    const pending = new Map<number, FrameRequestCallback>()
+    let next = 0
+    globalThis.requestAnimationFrame = (callback) => {
+      next += 1
+      pending.set(next, callback)
+      return next
+    }
+    globalThis.cancelAnimationFrame = (id) => {
+      pending.delete(id)
+    }
+    function Count() {
+      const ref = useRef<HTMLSpanElement>(null)
+      useCountUp(ref, 240, (n) => `${n}`)
+      return <span ref={ref} data-testid='n' />
+    }
+    const view = render(
+      <StrictMode>
+        <Count />
+      </StrictMode>
+    )
+    // The count is under way: it shows 0 and a frame is waiting, rather than jumping to 240.
+    expect(view.getByTestId('n').textContent).toBe('0')
+    expect(pending.size).toBe(1)
+    globalThis.requestAnimationFrame = realRaf
+    globalThis.cancelAnimationFrame = realCancel
+  })
+
+  test('under StrictMode a small number still rises into place', () => {
+    function Count(props: { readonly element: HTMLElement }) {
+      const ref = useRef<HTMLElement | null>(props.element)
+      useCountUp(ref, 3, (n) => `${n}`)
+      return null
+    }
+    const { element, animate } = animatable()
+    render(
+      <StrictMode>
+        <Count element={element as HTMLElement} />
+      </StrictMode>
+    )
+    expect(animate).toHaveBeenCalled()
+    expect(element.textContent).toBe('3')
   })
 
   test('a skipped transition (its `finished` rejects) is cleaned up and never left unhandled', async () => {
