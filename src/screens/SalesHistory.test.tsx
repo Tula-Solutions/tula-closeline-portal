@@ -24,6 +24,36 @@ const IDEMPOTENCY = 'idempotency-key'
 const salesCalls = (portal: ReturnType<typeof visit>) =>
   portal.calls.filter((call) => call.path.startsWith(PB))
 
+describe('Sales history: the overview', () => {
+  test('each line carries a live figure, each from one first page, the import a page of one', async () => {
+    const portal = visit('/sales-history', 'admin', [
+      route('GET', RIGHTS, json(200, rightsBody())),
+      route('GET', DEALS, (call) =>
+        json(
+          200,
+          new URL(call.url, 'http://x').searchParams.get('outcome') === 'won'
+            ? page([dealBody(1, { outcome: 'won' }), dealBody(2, { outcome: 'won' })])
+            : page([dealBody(1), dealBody(2), dealBody(3)])
+        )
+      ),
+      route('GET', `${PB}/calls`, json(200, page([]))),
+      route('GET', IMPORTS, json(200, page([importBody(1)], 'next'))),
+    ])
+    const list = within(await screen.findByRole('list', { name: 'Sales history' }))
+    await waitFor(() => expect(list.getByText('3 Deals, 2 won')).toBeTruthy())
+    await waitFor(() => expect(list.getByText('0 Calls')).toBeTruthy())
+    await waitFor(() => expect(list.getByText(/^last import /)).toBeTruthy())
+    for (const path of [DEALS, `${PB}/calls`, IMPORTS]) {
+      for (const call of portal.calls.filter((sent) => sent.path === path)) {
+        expect(new URL(call.url, 'http://x').searchParams.get('cursor')).toBeNull()
+      }
+    }
+    const imports = portal.calls.filter((call) => call.path === IMPORTS)
+    expect(imports).toHaveLength(1)
+    expect(new URL(imports[0]?.url ?? '', 'http://x').searchParams.get('limit')).toBe('1')
+  })
+})
+
 describe('Sales history: Owner and Admin only', () => {
   const urls = [
     '/sales-history',
@@ -313,7 +343,7 @@ describe('Sales history: Deals', () => {
     ])
     await portal.user.type(await screen.findByLabelText("Customer's deal id"), '=SECRET-1')
     await portal.user.click(screen.getByRole('button', { name: 'Find Deal' }))
-    expect(await screen.findByRole('heading', { name: 'Deal' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: '=SECRET-1' })).toBeTruthy()
     const lookup = portal.calls.find((call) => call.path === `${DEALS}/lookup`)
     expect(lookup?.method).toBe('POST')
     expect(lookup?.body).toEqual({ dealId: '=SECRET-1' })

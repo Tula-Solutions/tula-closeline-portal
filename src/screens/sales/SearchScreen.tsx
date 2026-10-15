@@ -7,7 +7,8 @@ import { PageHeader } from '~/components/app/page-header'
 import { Progress } from '~/components/ui/progress'
 import { can } from '~/data/permissions'
 import { useRole } from '~/data/session-role'
-import { Rank, ResultsHeader } from '~/screens/search/ResultsHeader'
+import { Highlight } from '~/screens/search/highlight'
+import { Rank, ResultsHeader, revealResults } from '~/screens/search/ResultsHeader'
 import { percent, plural, SearchForm } from '~/screens/search/SearchForm'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 
@@ -22,15 +23,20 @@ function Evidence(props: { readonly evidence: SearchMomentsResponse['evidence'] 
   )
 }
 
-function Results(props: { readonly answer: SearchMomentsResponse }) {
+function Results(props: {
+  readonly answer: SearchMomentsResponse
+  readonly terms: readonly string[]
+}) {
   const heading = useRef<HTMLHeadingElement>(null)
-  useEffect(() => heading.current?.focus(), [])
+  const list = useRef<HTMLOListElement>(null)
+  useEffect(() => {
+    heading.current?.focus()
+    // The results arrive one after another, 50 ms apart (the first five).
+    revealResults(list.current)
+  }, [])
   const { items, evidence } = props.answer
   return (
-    <section
-      aria-labelledby='search-results-heading'
-      className='m-0 flex flex-col gap-3 motion-safe:animate-rise'
-    >
+    <section aria-labelledby='search-results-heading' className='m-0 flex flex-col gap-3'>
       <ResultsHeader
         id='search-results-heading'
         headingRef={heading}
@@ -42,7 +48,7 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
         </EmptyState>
       ) : (
         <>
-          <ol aria-label='Matching Moments' className='m-0 list-none p-0'>
+          <ol ref={list} aria-label='Matching Moments' className='m-0 list-none p-0'>
             {items.map((item, index) => {
               const score = percent(item.score)
               return (
@@ -70,7 +76,9 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
                         <strong>Prospect said</strong>
                       </p>
                       <p className='m-0 font-serif text-[1.0625rem] leading-relaxed'>
-                        <bdi>{item.prospect}</bdi>
+                        <bdi>
+                          <Highlight text={item.prospect} terms={props.terms} />
+                        </bdi>
                       </p>
                     </blockquote>
                     <blockquote className='m-0 border-l-2 border-foreground pl-4'>
@@ -81,7 +89,9 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
                         {item.repNext === '' ? (
                           <em>Nothing, the Call ended.</em>
                         ) : (
-                          <bdi>{item.repNext}</bdi>
+                          <bdi>
+                            <Highlight text={item.repNext} terms={props.terms} />
+                          </bdi>
                         )}
                       </p>
                     </blockquote>
@@ -143,7 +153,7 @@ export function SearchScreen() {
         intro='Write what was said so far. The search finds Moments from your won Deals that sound like it.'
         run={(request) => app.salesHistory.searchMoments(request)}
       >
-        {(answer) => <Results answer={answer} />}
+        {(answer, terms) => <Results answer={answer} terms={terms} />}
       </SearchForm>
     </>
   )

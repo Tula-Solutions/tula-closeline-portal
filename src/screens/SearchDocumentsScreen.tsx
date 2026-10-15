@@ -6,26 +6,32 @@ import { EmptyState } from '~/components/app/empty-state'
 import { PageHeader } from '~/components/app/page-header'
 import { can } from '~/data/permissions'
 import { useRole } from '~/data/session-role'
-import { Rank, ResultsHeader } from '~/screens/search/ResultsHeader'
+import { Highlight } from '~/screens/search/highlight'
+import { Rank, ResultsHeader, revealResults } from '~/screens/search/ResultsHeader'
 import { plural, SearchForm } from '~/screens/search/SearchForm'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 
-function Results(props: { readonly answer: SearchDocumentsResponse }) {
+function Results(props: {
+  readonly answer: SearchDocumentsResponse
+  readonly terms: readonly string[]
+}) {
   const heading = useRef<HTMLHeadingElement>(null)
-  useEffect(() => heading.current?.focus(), [])
+  const list = useRef<HTMLOListElement>(null)
+  useEffect(() => {
+    heading.current?.focus()
+    // The results arrive one after another, 50 ms apart (the first five).
+    revealResults(list.current)
+  }, [])
   const { items, evidence } = props.answer
   return (
-    <section
-      aria-labelledby='search-documents-results-heading'
-      className='m-0 flex flex-col gap-3 motion-safe:animate-rise'
-    >
+    <section aria-labelledby='search-documents-results-heading' className='m-0 flex flex-col gap-3'>
       <ResultsHeader
         id='search-documents-results-heading'
         headingRef={heading}
         evidence={
           items.length === 0 ? null : (
             <p className='hint tabular-nums'>
-              Based on {plural(evidence.chunks, 'chunk', 'chunks')} across{' '}
+              Based on {plural(evidence.chunks, 'passage', 'passages')} across{' '}
               {plural(evidence.documents, 'Document', 'Documents')} in this search
             </p>
           )
@@ -36,7 +42,7 @@ function Results(props: { readonly answer: SearchDocumentsResponse }) {
           No Document text matched this conversation. Try other words, or add a turn.
         </EmptyState>
       ) : (
-        <ol aria-label='Matching Document text' className='m-0 list-none p-0'>
+        <ol ref={list} aria-label='Matching Document text' className='m-0 list-none p-0'>
           {items.map((item, index) => (
             <li key={`${item.documentId}-${item.page}-${item.snippet}`} className='border-b py-6'>
               <div className='mb-3 flex items-baseline gap-3'>
@@ -50,17 +56,19 @@ function Results(props: { readonly answer: SearchDocumentsResponse }) {
               </div>
               <blockquote className='m-0 border-l-2 border-foreground pl-4 font-serif text-[1.0625rem] leading-relaxed'>
                 <p className='m-0'>
-                  <bdi>{item.snippet}</bdi>
+                  <bdi>
+                    <Highlight text={item.snippet} terms={props.terms} />
+                  </bdi>
                 </p>
               </blockquote>
               <p className='mt-3 mb-0 text-[0.8125rem]'>
                 {/* There is no page for one Document: this opens the list of them. */}
                 <Link
                   to='/playbook'
-                  aria-label={`Documents screen, for result ${index + 1}`}
+                  aria-label={`Open in Playbook, for result ${index + 1}`}
                   className='rounded-sm font-medium text-foreground ink-link outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
                 >
-                  Documents screen
+                  Open in Playbook
                 </Link>
               </p>
             </li>
@@ -94,7 +102,7 @@ export function SearchDocumentsScreen() {
         intro="Write what was said so far. The search finds text in your Playbook's Documents that sounds like it."
         run={(request) => app.playbook.searchDocuments(request)}
       >
-        {(answer) => <Results answer={answer} />}
+        {(answer, terms) => <Results answer={answer} terms={terms} />}
       </SearchForm>
     </>
   )

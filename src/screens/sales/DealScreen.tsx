@@ -11,6 +11,7 @@ import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
 import { Money } from '~/screens/sales/DealsScreen'
 import { Banner } from '~/ui/Banner'
 import { Field } from '~/ui/Field'
+import { dealTransitionName, transitionName } from '~/ui/motion'
 import { SaveButton } from '~/ui/SaveButton'
 import { SelectField } from '~/ui/SelectField'
 import { Untrusted } from '~/ui/Untrusted'
@@ -29,8 +30,29 @@ export function DealScreen() {
   return (
     <>
       <PageHeader
-        eyebrow='Sales history'
-        title='Deal'
+        eyebrow={
+          deal.data === undefined || deal.data.name === null ? (
+            'Sales history'
+          ) : (
+            <>
+              Deal{' '}
+              <span ref={transitionName(dealTransitionName(deal.data.id))}>
+                <Untrusted value={deal.data.dealId} />
+              </span>
+            </>
+          )
+        }
+        title={
+          deal.data === undefined ? (
+            'Deal'
+          ) : deal.data.name === null ? (
+            <span ref={transitionName(dealTransitionName(deal.data.id))}>
+              <Untrusted value={deal.data.dealId} />
+            </span>
+          ) : (
+            <Untrusted value={deal.data.name} />
+          )
+        }
         actions={
           <Link to='/sales-history/deals' className='button button-quiet'>
             <ArrowLeft aria-hidden='true' className='size-4' />
@@ -54,22 +76,16 @@ export function DealScreen() {
       ) : (
         <>
           <dl>
-            <dt>Deal id</dt>
-            <dd>
-              <Untrusted value={deal.data.dealId} />
+            <dt>Amount</dt>
+            <dd className='font-serif text-[2rem] leading-tight tracking-[-0.02em] tabular-nums'>
+              <Money amount={deal.data.amount} currency={deal.data.currency} />
             </dd>
-            <dt>Name</dt>
-            <dd>{deal.data.name === null ? '-' : <Untrusted value={deal.data.name} />}</dd>
             <dt>Current Outcome</dt>
             <dd>
               <StatusBadge state={deal.data.outcome}>{outcomeLabel(deal.data.outcome)}</StatusBadge>
             </dd>
             <dt>Closed</dt>
             <dd>{deal.data.closedAt === null ? '-' : <DateOnly value={deal.data.closedAt} />}</dd>
-            <dt>Amount</dt>
-            <dd>
-              <Money amount={deal.data.amount} currency={deal.data.currency} />
-            </dd>
             <dt>Calls</dt>
             <dd>{deal.data.callCount}</dd>
           </dl>
@@ -190,8 +206,10 @@ function OutcomeForm(props: {
         save.submit({ outcome, closedAt, typed: typedDate })
       }}
     >
-      <h2 id='outcome-heading'>Set the Outcome</h2>
-      <p className='hint'>
+      <h2 id='outcome-heading' className='mb-2'>
+        Set the Outcome
+      </h2>
+      <p className='hint mt-0'>
         Only a won Deal's Calls are used in search. After you change the Outcome, search may lag a
         little behind while its Calls are updated.
       </p>

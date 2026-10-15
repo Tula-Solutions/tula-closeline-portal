@@ -50,11 +50,11 @@ describe('search over Documents: the answer', () => {
     expect((rows[1] as HTMLElement).textContent).not.toMatch(/page/i)
   })
 
-  test('the evidence wording counts chunks and Documents of this search only', async () => {
+  test('the evidence wording counts passages and Documents of this search only', async () => {
     const portal = open('owner')
     await ask(portal)
     expect(
-      await screen.findByText('Based on 9 chunks across 2 Documents in this search')
+      await screen.findByText('Based on 9 passages across 2 Documents in this search')
     ).toBeTruthy()
   })
 
@@ -62,7 +62,7 @@ describe('search over Documents: the answer', () => {
     const portal = open('owner', answer([hit(1)], { chunks: 1, documents: 1 }))
     await ask(portal)
     expect(
-      await screen.findByText('Based on 1 chunk across 1 Document in this search')
+      await screen.findByText('Based on 1 passage across 1 Document in this search')
     ).toBeTruthy()
   })
 
@@ -79,14 +79,14 @@ describe('search over Documents: the answer', () => {
     expect(document.querySelector('main script, main b')).toBeNull()
   })
 
-  test('the links have distinct names and go to the Documents screen', async () => {
+  test('the links have distinct names and open the Playbook', async () => {
     const portal = open('owner', answer([hit(1), hit(2)]))
     await ask(portal)
     const list = await screen.findByRole('list', { name: 'Matching Document text' })
     const links = within(list).getAllByRole('link')
     const names = links.map((link) => link.getAttribute('aria-label') ?? link.textContent)
     expect(new Set(names).size).toBe(names.length)
-    expect(names).toContain('Documents screen, for result 2')
+    expect(names).toContain('Open in Playbook, for result 2')
     expect(links[0]?.getAttribute('href')).toBe('/playbook')
   })
 

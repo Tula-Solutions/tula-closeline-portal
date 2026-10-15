@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import { useSessionState } from '~/app-context'
 import { parseReturnPath } from '~/data/return-path'
 import { Logo, ScalesMark } from '~/ui/Logo'
+import { reveal } from '~/ui/motion'
 
 const POINTS = [
   {
@@ -28,6 +29,16 @@ export function PublicLayout() {
   const navigate = useNavigate()
   const router = useRouter()
   const signedIn = session.status === 'signed_in'
+  const headline = useRef<HTMLDivElement>(null)
+  // The headline's lines rise 80 ms apart while the scales draw beside them.
+  useEffect(() => {
+    reveal(headline.current?.children ?? [], {
+      delay: 200,
+      step: 80,
+      rise: '0.3em',
+      duration: 420,
+    })
+  }, [])
   const back = parseReturnPath(
     new URLSearchParams(useRouterState({ select: (state) => state.location.searchStr })).get(
       'redirect'
@@ -53,8 +64,11 @@ export function PublicLayout() {
         aria-label='About Closeline'
       >
         <Logo className='w-32' />
-        <ScalesMark className='pointer-events-none absolute top-[4%] -right-56 -z-10 w-[46rem] text-foreground/15' />
-        <div className='max-w-[40rem] motion-safe:animate-rise'>
+        <ScalesMark
+          drawIn
+          className='pointer-events-none absolute top-[4%] -right-24 -z-10 w-[46rem] text-foreground/22'
+        />
+        <div ref={headline} className='max-w-[40rem]'>
           <p className='m-0 font-serif text-[3.5rem] leading-[1] font-normal tracking-[-0.03em] text-balance xl:text-[4.5rem]'>
             Live guidance for every Rep. Agents for the rest.
           </p>
