@@ -379,6 +379,28 @@ export function useCallsFirstPage(enabled: boolean) {
   )
 }
 
+/** Every Deal's first page (any Outcome) for the Sales overview's figures; no request unless `enabled`. */
+export function useDealsFirstPage(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useFirstPage(
+    [...KEYS.deals(organizationId), 'first-page', 'any'],
+    (signal) => app.salesHistory.listDeals({ limit: MAX_PAGE_SIZE, signal }),
+    enabled && organizationId !== ''
+  )
+}
+
+/** The newest import only (a page of one), for "last import" lines; no request unless `enabled`. */
+export function useLatestImport(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useFirstPage(
+    [...KEYS.dealImports(organizationId), 'latest'],
+    (signal) => app.salesHistory.listDealImports({ limit: 1, signal }),
+    enabled && organizationId !== ''
+  )
+}
+
 /** Calls, a page at a time, newest first; with a state only Calls in it, with a Deal (opaque id) only its Calls. */
 export function useCalls(filter: {
   readonly state?: CallState | undefined

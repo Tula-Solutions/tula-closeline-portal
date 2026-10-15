@@ -338,7 +338,8 @@
   a:not([class]):hover,
   a:not([class]):focus-visible,
   :is(td, .row-actions) .button-quiet:hover,
-  .ink-hover:hover .ink-link {
+  .ink-hover:hover .ink-link,
+  .ink-hover:focus-visible .ink-link {
     background-size:
       100% 1px,
       100% 1px;

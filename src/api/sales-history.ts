@@ -236,7 +236,7 @@ export function createSalesHistoryApi(
     listDealImports: (page) =>
       http.request({
         path: `${BASE}/deal-imports`,
-        query: { cursor: page.cursor, limit: PAGE_SIZE },
+        query: { cursor: page.cursor, limit: page.limit ?? PAGE_SIZE },
         auth: true,
         ...signalOf(page.signal),
         parse: (json) => listDealImportsResponseSchema.parse(json),

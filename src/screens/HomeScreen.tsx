@@ -1,5 +1,7 @@
 import { Link, type LinkProps } from '@tanstack/react-router'
-import type { PlaybookDocument } from 'tula-closeline-contract'
+import { useEffect, useRef } from 'react'
+import type { Call, DealImport, PlaybookDocument } from 'tula-closeline-contract'
+import { type CallListItem, isUnreadable } from '~/api/sales-history'
 import { Section } from '~/components/app/section'
 import { StatusBadge } from '~/components/app/status-badge'
 import { Skeleton } from '~/components/ui/skeleton'
@@ -9,10 +11,13 @@ import {
   type FirstPage,
   useCallsFirstPage,
   useDocumentsFirstPage,
+  useLatestImport,
   useMembersFirstPage,
   useWonDealsFirstPage,
 } from '~/data/queries'
+import { callStateLabel, importStateLabel } from '~/data/sales-history'
 import { useRole } from '~/data/session-role'
+import { reveal, useCountUp } from '~/ui/motion'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { When } from '~/ui/When'
@@ -50,11 +55,19 @@ function CountLine(props: {
   const { value } = props
   const plural = value.kind === 'count' && (value.count !== 1 || value.more)
   const words = plural ? props.many : props.one
+  const numeral = useRef<HTMLSpanElement>(null)
+  const more = value.kind === 'count' && value.more
+  // The numeral counts up (or rises) as it arrives; assistive technology reads the final text.
+  useCountUp(
+    numeral,
+    value.kind === 'count' ? value.count : null,
+    (n) => `${n.toLocaleString()}${more ? '+' : ''}`
+  )
   return (
-    <li className='block sm:inline'>
+    <li data-line className='block sm:inline'>
       <Link
         to={props.to}
-        className='rounded-sm ink-link outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
+        className='ink-hover rounded-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
       >
         {value.kind === 'loading' ? (
           <>
@@ -64,13 +77,16 @@ function CountLine(props: {
             </span>
           </>
         ) : value.kind === 'unavailable' ? (
-          <span className='text-muted-foreground'>{props.what} could not be counted.</span>
+          <span className='ink-link text-muted-foreground'>{props.what} could not be counted.</span>
         ) : (
           <>
-            <span className='text-[1.5em] leading-none tracking-[-0.03em] tabular-nums lining-nums'>
-              {countText(value)}
-            </span>{' '}
-            {words}.
+            <span className='sr-only'>{countText(value)}</span>
+            <span
+              ref={numeral}
+              aria-hidden='true'
+              className='inline-block text-[1.9em] leading-none tracking-[-0.03em] tabular-nums lining-nums'
+            />{' '}
+            <span className='ink-link'>{words}.</span>
           </>
         )}
       </Link>{' '}
@@ -85,7 +101,7 @@ function greeting(now: Date): string {
 
 /** The newest documents, from the same single page the Documents line counts. Names are text only. */
 function Latest(props: { readonly documents: FirstPage<PlaybookDocument> }) {
-  const recent = props.documents.items.slice(0, 5)
+  const recent = props.documents.items.slice(0, 8)
   return (
     <Section
       id='latest'
@@ -138,6 +154,97 @@ function Latest(props: { readonly documents: FirstPage<PlaybookDocument> }) {
   )
 }
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000
+
+/**
+ * This week in sales history: the Calls added in the last seven days (up to 8, from the same single
+ * page the Calls line counts) with their state, and when the last import ran. Nothing here reads a
+ * second page; file names and deal ids are text only.
+ */
+function ThisWeek(props: {
+  readonly calls: FirstPage<CallListItem>
+  readonly latestImport: FirstPage<DealImport>
+  readonly now: Date
+}) {
+  const since = props.now.getTime() - WEEK_MS
+  const recent = props.calls.items
+    .filter((call): call is Call => !isUnreadable(call) && Date.parse(call.createdAt) >= since)
+    .slice(0, 8)
+  const lastImport = props.latestImport.items[0]
+  return (
+    <Section
+      id='this-week'
+      title='This week'
+      description='Calls added in the last seven days, and the last import.'
+      actions={
+        <Link
+          to='/sales-history/calls'
+          className='rounded-sm text-sm font-medium ink-link outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
+        >
+          All Calls
+        </Link>
+      }
+    >
+      {props.calls.isPending ? (
+        <ul aria-hidden='true' className='m-0 list-none border-t p-0'>
+          {[0, 1, 2].map((row) => (
+            <li key={row} className='flex items-center gap-8 border-b py-4'>
+              <Skeleton className='h-2.5 w-24' />
+              <Skeleton className='h-3 flex-1' />
+              <Skeleton className='h-3 w-14' />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ol className='m-0 list-none border-t p-0'>
+          {recent.map((call) => (
+            <li
+              key={call.id}
+              className='grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 gap-y-1 border-b py-3.5 sm:grid-cols-[11rem_minmax(0,1fr)_auto]'
+            >
+              <span className='order-2 col-span-2 font-mono text-xs text-muted-foreground sm:order-none sm:col-span-1'>
+                <When iso={call.createdAt} />
+              </span>
+              <span className='min-w-0 text-[0.9375rem]'>
+                <Untrusted value={call.fileName} />
+                <span className='ml-2 font-mono text-xs text-muted-foreground'>
+                  <Untrusted value={call.dealId} />
+                </span>
+              </span>
+              <StatusBadge state={call.state}>{callStateLabel(call.state)}</StatusBadge>
+            </li>
+          ))}
+          {recent.length === 0 ? (
+            <li className='border-b py-3.5 text-sm text-muted-foreground'>
+              {props.calls.isError
+                ? 'The Calls could not be loaded. Open Calls to try again.'
+                : 'No Calls were added this week.'}
+            </li>
+          ) : null}
+          {lastImport === undefined ? null : (
+            <li className='grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-6 gap-y-1 border-b py-3.5 sm:grid-cols-[11rem_minmax(0,1fr)_auto]'>
+              <span className='order-2 col-span-2 font-mono text-xs text-muted-foreground sm:order-none sm:col-span-1'>
+                <When iso={lastImport.createdAt} />
+              </span>
+              <span className='min-w-0 text-[0.9375rem]'>
+                Last import
+                {lastImport.appliedCount === null ? null : (
+                  <span className='text-muted-foreground'>
+                    , {lastImport.appliedCount.toLocaleString()} rows applied
+                  </span>
+                )}
+              </span>
+              <StatusBadge state={lastImport.state}>
+                {importStateLabel(lastImport.state)}
+              </StatusBadge>
+            </li>
+          )}
+        </ol>
+      )}
+    </Section>
+  )
+}
+
 type Next = { readonly to: LinkProps['to']; readonly label: string }
 
 /** The home page: a dateline and greeting, the Organization's state written as sentences, and the latest documents. */
@@ -150,6 +257,16 @@ export function HomeScreen() {
   const sales = allowed && can.manageSalesHistory(role)
   const deals = useWonDealsFirstPage(sales)
   const calls = useCallsFirstPage(sales)
+  const latestImport = useLatestImport(sales)
+  const header = useRef<HTMLElement>(null)
+  // The briefing's lines rise into place one after another, 70 ms apart, once per visit.
+  useEffect(() => {
+    reveal(header.current?.querySelectorAll('[data-line]') ?? [], {
+      step: 70,
+      rise: '0.3em',
+      duration: 360,
+    })
+  }, [])
   if (role === null) {
     return null
   }
@@ -169,13 +286,16 @@ export function HomeScreen() {
   }
   return (
     <div className='flex flex-col gap-14'>
-      <header className='grid gap-10 lg:grid-cols-12 lg:gap-12 motion-safe:animate-rise'>
+      <header ref={header} className='grid gap-10 lg:grid-cols-12 lg:gap-12'>
         <div className='lg:col-span-8'>
-          <p className='m-0 font-serif text-lg text-muted-foreground italic'>
+          <p data-line className='m-0 font-serif text-lg text-muted-foreground italic'>
             {now.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
           <h1 className='sr-only'>Home</h1>
-          <p className='mt-2 mb-0 font-serif text-[2.5rem] leading-[1.02] font-normal tracking-[-0.022em] md:text-[3.5rem]'>
+          <p
+            data-line
+            className='mt-2 mb-0 font-serif text-[2.5rem] leading-[1.02] font-normal tracking-[-0.022em] md:text-[3.5rem]'
+          >
             {greeting(now)}.
           </p>
           <ul
@@ -194,8 +314,8 @@ export function HomeScreen() {
             {sales ? (
               <CountLine
                 value={countOf(deals)}
-                one='won Deal teaches search'
-                many='won Deals teach search'
+                one='won Deal in search'
+                many='won Deals in search'
                 to='/sales-history/deals'
                 what='Won Deals'
               />
@@ -222,6 +342,7 @@ export function HomeScreen() {
         </div>
         {next.length > 0 ? (
           <nav
+            data-line
             aria-labelledby='next-heading'
             className='self-end lg:col-span-4 lg:border-l lg:pl-8'
           >
@@ -243,6 +364,7 @@ export function HomeScreen() {
           </nav>
         ) : null}
       </header>
+      {sales ? <ThisWeek calls={calls} latestImport={latestImport} now={now} /> : null}
       <Latest documents={documents} />
     </div>
   )
