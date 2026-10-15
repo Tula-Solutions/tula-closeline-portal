@@ -241,11 +241,11 @@ export function useSeedDeal() {
   const app = useApp()
   const organizationId = useOrganizationId()
   return (deal: Deal) => {
-    if (organizationId !== '') {
+    const key = [...KEYS.deals(organizationId), 'one', deal.id]
+    // Never over a Deal already read on its own page, which may be newer than the list's copy.
+    if (organizationId !== '' && app.queryClient.getQueryData(key) === undefined) {
       // Dated the epoch, so it counts as stale and the page reads the Deal again as it opens.
-      app.queryClient.setQueryData([...KEYS.deals(organizationId), 'one', deal.id], deal, {
-        updatedAt: 0,
-      })
+      app.queryClient.setQueryData(key, deal, { updatedAt: 0 })
     }
   }
 }

@@ -1,5 +1,5 @@
 import { RotateCw } from 'lucide-react'
-import { type ReactNode, useEffect, useRef } from 'react'
+import { type ReactNode, useLayoutEffect, useRef } from 'react'
 import { presentManage } from '~/api/manage-messages'
 import { EmptyState } from '~/components/app/empty-state'
 import { Button } from '~/components/ui/button'
@@ -40,7 +40,8 @@ export function Paged(props: {
   // and Load more put them in place without motion.
   const waited = useRef(state.isPending)
   const shown = state.hasData && !state.isPending
-  useEffect(() => {
+  // Before paint, so a row never shows for a frame and then fades in from nothing.
+  useLayoutEffect(() => {
     if (!shown || !waited.current) {
       return
     }

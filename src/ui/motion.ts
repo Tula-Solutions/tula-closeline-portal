@@ -112,11 +112,13 @@ export function withViewTransition(update: () => void, kind?: string): void {
     root.dataset.transition = kind
   }
   const transition = doc.startViewTransition(update)
-  transition.finished.finally(() => {
+  const done = () => {
     if (kind && root.dataset.transition === kind) {
       delete root.dataset.transition
     }
-  })
+  }
+  // A skipped transition or a throwing update rejects `finished`: clean up either way, never unhandled.
+  transition.finished.then(done, done)
 }
 
 // The one thing this module keeps in storage: whether the sign-in illustration has already been

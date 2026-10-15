@@ -1,5 +1,5 @@
 import { Link, type LinkProps } from '@tanstack/react-router'
-import { useEffect, useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import type { Call, DealImport, PlaybookDocument } from 'tula-closeline-contract'
 import { type CallListItem, isUnreadable } from '~/api/sales-history'
 import { Section } from '~/components/app/section'
@@ -259,8 +259,9 @@ export function HomeScreen() {
   const calls = useCallsFirstPage(sales)
   const latestImport = useLatestImport(sales)
   const header = useRef<HTMLElement>(null)
-  // The briefing's lines rise into place one after another, 70 ms apart, once per visit.
-  useEffect(() => {
+  // The briefing's lines rise into place one after another, 70 ms apart, once per visit (before
+  // paint, so no line shows for a frame first).
+  useLayoutEffect(() => {
     reveal(header.current?.querySelectorAll('[data-line]') ?? [], {
       step: 70,
       rise: '0.3em',

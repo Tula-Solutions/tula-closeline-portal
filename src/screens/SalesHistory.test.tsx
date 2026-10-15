@@ -256,6 +256,37 @@ describe('Sales history: Deals', () => {
     expect(within(row).getByText('EUR', { exact: false })).toBeTruthy()
   })
 
+  test('a Deal already read on its own page is not replaced by the list copy', async () => {
+    const listed = dealBody(1, { dealId: 'D-100', name: 'Old name' })
+    let fail = false
+    const portal = visit(`/sales-history/deals/${listed.id}`, 'owner', [
+      route('GET', `${DEALS}/${listed.id}`, () =>
+        fail
+          ? failure(503, SALES_HISTORY_ERRORS['deal.not_found'].code)
+          : json(200, { ...listed, name: 'New name' })
+      ),
+      route('GET', DEALS, json(200, page([listed]))),
+    ])
+    expect(await screen.findByRole('heading', { level: 1, name: 'New name' })).toBeTruthy()
+    fail = true
+    await portal.router.navigate({ to: '/sales-history/deals' })
+    await portal.user.click(await screen.findByRole('link', { name: 'D-100' }))
+    // The newer page copy stays; the list's older name never replaces it.
+    expect(await screen.findByRole('heading', { level: 1, name: 'New name' })).toBeTruthy()
+  })
+
+  test('a click that opens a new tab leaves the row unnamed', async () => {
+    const deal = dealBody(1, { dealId: 'D-100' })
+    const portal = visit('/sales-history/deals', 'owner', [
+      route('GET', DEALS, json(200, page([deal]))),
+    ])
+    const link = await screen.findByRole('link', { name: 'D-100' })
+    await portal.user.keyboard('{Meta>}')
+    await portal.user.click(link)
+    await portal.user.keyboard('{/Meta}')
+    expect(link.style.getPropertyValue('view-transition-name')).toBe('')
+  })
+
   test('opening a Deal from its row shows it at once, named as the page heading, then reads it fresh', async () => {
     const deal = dealBody(1, { dealId: 'D-100', name: 'Acme renewal' })
     let release: () => void = () => undefined

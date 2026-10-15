@@ -123,6 +123,22 @@ describe('motion: full motion', () => {
     await Promise.resolve()
     expect(document.documentElement.dataset.transition).toBeUndefined()
   })
+
+  test('a skipped transition (its `finished` rejects) is cleaned up and never left unhandled', async () => {
+    const unhandled: unknown[] = []
+    const onUnhandled = (reason: unknown) => unhandled.push(reason)
+    process.on('unhandledRejection', onUnhandled)
+    const finished = Promise.reject(new DOMException('Skipped', 'AbortError'))
+    ;(document as unknown as VtDocument).startViewTransition = (update: () => void) => {
+      update()
+      return { finished }
+    }
+    withViewTransition(() => undefined, 'theme')
+    await new Promise((done) => setTimeout(done, 10))
+    process.off('unhandledRejection', onUnhandled)
+    expect(unhandled).toEqual([])
+    expect(document.documentElement.dataset.transition).toBeUndefined()
+  })
 })
 
 describe('motion: the once-per-tab flag', () => {

@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useRouter, useRouterState } from '@tanstack/react-router'
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useSessionState } from '~/app-context'
 import { parseReturnPath } from '~/data/return-path'
 import { Logo, ScalesMark } from '~/ui/Logo'
@@ -30,8 +30,8 @@ export function PublicLayout() {
   const router = useRouter()
   const signedIn = session.status === 'signed_in'
   const headline = useRef<HTMLDivElement>(null)
-  // The headline's lines rise 80 ms apart while the scales draw beside them.
-  useEffect(() => {
+  // The headline's lines rise 80 ms apart while the scales draw beside them (set before paint).
+  useLayoutEffect(() => {
     reveal(headline.current?.children ?? [], {
       delay: 200,
       step: 80,

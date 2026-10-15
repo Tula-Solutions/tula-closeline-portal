@@ -126,6 +126,10 @@ export function DealsScreen() {
                           params={{ dealRecordId: deal.id }}
                           className='ink-link row-link'
                           onClick={(event) => {
+                            // A click that opens a new tab or window leaves this page as it is.
+                            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                              return
+                            }
                             // The Deal opens at once from this row, and its id moves into the page.
                             seed(deal)
                             event.currentTarget.style.setProperty(

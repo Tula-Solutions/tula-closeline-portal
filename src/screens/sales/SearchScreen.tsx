@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useEffect, useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import type { SearchMomentsResponse } from 'tula-closeline-contract'
 import { useApp } from '~/app-context'
 import { EmptyState } from '~/components/app/empty-state'
@@ -29,7 +29,7 @@ function Results(props: {
 }) {
   const heading = useRef<HTMLHeadingElement>(null)
   const list = useRef<HTMLOListElement>(null)
-  useEffect(() => {
+  useLayoutEffect(() => {
     heading.current?.focus()
     // The results arrive one after another, 50 ms apart (the first five).
     revealResults(list.current)
