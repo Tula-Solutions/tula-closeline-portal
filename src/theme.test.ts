@@ -152,6 +152,20 @@ describe('links and placeholders', () => {
   })
 })
 
+describe('page transitions', () => {
+  test('run in sequence: the old page is gone before the new one starts to show', () => {
+    const old = css.match(/::view-transition-old\(page\) \{\s*animation: vt-out (\d+)ms/)
+    const next = css.match(
+      /::view-transition-new\(page\) \{\s*animation: vt-in (\d+)ms \S+ (\d+)ms/
+    )
+    const outMs = Number(old?.[1])
+    const delayMs = Number(next?.[2])
+    // The new page waits until the old one is nearly out (its last 20 ms are near-transparent).
+    expect(delayMs).toBeGreaterThanOrEqual(outMs - 20)
+    expect(outMs + Number(next?.[1])).toBeLessThanOrEqual(340)
+  })
+})
+
 describe('motion under reduced motion', () => {
   const reduced = [...css.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/g)]
     .map((match) => match[1])

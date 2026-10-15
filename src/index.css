@@ -223,16 +223,17 @@
 
 /*
  * Page changes run as view transitions (the router's defaultViewTransition). The sidebar and the
- * phone's top bar are named so they hold still; the page fades out quickly and the new one rises.
+ * phone's top bar are named so they hold still; the old page fades out, then the new one rises.
  * All of it sits behind no-preference, so under reduced motion only the rule further down applies
  * (a named pseudo-element here would otherwise outrank its `*`).
  */
 @media (prefers-reduced-motion: no-preference) {
+  /* In sequence, never overlapping: the old page is gone (90 ms) before the new one rises (240 ms). */
   ::view-transition-old(page) {
-    animation: vt-out 120ms var(--ease-in) both;
+    animation: vt-out 90ms var(--ease-in) both;
   }
   ::view-transition-new(page) {
-    animation: vt-in var(--dur-page) var(--ease-out) both;
+    animation: vt-in 240ms var(--ease-out) 70ms both;
   }
   ::view-transition-group(*) {
     animation-duration: var(--dur-page);
@@ -243,6 +244,7 @@
   html[data-transition="theme"]::view-transition-new(*) {
     animation-duration: 240ms;
     animation-timing-function: var(--ease-move);
+    animation-delay: 0ms;
   }
   html[data-transition="theme"]::view-transition-new(page) {
     animation-name: vt-fade-in;
