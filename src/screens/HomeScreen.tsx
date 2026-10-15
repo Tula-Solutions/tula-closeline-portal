@@ -61,7 +61,7 @@ function CountLine(props: {
       <Link
         to={props.to}
         aria-label={label}
-        className='rounded-sm decoration-border-strong decoration-1 underline-offset-[0.18em] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring'
+        className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-[0.18em] outline-none hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
       >
         {value.kind === 'loading' ? (
           <Skeleton className='inline-block h-[0.8em] w-[1.6em] align-baseline' />
@@ -181,6 +181,8 @@ export function HomeScreen() {
             {greeting(now)}.
           </p>
           <ul
+            // biome-ignore lint/a11y/noRedundantRoles: Safari and VoiceOver drop the role of a list-style: none list.
+            role='list'
             aria-label='Your Organization in numbers'
             className='mt-8 mb-0 max-w-[34ch] list-none p-0 font-serif text-[1.625rem] leading-[1.3] tracking-[-0.01em] md:text-[2rem]'
           >

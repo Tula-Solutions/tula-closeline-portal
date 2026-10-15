@@ -76,6 +76,16 @@ describe('home: the briefing', () => {
     }
   })
 
+  test('a count reads as a link before hover: it is underlined at rest, and the list keeps its role', async () => {
+    visit('rep', route('GET', DOCS, json(200, page([documentBody(1)]))))
+    const numbers = await screen.findByRole('list', { name: 'Your Organization in numbers' })
+    expect(numbers.getAttribute('role')).toBe('list')
+    const link = await within(numbers).findByRole('link', { name: /^1 Document in the Playbook$/ })
+    const classes = link.className.split(/\s+/)
+    expect(classes).toContain('underline')
+    expect(classes).toContain('decoration-border-strong')
+  })
+
   test('a Rep sees the documents count only, and nothing it may not read is requested', async () => {
     const portal = visit('rep', route('GET', DOCS, json(200, page([documentBody(1)]))))
     const list = await counts()
