@@ -24,8 +24,12 @@ import type { HttpClient } from '~/api/http'
 /** The page size every list asks for; the server allows up to 100. */
 export const PAGE_SIZE = 25
 
-/** One page request: the cursor the previous page returned (none for the first). */
-export type PageRequest = { readonly cursor?: string | undefined; readonly signal?: AbortSignal }
+/** One page request: the cursor the previous page returned (none for the first), and a page size other than `PAGE_SIZE` when one is wanted. */
+export type PageRequest = {
+  readonly cursor?: string | undefined
+  readonly limit?: number | undefined
+  readonly signal?: AbortSignal
+}
 
 /** The core service routes the portal uses. */
 export type CoreApi = {
@@ -64,7 +68,7 @@ const segment = encodeURIComponent
 
 /** Builds the core routes over an HTTP client for same-origin paths, which sends the access token. */
 export function createCoreApi(http: HttpClient): CoreApi {
-  const query = (page: PageRequest) => ({ cursor: page.cursor, limit: PAGE_SIZE })
+  const query = (page: PageRequest) => ({ cursor: page.cursor, limit: page.limit ?? PAGE_SIZE })
   return {
     getOrganization: (signal) =>
       http.request<Organization>({

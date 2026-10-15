@@ -190,7 +190,7 @@ export function createSalesHistoryApi(
         path: `${BASE}/deals`,
         query: {
           cursor: page.cursor,
-          limit: PAGE_SIZE,
+          limit: page.limit ?? PAGE_SIZE,
           outcome: page.outcome,
           appearedInImport:
             page.appearedInImport === undefined ? undefined : String(page.appearedInImport),
@@ -285,7 +285,7 @@ export function createSalesHistoryApi(
         path: `${BASE}/calls`,
         query: {
           cursor: page.cursor,
-          limit: PAGE_SIZE,
+          limit: page.limit ?? PAGE_SIZE,
           state: page.state,
           dealRecordId: page.dealRecordId,
         },
