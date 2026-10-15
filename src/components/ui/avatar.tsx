@@ -1,18 +1,9 @@
 import { cn } from '~/lib/utils'
 
-const TONES = [
-  'bg-[var(--avatar-1)]',
-  'bg-[var(--avatar-2)]',
-  'bg-[var(--avatar-3)]',
-  'bg-[var(--avatar-4)]',
-  'bg-[var(--avatar-5)]',
-  'bg-[var(--avatar-6)]',
-] as const
-
 /**
  * Up to two initials from a name or an email address: the first letter of the first and last words
  * (of the part before `@` for an address). Only letters and digits count, so markup or a direction
- * override in the source never reaches the avatar; with none, a `?` stands in.
+ * override in the source never reaches the monogram; with none, a `?` stands in.
  */
 export function initials(source: string): string {
   const local = source.includes('@') ? (source.split('@')[0] ?? '') : source
@@ -28,33 +19,17 @@ export function initials(source: string): string {
   return `${first}${last ?? ''}`.toLocaleUpperCase()
 }
 
-/** Which of the avatar fills a person gets: the same for the same key, every time. */
-export function toneIndex(key: string): number {
-  let hash = 0
-  for (const char of key) {
-    hash = (hash * 31 + (char.codePointAt(0) ?? 0)) >>> 0
-  }
-  return hash % TONES.length
-}
-
 /**
- * A round mark with a person's initials. It is decoration (the name is always shown beside it), so
- * it is hidden from assistive technology. `toneKey` (a stable id) picks the fill.
+ * A person's initials set in the serif, like a monogram in a ledger's margin: no fill, no circle.
+ * It is decoration (the name is always shown beside it), so it is hidden from assistive technology.
  */
-export function Avatar(props: {
-  readonly name: string
-  readonly toneKey: string
-  readonly size?: 'sm' | 'md'
-  readonly className?: string
-}) {
+export function Monogram(props: { readonly name: string; readonly className?: string }) {
   return (
     <span
       aria-hidden='true'
-      data-slot='avatar'
+      data-slot='monogram'
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full font-semibold tracking-tight text-avatar-foreground ring-1 ring-foreground/5 select-none',
-        props.size === 'sm' ? 'size-7 text-[0.6875rem]' : 'size-8 text-xs',
-        TONES[toneIndex(props.toneKey)],
+        'inline-block w-9 shrink-0 font-serif text-lg leading-none tracking-[0.02em] text-muted-foreground italic select-none',
         props.className
       )}
     >

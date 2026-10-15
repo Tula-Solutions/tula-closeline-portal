@@ -1,4 +1,4 @@
-import { Loader2, MessagesSquare, Plus, Search, X } from 'lucide-react'
+import { Loader2, Plus, X } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import {
   DEFAULT_SEARCH_LIMIT,
@@ -94,14 +94,14 @@ export function SearchForm<Answer>(props: {
     setTurns((all) => all.map((turn) => (turn.key === key ? { ...turn, ...edit } : turn)))
   }
   return (
-    <div className='grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]'>
+    <div className='grid items-start gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-14'>
       <div className='flex min-w-0 flex-col gap-4 lg:sticky lg:top-6 lg:-m-1 lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto lg:p-1'>
         <p className='m-0 max-w-prose text-sm text-muted-foreground'>{props.intro}</p>
         <form
           ref={formRef}
           noValidate
           aria-label={props.label}
-          className='max-w-none gap-3 rounded-xl border bg-card p-4 shadow-elev-1 sm:p-5'
+          className='max-w-none gap-4 border-t border-rule-strong pt-5'
           onSubmit={(event) => {
             event.preventDefault()
             setFailure(null)
@@ -171,15 +171,11 @@ export function SearchForm<Answer>(props: {
               <fieldset
                 key={turn.key}
                 className={cn(
-                  'gap-2.5 rounded-lg border border-border bg-background/50 p-3 motion-safe:animate-rise',
-                  turn.role === 'rep'
-                    ? 'border-l-[3px] border-l-primary'
-                    : 'border-l-[3px] border-l-border-strong'
+                  'gap-2.5 border-0 border-l-2 py-1 pl-4 motion-safe:animate-rise',
+                  turn.role === 'rep' ? 'border-l-foreground' : 'border-l-border-strong'
                 )}
               >
-                <legend className='float-left mb-0 text-xs font-semibold text-muted-foreground'>
-                  Turn {n}
-                </legend>
+                <legend className='label-mono float-left mb-0'>Turn {n}</legend>
                 <div className='clear-left flex flex-wrap items-center justify-between gap-2'>
                   <SelectField
                     inline
@@ -252,7 +248,7 @@ export function SearchForm<Answer>(props: {
                 type='button'
                 variant='outline'
                 size='sm'
-                className='w-full border-dashed shadow-none'
+                className='w-full border-dashed'
                 onClick={() => {
                   const key = nextKey.current
                   nextKey.current += 1
@@ -286,11 +282,7 @@ export function SearchForm<Answer>(props: {
             />
           </div>
           <button type='submit' className='button w-full' aria-disabled={search.pending}>
-            {search.pending ? (
-              <Loader2 aria-hidden='true' className='size-4 animate-spin' />
-            ) : (
-              <Search aria-hidden='true' className='size-4' />
-            )}
+            {search.pending ? <Loader2 aria-hidden='true' className='size-4 animate-spin' /> : null}
             {search.pending ? 'Searching...' : 'Search'}
           </button>
         </form>
@@ -303,7 +295,7 @@ export function SearchForm<Answer>(props: {
         ) : null}
         {answer === null ? (
           failure ? null : (
-            <EmptyState icon={MessagesSquare} title='Results show here'>
+            <EmptyState title='Results show here'>
               {search.pending
                 ? 'Looking for text that sounds like this conversation.'
                 : 'Write at least one turn of the conversation, then search.'}

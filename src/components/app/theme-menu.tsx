@@ -1,5 +1,3 @@
-import { Monitor, Moon, Sun } from 'lucide-react'
-import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,18 +17,19 @@ const CHOICES: readonly { value: ThemeChoice; label: string }[] = [
 /** The menu where the person picks light, dark or the system theme. */
 export function ThemeMenu() {
   const choice = useThemeChoice()
-  const Icon = choice === 'dark' ? Moon : choice === 'light' ? Sun : Monitor
+  const current = choice === 'dark' ? 'Dark' : choice === 'light' ? 'Light' : 'System'
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant='ghost'
-          size='sm'
-          className='justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent'
+        <button
+          type='button'
+          className='flex w-full items-baseline justify-between rounded-sm py-1.5 text-left text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:py-2.5'
         >
-          <Icon aria-hidden='true' />
           Appearance
-        </Button>
+          <span aria-hidden='true' className='label-mono'>
+            {current}
+          </span>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='start' side='top'>
         <DropdownMenuLabel>Theme</DropdownMenuLabel>

@@ -1,85 +1,87 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/inter-tight";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
 @import "@fontsource-variable/jetbrains-mono";
 
 /* Dark mode follows the `dark` class on <html>, set from the theme choice (see ~/ui/theme.ts). */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Closeline colour tokens (shadcn names). Brand: ink #1A1A18 and paper #F1EFE8. One accent, a
- * cobalt, for primary actions, links and focus. Every text pair below is checked to WCAG AA
- * (4.5:1), and the input border to 3:1 against its surface.
+ * Closeline, "editorial ledger". Ink #1A1A18 on paper #F1EFE8, swapped in dark mode. Structure is
+ * drawn with hairline rules of ink, not boxes. One cobalt, for the primary action and the focus
+ * ring only. Every text pair is checked to WCAG AA (4.5:1); the input edge to 3:1 on its surface.
  */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.25rem;
   --background: #f1efe8;
   --foreground: #1a1a18;
-  --card: #fbfaf6;
+  /* "Card" is the paper itself: content sits on the page, not in raised boxes. */
+  --card: #f1efe8;
   --card-foreground: #1a1a18;
-  --popover: #fbfaf6;
+  --popover: #f7f6f1;
   --popover-foreground: #1a1a18;
   --primary: #1f4fc7;
   --primary-foreground: #ffffff;
-  --secondary: #e6e3d8;
+  --secondary: #e7e4da;
   --secondary-foreground: #1a1a18;
-  --muted: #e6e3d8;
+  --muted: #e7e4da;
+  /* 6.4:1 on paper. */
   --muted-foreground: #58564e;
-  --accent: #e6e3d8;
+  --accent: #e7e4da;
   --accent-foreground: #1a1a18;
-  --destructive: #b3261e;
+  --destructive: #a8261d;
   --destructive-foreground: #ffffff;
-  --border: #d6d2c4;
+  /* The hairline: ink at 12 %. Rules separate; they never carry meaning alone. */
+  --border: rgb(26 26 24 / 0.12);
+  /* A heavier rule: the top of a ledger, the edge of a section. */
+  --rule-strong: rgb(26 26 24 / 0.72);
+  /* Field edges, 3.6:1 on paper. */
   --input: #85816f;
   --ring: #1f4fc7;
   --success: #14663a;
-  --success-soft: #dcefe2;
+  --success-soft: #dcebdf;
   --warning: #7a4a00;
-  --warning-soft: #f8e7bf;
-  --danger: #b3261e;
-  --danger-soft: #f7dad6;
+  --warning-soft: #f3e3bd;
+  --danger: #a8261d;
+  --danger-soft: #f3dad5;
   --info: #1c5c8f;
-  --info-soft: #d9e8f5;
-  --sidebar: #ebe8dd;
+  --info-soft: #d9e6f1;
+  --sidebar: #f1efe8;
   --sidebar-foreground: #1a1a18;
-  --sidebar-accent: #dedbcd;
-  --sidebar-border: #d6d2c4;
-  /* A control's quiet edge (an outline button): softer than --input, which fields keep for 3:1. */
-  --border-strong: #c4bfae;
-  /* Elevation, tinted with ink so a shadow never reads as grey on paper. */
-  --elev-1: 0 1px 2px rgb(26 26 24 / 0.05), 0 1px 1px rgb(26 26 24 / 0.03);
-  --elev-2: 0 1px 2px rgb(26 26 24 / 0.04), 0 4px 12px -2px rgb(26 26 24 / 0.08);
-  --elev-3: 0 2px 4px rgb(26 26 24 / 0.04), 0 12px 32px -6px rgb(26 26 24 / 0.16);
-  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.6);
-  /* Member avatars: soft fills that tell people apart; the initials stay ink (AA on each). */
-  --avatar-1: #dfe6f8;
-  --avatar-2: #dcefe2;
-  --avatar-3: #f8e7bf;
-  --avatar-4: #f3dcd6;
-  --avatar-5: #e4def3;
-  --avatar-6: #d9ebef;
-  --avatar-foreground: #1a1a18;
+  --sidebar-accent: #e7e4da;
+  --sidebar-border: rgb(26 26 24 / 0.12);
+  --border-strong: rgb(26 26 24 / 0.32);
+  --elev-1: none;
+  --elev-2: 0 1px 2px rgb(26 26 24 / 0.06), 0 8px 24px -8px rgb(26 26 24 / 0.18);
+  --elev-3: 0 2px 4px rgb(26 26 24 / 0.06), 0 16px 40px -10px rgb(26 26 24 / 0.22);
+  --highlight: none;
+  /* The paper grain: a faint multiply over the page; off in dark mode. */
+  --grain-opacity: 0.55;
   color-scheme: light;
 }
 
 .dark {
   --background: #1a1a18;
   --foreground: #f1efe8;
-  --card: #232321;
+  --card: #1a1a18;
   --card-foreground: #f1efe8;
-  --popover: #262624;
+  --popover: #232320;
   --popover-foreground: #f1efe8;
   --primary: #8daeff;
   --primary-foreground: #10131f;
-  --secondary: #2e2e2b;
+  --secondary: #2a2a27;
   --secondary-foreground: #f1efe8;
-  --muted: #2e2e2b;
+  --muted: #2a2a27;
+  /* 7.1:1 on ink. */
   --muted-foreground: #a9a69a;
-  --accent: #2e2e2b;
+  --accent: #2a2a27;
   --accent-foreground: #f1efe8;
   --destructive: #ff8f86;
   --destructive-foreground: #2a0f0c;
-  --border: #3d3c37;
+  --border: rgb(241 239 232 / 0.13);
+  --rule-strong: rgb(241 239 232 / 0.7);
   --input: #7a776c;
   --ring: #8daeff;
   --success: #6fd39a;
@@ -90,32 +92,25 @@
   --danger-soft: #3f1815;
   --info: #7fc0f2;
   --info-soft: #12293d;
-  --sidebar: #151514;
+  --sidebar: #1a1a18;
   --sidebar-foreground: #f1efe8;
   --sidebar-accent: #2a2a27;
-  --sidebar-border: #33322e;
-  --border-strong: #4a4944;
-  --elev-1: 0 1px 2px rgb(0 0 0 / 0.3);
-  --elev-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 16px -4px rgb(0 0 0 / 0.4);
-  --elev-3: 0 2px 6px rgb(0 0 0 / 0.35), 0 16px 40px -8px rgb(0 0 0 / 0.55);
-  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.04);
-  --avatar-1: #26324f;
-  --avatar-2: #1f3a2a;
-  --avatar-3: #43361a;
-  --avatar-4: #48271f;
-  --avatar-5: #33294a;
-  --avatar-6: #1d3a42;
-  --avatar-foreground: #f1efe8;
+  --sidebar-border: rgb(241 239 232 / 0.13);
+  --border-strong: rgb(241 239 232 / 0.32);
+  --elev-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.5);
+  --elev-3: 0 2px 6px rgb(0 0 0 / 0.35), 0 16px 40px -10px rgb(0 0 0 / 0.6);
+  --grain-opacity: 0;
   color-scheme: dark;
 }
 
 @theme inline {
-  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter Tight Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Newsreader Variable", "Iowan Old Style", Georgia, serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 0.1875rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.375rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -133,6 +128,7 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-rule-strong: var(--rule-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-success: var(--success);
@@ -148,19 +144,17 @@
   --color-sidebar-accent: var(--sidebar-accent);
   --color-sidebar-border: var(--sidebar-border);
   --color-border-strong: var(--border-strong);
-  --color-avatar-foreground: var(--avatar-foreground);
   --shadow-elev-1: var(--elev-1);
   --shadow-elev-2: var(--elev-2);
   --shadow-elev-3: var(--elev-3);
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
-  --animate-rise: rise 180ms var(--ease-snappy) both;
+  --animate-rise: rise 220ms var(--ease-snappy) both;
   --animate-fade: fade 160ms ease-out both;
-  --animate-ping-soft: ping-soft 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
 
   @keyframes rise {
     from {
       opacity: 0;
-      transform: translateY(4px);
+      transform: translateY(3px);
     }
     to {
       opacity: 1;
@@ -175,17 +169,6 @@
       opacity: 1;
     }
   }
-  @keyframes ping-soft {
-    0% {
-      transform: scale(1);
-      opacity: 0.6;
-    }
-    80%,
-    100% {
-      transform: scale(2.2);
-      opacity: 0;
-    }
-  }
 }
 
 @layer base {
@@ -198,8 +181,21 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     overflow-wrap: anywhere;
-    font-feature-settings: "cv11", "ss01";
+    font-feature-settings: "ss02", "cv11";
+    font-variant-numeric: tabular-nums;
     text-rendering: optimizeLegibility;
+  }
+  /* The paper: a fixed, non-interactive grain over everything, served as a file (img-src 'self'). */
+  body::before {
+    position: fixed;
+    z-index: 60;
+    inset: 0;
+    background-image: url("/paper-grain.svg");
+    background-size: 240px 240px;
+    content: "";
+    mix-blend-mode: multiply;
+    opacity: var(--grain-opacity);
+    pointer-events: none;
   }
   h1,
   h2,
@@ -220,5 +216,15 @@
     animation-iteration-count: 1;
     transition-duration: 0.01ms;
     scroll-behavior: auto;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --border: rgb(26 26 24 / 0.4);
+    --grain-opacity: 0;
+  }
+  .dark {
+    --border: rgb(241 239 232 / 0.4);
   }
 }

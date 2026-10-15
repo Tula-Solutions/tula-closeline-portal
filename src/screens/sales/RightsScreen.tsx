@@ -1,5 +1,4 @@
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
-import { ShieldCheck } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { RightsWording } from 'tula-closeline-contract'
 import { ApiError, CLIENT_ERRORS } from '~/api/errors'
@@ -63,7 +62,7 @@ export function RightsScreen() {
 
   return (
     <>
-      <PageHeader icon={ShieldCheck} eyebrow='Sales history' title='Rights confirmation' />
+      <PageHeader eyebrow='Sales history' title='Rights confirmation' />
       <p role='status' aria-label='Notice' className='notice'>
         {notice}
       </p>

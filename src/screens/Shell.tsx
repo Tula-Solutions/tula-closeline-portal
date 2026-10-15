@@ -1,23 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Navigate, Outlet, useRouterState } from '@tanstack/react-router'
-import {
-  BookOpen,
-  Building2,
-  House,
-  LogOut,
-  Mail,
-  Menu,
-  TrendingUp,
-  Users,
-  UsersRound,
-  X,
-} from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { useApp, useSessionState } from '~/app-context'
 import { NavGroup, NavLink, SubNavLink } from '~/components/app/nav-link'
 import { ThemeMenu } from '~/components/app/theme-menu'
 import { Button } from '~/components/ui/button'
-import { Separator } from '~/components/ui/separator'
 import { can } from '~/data/permissions'
 import { cn } from '~/lib/utils'
 import type { Role } from '~/session/session'
@@ -135,7 +123,7 @@ export function Shell() {
   const inPlaybook = pathname === '/playbook' || pathname.startsWith('/playbook/')
   const inSales = pathname === '/sales-history' || pathname.startsWith('/sales-history/')
   return (
-    <div className='min-h-dvh md:grid md:grid-cols-[15.5rem_minmax(0,1fr)]'>
+    <div className='min-h-dvh md:grid md:grid-cols-[15rem_minmax(0,1fr)]'>
       <a
         inert={open}
         className='sr-only z-[60] rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3'
@@ -145,7 +133,7 @@ export function Shell() {
       </a>
       <div
         inert={open}
-        className='sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur-md backdrop-saturate-150 md:hidden'
+        className='sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3 md:hidden'
       >
         <Button
           ref={toggleRef}
@@ -158,7 +146,7 @@ export function Shell() {
         >
           {open ? <X aria-hidden='true' /> : <Menu aria-hidden='true' />}
         </Button>
-        <span className='text-sm font-semibold tracking-[-0.011em]'>Closeline</span>
+        <span className='font-serif text-lg tracking-[-0.01em]'>Closeline</span>
       </div>
       {open ? (
         <button
@@ -173,12 +161,12 @@ export function Shell() {
         ref={asideRef}
         id='app-sidebar'
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-3 border-r border-sidebar-border bg-sidebar px-3 py-4 text-sidebar-foreground shadow-elev-3 transition-[transform,visibility] duration-200 ease-snappy md:sticky md:top-0 md:z-auto md:h-dvh md:w-auto md:max-w-none md:translate-x-0 md:shadow-none md:visible',
+          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-4 border-r border-sidebar-border bg-sidebar py-6 pr-5 pl-3 text-sidebar-foreground shadow-elev-3 transition-[transform,visibility] duration-200 ease-snappy md:sticky md:top-0 md:z-auto md:h-dvh md:w-auto md:max-w-none md:translate-x-0 md:shadow-none md:visible',
           open ? 'visible translate-x-0' : 'max-md:invisible max-md:-translate-x-full'
         )}
       >
-        <div className='flex items-center justify-between px-2.5 pt-1 pb-1'>
-          <Logo className='w-32' />
+        <div className='flex items-center justify-between pl-4'>
+          <Logo className='w-28' />
           <Button
             ref={closeRef}
             variant='ghost'
@@ -190,51 +178,28 @@ export function Shell() {
             <X aria-hidden='true' />
           </Button>
         </div>
-        <div className='flex items-center gap-2.5 rounded-lg border border-sidebar-border bg-card/70 px-2.5 py-2 shadow-elev-1'>
-          <span
-            aria-hidden='true'
-            className='flex size-8 shrink-0 items-center justify-center rounded-md bg-foreground text-background'
-          >
-            <Building2 className='size-4' />
-          </span>
-          <div className='min-w-0 leading-tight'>
-            {/* An Organization's name is untrusted text: <bdi> keeps a direction override from leaking out. */}
-            <bdi className='block truncate text-[0.8125rem] font-semibold'>
-              {organization.data?.name ?? 'Your Organization'}
-            </bdi>
-            <span className='text-xs text-muted-foreground'>{ROLE_LABEL[role]}</span>
-          </div>
+        <div className='border-y border-sidebar-border py-4 pl-4'>
+          {/* An Organization's name is untrusted text: <bdi> keeps a direction override from leaking out. */}
+          <bdi className='block truncate font-serif text-xl leading-tight tracking-[-0.01em]'>
+            {organization.data?.name ?? 'Your Organization'}
+          </bdi>
+          <span className='label-mono mt-1 block'>{ROLE_LABEL[role]}</span>
         </div>
-        <nav aria-label='Main' className='-mx-1 flex flex-1 flex-col overflow-y-auto px-1 pb-2'>
-          <div className='flex flex-col gap-0.5 pt-2'>
-            <NavLink to='/' icon={House} exact>
+        <nav aria-label='Main' className='flex flex-1 flex-col overflow-y-auto pb-2'>
+          <div className='flex flex-col pt-4'>
+            <NavLink to='/' exact>
               Home
             </NavLink>
           </div>
           <NavGroup id='organization' label='Organization'>
-            {can.viewMembers(role) ? (
-              <NavLink to='/members' icon={Users}>
-                Members
-              </NavLink>
-            ) : null}
-            {can.manageInvitations(role) ? (
-              <NavLink to='/invitations' icon={Mail}>
-                Invitations
-              </NavLink>
-            ) : null}
-            <NavLink to='/teams' icon={UsersRound}>
-              Teams
-            </NavLink>
+            {can.viewMembers(role) ? <NavLink to='/members'>Members</NavLink> : null}
+            {can.manageInvitations(role) ? <NavLink to='/invitations'>Invitations</NavLink> : null}
+            <NavLink to='/teams'>Teams</NavLink>
           </NavGroup>
           <NavGroup id='knowledge' label='Knowledge'>
-            <NavLink to='/playbook' icon={BookOpen}>
-              Playbook
-            </NavLink>
+            <NavLink to='/playbook'>Playbook</NavLink>
             {inPlaybook ? (
-              <nav
-                aria-label='Playbook'
-                className='my-0.5 ml-[1.1rem] flex flex-col gap-0.5 border-l border-sidebar-border pl-2 motion-safe:animate-fade'
-              >
+              <nav aria-label='Playbook' className='flex flex-col pb-1 motion-safe:animate-fade'>
                 <SubNavLink to='/playbook' exact>
                   Documents
                 </SubNavLink>
@@ -246,13 +211,11 @@ export function Shell() {
           </NavGroup>
           {can.manageSalesHistory(role) ? (
             <NavGroup id='sales' label='Sales'>
-              <NavLink to='/sales-history' icon={TrendingUp}>
-                Sales history
-              </NavLink>
+              <NavLink to='/sales-history'>Sales history</NavLink>
               {inSales ? (
                 <nav
                   aria-label='Sales history'
-                  className='my-0.5 ml-[1.1rem] flex flex-col gap-0.5 border-l border-sidebar-border pl-2 motion-safe:animate-fade'
+                  className='flex flex-col pb-1 motion-safe:animate-fade'
                 >
                   <SubNavLink to='/sales-history' exact>
                     Overview
@@ -269,18 +232,15 @@ export function Shell() {
             </NavGroup>
           ) : null}
         </nav>
-        <Separator className='bg-sidebar-border' />
-        <div className='flex flex-col gap-0.5'>
+        <div className='flex flex-col border-t border-sidebar-border pt-3 pl-4'>
           <ThemeMenu />
-          <Button
-            variant='ghost'
-            size='sm'
-            className='justify-start text-sidebar-foreground/80 hover:bg-sidebar-accent'
+          <button
+            type='button'
+            className='rounded-sm py-1.5 text-left text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:py-2.5'
             onClick={() => app.session.signOut()}
           >
-            <LogOut aria-hidden='true' />
             Sign out
-          </Button>
+          </button>
         </div>
       </aside>
       <main
@@ -288,9 +248,9 @@ export function Shell() {
         inert={open}
         id='main'
         tabIndex={-1}
-        className='relative min-w-0 px-4 py-8 outline-none md:px-10 md:py-10 xl:px-12'
+        className='relative min-w-0 px-4 py-8 outline-none md:px-12 md:py-12 xl:px-16'
       >
-        <div className='mx-auto w-full max-w-6xl'>
+        <div className='w-full max-w-[72rem]'>
           {/* Keyed by Organization: another Organization starts every screen fresh, with no state of the last. */}
           <Fragment key={session.organization.id}>
             <Outlet />

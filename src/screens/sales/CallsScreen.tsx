@@ -1,5 +1,4 @@
 import { getRouteApi, Link } from '@tanstack/react-router'
-import { Phone } from 'lucide-react'
 import { type RefObject, useRef, useState } from 'react'
 import {
   CALL_STATES,
@@ -62,7 +61,6 @@ export function CallsScreen() {
   return (
     <>
       <PageHeader
-        icon={Phone}
         eyebrow='Sales history'
         title='Calls'
         description='A Call is one past conversation, uploaded as a Transcript or a Recording for a Deal. Only ready Calls of won Deals are used in search.'
@@ -75,8 +73,8 @@ export function CallsScreen() {
           <CallUpload />
           <RecordingUpload />
         </div>
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          <h2 className='m-0 text-[0.9375rem] font-semibold tracking-[-0.011em]'>All Calls</h2>
+        <div className='flex flex-wrap items-end justify-between gap-3 border-t border-rule-strong pt-4'>
+          <h2 className='m-0'>All Calls</h2>
           <SelectField
             inline
             label='Show'
@@ -112,7 +110,6 @@ export function CallsScreen() {
         <Paged
           noun='Calls'
           emptyText='There are no Calls to show.'
-          emptyIcon={Phone}
           emptyHint='Upload a Transcript or a Recording above to add the first one.'
           state={calls.state}
         >
@@ -366,6 +363,7 @@ function CallRow(props: {
                   can be restored for a while before it is removed for good.
                 </>
               }
+              tone='quiet-destructive'
               confirmLabel='Delete Call'
               pending={remove.pending}
               describedBy={error ? errorId : undefined}

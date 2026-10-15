@@ -5,6 +5,7 @@ import { ApiError, CLIENT_ERRORS, clientError } from '~/api/errors'
 import { present } from '~/api/messages'
 import { useApp } from '~/app-context'
 import { AuthTitle } from '~/components/app/auth-title'
+import { GoogleGlyph } from '~/components/app/google-button'
 import { Banner } from '~/ui/Banner'
 import { Field } from '~/ui/Field'
 import { SubmitButton } from '~/ui/SubmitButton'
@@ -12,7 +13,8 @@ import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { useFocusOnError } from '~/ui/useFocusOnError'
 import { useSubmit } from '~/ui/useSubmit'
 
-const LINK_CLASS = 'font-semibold text-primary underline-offset-4 hover:underline'
+const LINK_CLASS =
+  'font-medium text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-current'
 
 const START_AGAIN = (
   <Link to='/sign-up' className={LINK_CLASS}>
@@ -113,6 +115,10 @@ export function GoogleSignUpScreen(props: { readonly attempt: string | undefined
 
   return (
     <>
+      <p className='label-mono mt-0 mb-6 flex items-center gap-2'>
+        <GoogleGlyph className='size-3.5' />
+        Step 2 of 2, with Google
+      </p>
       <AuthTitle
         focusable
         headingRef={headingRef}

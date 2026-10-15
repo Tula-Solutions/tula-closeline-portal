@@ -58,7 +58,7 @@ export function Confirm(props: {
   }
   return (
     <fieldset
-      className='confirm flex max-w-sm min-w-56 flex-col gap-3 rounded-lg border border-warning/40 bg-warning-soft p-3 text-start text-sm text-warning whitespace-normal shadow-elev-2 motion-safe:animate-rise'
+      className='confirm flex max-w-sm min-w-56 flex-col gap-3 text-start text-sm whitespace-normal motion-safe:animate-rise'
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           close()

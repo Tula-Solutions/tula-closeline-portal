@@ -1,4 +1,3 @@
-import { Lock, Mail, MailCheck, Send } from 'lucide-react'
 import { type FormEvent, useCallback, useRef, useState } from 'react'
 import {
   emailSchema,
@@ -13,7 +12,7 @@ import { EmptyState } from '~/components/app/empty-state'
 import { PageHeader } from '~/components/app/page-header'
 import { RoleBadge } from '~/components/app/role-badge'
 import { Section } from '~/components/app/section'
-import { Avatar } from '~/components/ui/avatar'
+import { Monogram } from '~/components/ui/avatar'
 import { can, canRevokeInvitation, invitableRoles, ROLE_LABEL } from '~/data/permissions'
 import { refresh, useInvitations } from '~/data/queries'
 import { useRole } from '~/data/session-role'
@@ -56,38 +55,34 @@ export function InvitationsScreen() {
   return (
     <>
       <PageHeader
-        icon={Mail}
+        eyebrow='Organization'
         title='Invitations'
         description='Invite people to your Organization and see who has not answered yet.'
         headingRef={headingRef}
         headingProps={{ tabIndex: -1 }}
       />
       {allowed ? (
-        <div className='grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]'>
+        <div className='grid items-start gap-12 lg:grid-cols-12'>
           <Section
             id='invite'
-            icon={Send}
             title='Invite someone'
             description='They get an email with a link to join.'
-            className='lg:sticky lg:top-6 lg:order-2'
+            className='lg:sticky lg:top-8 lg:order-2 lg:col-span-4'
           >
             <InviteForm role={role} onSent={feedback.done} onFail={feedback.failed} />
           </Section>
-          <div className='page-stack gap-3 lg:order-1'>
+          <div className='flex min-w-0 flex-col gap-4 lg:order-1 lg:col-span-8'>
             <p role='status' className='notice'>
               {feedback.notice}
             </p>
-            <h2 className='m-0 text-[0.9375rem] font-semibold tracking-[-0.011em]'>
-              Pending Invitations
-            </h2>
+            <h2 className='m-0 border-t border-rule-strong pt-4'>Pending Invitations</h2>
             <Paged
               noun='Invitations'
               emptyText='No Invitations are pending.'
-              emptyIcon={MailCheck}
               emptyHint='Everyone you invited has answered. Send a new one with the form on this page.'
               state={invitations.state}
             >
-              <ScrollRegion label='Pending Invitations'>
+              <ScrollRegion label='Pending Invitations' bare>
                 <table>
                   <thead>
                     <tr>
@@ -118,7 +113,7 @@ export function InvitationsScreen() {
           </div>
         </div>
       ) : (
-        <EmptyState icon={Lock} title='Invitations are for Owners and Admins'>
+        <EmptyState title='Invitations are for Owners and Admins'>
           Your role cannot send or see Invitations. Ask an Owner or Admin.
         </EmptyState>
       )}
@@ -262,8 +257,8 @@ function InvitationRow(props: {
   return (
     <tr>
       <th scope='row' className='font-medium'>
-        <span className='flex min-w-0 items-center gap-3'>
-          <Avatar name={invitation.email} toneKey={invitation.id} size='sm' />
+        <span className='flex min-w-0 items-baseline'>
+          <Monogram name={invitation.email} />
           <Untrusted value={invitation.email} />
         </span>
       </th>

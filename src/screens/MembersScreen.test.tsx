@@ -18,6 +18,12 @@ function visit(
   })
 }
 
+function roleIn(row: HTMLElement | undefined): string | undefined {
+  const cell = within(row as HTMLElement).getAllByRole('cell')[1]
+  const select = cell?.querySelector('select')
+  return select ? select.selectedOptions[0]?.textContent : cell?.textContent
+}
+
 describe('members: the list', () => {
   test('shows the name, the email address and the role, with the email address standing in for a missing name', async () => {
     const portal = visit(
@@ -37,10 +43,11 @@ describe('members: the list', () => {
     const table = await screen.findByRole('table')
     const rows = within(table).getAllByRole('row')
     expect(within(rows[1] as HTMLElement).getByText('Maya Chen')).toBeTruthy()
-    expect(within(rows[1] as HTMLElement).getAllByRole('cell')[1]?.textContent).toBe('Owner')
+    // A role the viewer may change is the chosen option of its inline select; otherwise it is text.
+    expect(roleIn(rows[1])).toBe('Owner')
     // No name: the address is the row's heading and also its email cell.
     expect(within(rows[2] as HTMLElement).getAllByText('noname@northline.app')).toHaveLength(2)
-    expect(within(rows[2] as HTMLElement).getAllByRole('cell')[1]?.textContent).toBe('Manager')
+    expect(roleIn(rows[2])).toBe('Manager')
     expect(portal.calls.find((call) => call.path === MEMBERS)?.url).toBe('/v1/members?limit=25')
     expect(
       within(table)

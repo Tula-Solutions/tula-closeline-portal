@@ -1,33 +1,45 @@
-import { Badge, BadgeDot } from '~/components/ui/badge'
+import { cn } from '~/lib/utils'
 
-type Tone = {
-  readonly variant: 'neutral' | 'success' | 'warning' | 'danger' | 'info'
-  /** A state that is still moving: its dot pulses. */
-  readonly live?: boolean
-}
+type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info'
 
-/** The colour of each state or Outcome word; colour is never the only signal because the label is always shown. */
+/** The colour of each state's or Outcome's dot; colour is never the only signal because the word is always shown. */
 const TONES: Record<string, Tone> = {
-  ready: { variant: 'success' },
-  completed: { variant: 'success' },
-  won: { variant: 'success' },
-  failed: { variant: 'danger' },
-  lost: { variant: 'danger' },
-  processing: { variant: 'info', live: true },
-  transcribing: { variant: 'info', live: true },
-  uploaded: { variant: 'info' },
-  awaiting_rep: { variant: 'warning' },
-  open: { variant: 'neutral' },
-  deleted: { variant: 'neutral' },
+  ready: 'success',
+  completed: 'success',
+  won: 'success',
+  failed: 'danger',
+  lost: 'danger',
+  processing: 'info',
+  transcribing: 'info',
+  uploaded: 'info',
+  awaiting_rep: 'warning',
+  open: 'neutral',
+  deleted: 'neutral',
 }
 
-/** A state or Outcome as a badge: a dot and the words. A state this build does not know is neutral. */
+const DOT: Record<Tone, string> = {
+  neutral: 'bg-muted-foreground',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  danger: 'bg-danger',
+  info: 'bg-info',
+}
+
+/** A state or Outcome as set text: a small dot in its colour and the word. A state this build does not know is neutral. */
 export function StatusBadge(props: { readonly state: string; readonly children: string }) {
-  const tone = Object.hasOwn(TONES, props.state) ? TONES[props.state] : undefined
+  const tone = Object.hasOwn(TONES, props.state) ? (TONES[props.state] ?? 'neutral') : 'neutral'
   return (
-    <Badge variant={tone?.variant ?? 'neutral'} data-state={props.state}>
-      <BadgeDot live={tone?.live === true} />
+    <span
+      data-slot='status'
+      data-state={props.state}
+      className='inline-flex items-center gap-2 text-[0.8125rem] whitespace-nowrap'
+    >
+      <span
+        aria-hidden='true'
+        data-slot='status-dot'
+        className={cn('size-1.5 rounded-full', DOT[tone])}
+      />
       {props.children}
-    </Badge>
+    </span>
   )
 }

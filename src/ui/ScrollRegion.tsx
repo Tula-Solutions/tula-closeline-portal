@@ -2,8 +2,8 @@ import type { ReactNode } from 'react'
 import { cn } from '~/lib/utils'
 
 /**
- * A table's frame and its scroll box: a named region the keyboard can reach and scroll. `bare`
- * drops the card frame, for a table that sits inside a panel which already draws one.
+ * A ledger's scroll box, with the heavy rule on top: a named region the keyboard can reach and
+ * scroll. `bare` drops the rule, for a table that sits under a section whose header draws one.
  */
 export function ScrollRegion(props: {
   readonly label: string
@@ -17,7 +17,7 @@ export function ScrollRegion(props: {
         // `relative` makes the box the containing block of sr-only cells, so they scroll with it
         // instead of widening the page on a phone.
         'table-scroll relative motion-safe:animate-fade',
-        props.bare ? null : 'rounded-xl border bg-card shadow-elev-1'
+        props.bare ? 'border-t-0' : null
       )}
       role='region'
       aria-label={props.label}

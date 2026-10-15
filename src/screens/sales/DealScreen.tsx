@@ -1,5 +1,5 @@
 import { getRouteApi, Link } from '@tanstack/react-router'
-import { ArrowLeft, Handshake } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { calendarDateSchema, OUTCOMES, type Outcome, outcomeSchema } from 'tula-closeline-contract'
 import { presentSales } from '~/api/sales-messages'
@@ -28,7 +28,6 @@ export function DealScreen() {
   return (
     <>
       <PageHeader
-        icon={Handshake}
         eyebrow='Sales history'
         title='Deal'
         actions={

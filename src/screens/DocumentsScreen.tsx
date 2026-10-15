@@ -1,4 +1,3 @@
-import { BookOpen, CloudUpload, FileText, Upload } from 'lucide-react'
 import { type DragEvent, type RefObject, useRef, useState } from 'react'
 import {
   ACCEPTED_DOCUMENT_EXTENSIONS,
@@ -68,7 +67,7 @@ function DocumentsView(props: { readonly manage: boolean }) {
   return (
     <>
       <PageHeader
-        icon={BookOpen}
+        eyebrow='Knowledge'
         title='Playbook'
         description="The documents your Organization's sales knowledge comes from."
         headingRef={headingRef}
@@ -76,8 +75,8 @@ function DocumentsView(props: { readonly manage: boolean }) {
       />
       <div className='page-stack'>
         {props.manage ? <UploadSection /> : null}
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          <h2 className='m-0 text-[0.9375rem] font-semibold tracking-[-0.011em]'>Documents</h2>
+        <div className='flex flex-wrap items-end justify-between gap-3 border-t border-rule-strong pt-4'>
+          <h2 className='m-0'>Documents</h2>
           <SelectField
             inline
             label='Show'
@@ -111,7 +110,6 @@ function DocumentsView(props: { readonly manage: boolean }) {
         <Paged
           noun='documents'
           emptyText='There are no documents to show.'
-          emptyIcon={FileText}
           emptyHint={
             props.manage
               ? 'Upload a deck, a pricing sheet or a call script above to start the Playbook.'
@@ -119,7 +117,7 @@ function DocumentsView(props: { readonly manage: boolean }) {
           }
           state={documents.state}
         >
-          <ScrollRegion label='Documents'>
+          <ScrollRegion label='Documents' bare>
             <table>
               <thead>
                 <tr>
@@ -200,8 +198,7 @@ function DocumentRow(props: {
   return (
     <tr>
       <th scope='row' className='font-medium'>
-        <span className='flex min-w-0 items-center gap-2.5'>
-          <FileText aria-hidden='true' className='size-4 shrink-0 text-muted-foreground' />
+        <span className='flex min-w-0 items-baseline'>
           <Untrusted value={document.fileName} />
         </span>
       </th>
@@ -282,7 +279,6 @@ function UploadSection() {
   return (
     <Section
       id='upload'
-      icon={Upload}
       title='Upload documents'
       description='Decks, pricing sheets and call scripts your Agents and Reps draw on.'
     >
@@ -297,12 +293,6 @@ function UploadSection() {
         onDrop={onDrop}
       >
         <legend className='sr-only'>Files to upload</legend>
-        <span
-          aria-hidden='true'
-          className='flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary'
-        >
-          <CloudUpload className='size-5' />
-        </span>
         <label htmlFor='playbook-files'>Choose files to upload</label>
         <input
           id='playbook-files'
@@ -347,7 +337,7 @@ function UploadItem(props: {
   const { outcome } = entry
   const label = plain(entry.name, 'file')
   return (
-    <li className='flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border bg-background/60 px-3 py-2 text-sm motion-safe:animate-rise'>
+    <li className='flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b py-2.5 text-sm motion-safe:animate-rise'>
       {outcome.kind === 'queued' ? (
         <span>
           <Untrusted value={entry.name} /> is waiting to upload.

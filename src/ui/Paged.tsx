@@ -1,4 +1,4 @@
-import { Inbox, type LucideIcon, RotateCw } from 'lucide-react'
+import { RotateCw } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { presentManage } from '~/api/manage-messages'
 import { EmptyState } from '~/components/app/empty-state'
@@ -28,7 +28,6 @@ export function Paged(props: {
   readonly emptyText: string
   readonly state: PagedState
   readonly children: ReactNode
-  readonly emptyIcon?: LucideIcon
   /** One line under the empty title: why it is empty or how to fill it. */
   readonly emptyHint?: ReactNode
   /** What to do about an empty list, such as the button that adds the first one. */
@@ -41,23 +40,17 @@ export function Paged(props: {
         <p role='status' className='sr-only'>
           Loading {noun}...
         </p>
-        <div
-          aria-hidden='true'
-          className='flex flex-col overflow-hidden rounded-xl border bg-card shadow-elev-1'
-        >
-          <div className='flex gap-6 border-b bg-muted/40 px-4 py-3'>
-            <Skeleton className='h-3 w-24' />
-            <Skeleton className='h-3 w-16' />
-            <Skeleton className='h-3 w-20' />
+        <div aria-hidden='true' className='flex flex-col border-t border-rule-strong'>
+          <div className='flex gap-8 border-b py-3'>
+            <Skeleton className='h-2.5 w-20' />
+            <Skeleton className='h-2.5 w-14' />
+            <Skeleton className='h-2.5 w-16' />
           </div>
           {[0, 1, 2, 3].map((row) => (
-            <div key={row} className='flex items-center gap-3 border-b px-4 py-3 last:border-b-0'>
-              <Skeleton className='size-8 rounded-full' />
-              <div className='flex flex-1 flex-col gap-1.5'>
-                <Skeleton className='h-3 w-1/3' />
-                <Skeleton className='h-3 w-1/4' />
-              </div>
-              <Skeleton className='h-5 w-16 rounded-full' />
+            <div key={row} className='flex items-center gap-8 border-b py-4'>
+              <Skeleton className='h-3 w-1/3' />
+              <Skeleton className='h-3 w-1/5' />
+              <Skeleton className='ml-auto h-3 w-16' />
             </div>
           ))}
         </div>
@@ -77,11 +70,7 @@ export function Paged(props: {
   }
   if (state.isEmpty) {
     return (
-      <EmptyState
-        icon={props.emptyIcon ?? Inbox}
-        title={props.emptyText}
-        action={props.emptyAction}
-      >
+      <EmptyState title={props.emptyText} action={props.emptyAction}>
         {props.emptyHint}
       </EmptyState>
     )
@@ -95,7 +84,7 @@ export function Paged(props: {
         </Banner>
       ) : null}
       {state.hasNextPage ? (
-        <div className='mt-4 flex justify-center'>
+        <div className='mt-5'>
           <Button
             variant='outline'
             aria-disabled={state.isFetchingNextPage}

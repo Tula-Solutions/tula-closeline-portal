@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowRight, FileSearch, FileText, SearchX } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import type { SearchDocumentsResponse } from 'tula-closeline-contract'
 import { useApp } from '~/app-context'
@@ -33,40 +32,35 @@ function Results(props: { readonly answer: SearchDocumentsResponse }) {
         }
       />
       {items.length === 0 ? (
-        <EmptyState icon={SearchX} title='No matches'>
+        <EmptyState title='No matches'>
           No Document text matched this conversation. Try other words, or add a turn.
         </EmptyState>
       ) : (
-        <ol aria-label='Matching Document text' className='m-0 grid list-none gap-3 p-0'>
+        <ol aria-label='Matching Document text' className='m-0 list-none p-0'>
           {items.map((item, index) => (
-            <li
-              key={`${item.documentId}-${item.page}-${item.snippet}`}
-              className='rounded-xl border bg-card p-4 shadow-elev-1 transition-[box-shadow,border-color] duration-200 ease-snappy hover:border-border-strong hover:shadow-elev-2 sm:p-5'
-            >
-              <div className='mb-3 flex items-center gap-3'>
+            <li key={`${item.documentId}-${item.page}-${item.snippet}`} className='border-b py-6'>
+              <div className='mb-3 flex items-baseline gap-3'>
                 <Rank n={index + 1} />
-                <h3 className='m-0 flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold'>
-                  <FileText aria-hidden='true' className='size-4 shrink-0 text-muted-foreground' />
+                <h3 className='m-0 min-w-0 flex-1 text-sm font-medium'>
                   <span className='min-w-0'>
                     <bdi>{item.fileName}</bdi>
                     {item.page === null ? '' : `, page ${item.page}`}
                   </span>
                 </h3>
               </div>
-              <blockquote className='m-0 rounded-lg border-l-[3px] border-primary bg-primary/[0.06] px-4 py-3 text-[0.9375rem] leading-relaxed'>
+              <blockquote className='m-0 border-l-2 border-foreground pl-4 font-serif text-[1.0625rem] leading-relaxed'>
                 <p className='m-0'>
                   <bdi>{item.snippet}</bdi>
                 </p>
               </blockquote>
-              <p className='mt-3 mb-0 text-[0.8125rem] font-semibold'>
+              <p className='mt-3 mb-0 text-[0.8125rem]'>
                 {/* There is no page for one Document: this opens the list of them. */}
                 <Link
                   to='/playbook'
                   aria-label={`Documents screen, for result ${index + 1}`}
-                  className='inline-flex items-center gap-1 rounded-sm text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring'
+                  className='rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
                 >
                   Documents screen
-                  <ArrowRight aria-hidden='true' className='size-3.5' />
                 </Link>
               </p>
             </li>
@@ -94,7 +88,7 @@ export function SearchDocumentsScreen() {
   }
   return (
     <>
-      <PageHeader icon={FileSearch} eyebrow='Playbook' className='mb-6' title='Search Documents' />
+      <PageHeader eyebrow='Playbook' className='mb-6' title='Search Documents' />
       <SearchForm
         label='Search Documents'
         intro="Write what was said so far. The search finds text in your Playbook's Documents that sounds like it."

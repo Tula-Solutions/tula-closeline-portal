@@ -1,4 +1,3 @@
-import { Plus, UsersRound } from 'lucide-react'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { CORE_ERRORS, type Team, teamNameSchema } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
@@ -7,7 +6,7 @@ import { presentManage } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
 import { Section } from '~/components/app/section'
-import { Avatar } from '~/components/ui/avatar'
+import { Monogram } from '~/components/ui/avatar'
 import { can } from '~/data/permissions'
 import { refresh, useMembers, useTeams } from '~/data/queries'
 import { useRole } from '~/data/session-role'
@@ -44,33 +43,31 @@ export function TeamsScreen() {
   return (
     <>
       <PageHeader
-        icon={UsersRound}
+        eyebrow='Organization'
         title='Teams'
         description='Group Reps into Teams so a Manager can see how each one is doing.'
         headingRef={headingRef}
         headingProps={{ tabIndex: -1 }}
       />
-      <div className='grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]'>
+      <div className='grid items-start gap-12 lg:grid-cols-12'>
         {manage ? (
           <Section
             id='create-team'
-            icon={Plus}
             title='Create a Team'
             description='A name your Managers will recognise.'
-            className='lg:sticky lg:top-6 lg:order-2'
+            className='lg:sticky lg:top-8 lg:order-2 lg:col-span-4'
           >
             <CreateTeamForm onDone={feedback.done} onFail={feedback.failed} />
           </Section>
         ) : null}
-        <div className='page-stack gap-3 lg:order-1'>
+        <div className='flex min-w-0 flex-col gap-4 lg:order-1 lg:col-span-8'>
           <p role='status' className='notice'>
             {feedback.notice}
           </p>
-          <h2 className='m-0 text-[0.9375rem] font-semibold tracking-[-0.011em]'>All Teams</h2>
+          <h2 className='m-0 border-t border-rule-strong pt-4'>All Teams</h2>
           <Paged
             noun='Teams'
             emptyText='There are no Teams yet.'
-            emptyIcon={UsersRound}
             emptyHint={
               manage
                 ? 'Create the first one with the form on this page.'
@@ -79,7 +76,7 @@ export function TeamsScreen() {
             state={teams.state}
           >
             <ul
-              className='m-0 list-none divide-y overflow-hidden rounded-xl border bg-card p-0 shadow-elev-1 motion-safe:animate-fade'
+              className='m-0 list-none divide-y border-y p-0 motion-safe:animate-fade'
               aria-label='Teams'
             >
               {teams.items.map((team) => (
@@ -225,11 +222,11 @@ function TeamItem(props: {
     }
   )
   return (
-    <li className='px-4 py-3 transition-colors duration-150 hover:bg-muted/30'>
+    <li className='py-4'>
       <div className='list-item-head'>
-        <div className='flex min-w-0 items-center gap-3'>
-          <Avatar name={team.name} toneKey={team.id} className='rounded-lg' />
-          <h3 className='item-title m-0 text-sm font-semibold'>
+        <div className='flex min-w-0 items-baseline'>
+          <Monogram name={team.name} />
+          <h3 className='item-title m-0 font-serif text-xl font-normal tracking-[-0.01em]'>
             <Untrusted value={team.name} />
           </h3>
         </div>
@@ -343,7 +340,7 @@ function RenameForm(props: {
       onSubmit={onSubmit}
       noValidate
       aria-label='Rename Team'
-      className='mt-3 max-w-none gap-0 rounded-lg border bg-background/60 p-4 motion-safe:animate-rise'
+      className='mt-3 max-w-none gap-0 border-l-2 border-rule-strong pl-4 motion-safe:animate-rise'
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           props.onClose()
@@ -447,7 +444,7 @@ function TeamMembersPanel(props: { readonly team: Team; readonly onFail: () => v
     <section
       id={`${props.team.id}-members`}
       aria-label={`Members of ${label}`}
-      className='mt-3 flex flex-col gap-3 rounded-lg border bg-background/60 p-4 motion-safe:animate-rise'
+      className='mt-3 flex flex-col gap-3 border-l-2 border-rule-strong pl-4 motion-safe:animate-rise'
     >
       <p className='hint'>
         The list of who is in a Team is not available yet. Choose a member to add or remove.

@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router'
-import { Search, SearchX } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import type { SearchMomentsResponse } from 'tula-closeline-contract'
 import { useApp } from '~/app-context'
@@ -38,23 +37,23 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
         evidence={items.length === 0 ? null : <Evidence evidence={evidence} />}
       />
       {items.length === 0 ? (
-        <EmptyState icon={SearchX} title='No matches'>
+        <EmptyState title='No matches'>
           No Moments from won Deals matched this conversation. Try other words, or add a turn.
         </EmptyState>
       ) : (
         <>
-          <ol aria-label='Matching Moments' className='m-0 grid list-none gap-3 p-0'>
+          <ol aria-label='Matching Moments' className='m-0 list-none p-0'>
             {items.map((item, index) => {
               const score = percent(item.score)
               return (
                 <li
                   key={`${item.callId}-${item.score}-${item.prospect}-${item.repNext}`}
-                  className='rounded-xl border bg-card p-4 shadow-elev-1 transition-[box-shadow,border-color] duration-200 ease-snappy hover:border-border-strong hover:shadow-elev-2 sm:p-5'
+                  className='border-b py-6'
                 >
-                  <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
-                    <div className='flex items-center gap-3'>
+                  <div className='mb-4 flex flex-wrap items-baseline justify-between gap-3'>
+                    <div className='flex items-baseline gap-3'>
                       <Rank n={index + 1} />
-                      <h3 className='m-0 text-sm font-semibold tabular-nums'>
+                      <h3 className='m-0 font-serif text-xl font-normal tabular-nums'>
                         Moment {index + 1}
                         {score === null ? '' : ` (${score}% similar)`}
                       </h3>
@@ -65,20 +64,20 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
                       </div>
                     )}
                   </div>
-                  <div className='grid gap-2.5'>
-                    <blockquote className='m-0 mr-6 rounded-xl rounded-tl-sm border bg-muted/50 px-4 py-3 sm:mr-12'>
-                      <p className='mb-1 text-xs font-semibold text-muted-foreground'>
+                  <div className='grid gap-4 sm:grid-cols-2 sm:gap-8'>
+                    <blockquote className='m-0 border-l border-border-strong pl-4'>
+                      <p className='label-mono mb-1.5'>
                         <strong>Prospect said</strong>
                       </p>
-                      <p className='m-0 leading-relaxed'>
+                      <p className='m-0 font-serif text-[1.0625rem] leading-relaxed'>
                         <bdi>{item.prospect}</bdi>
                       </p>
                     </blockquote>
-                    <blockquote className='m-0 ml-6 rounded-xl rounded-tr-sm border border-primary/20 bg-primary/[0.07] px-4 py-3 sm:ml-12'>
-                      <p className='mb-1 text-xs font-semibold text-primary'>
+                    <blockquote className='m-0 border-l-2 border-foreground pl-4'>
+                      <p className='label-mono mb-1.5 text-foreground'>
                         <strong>Rep said next</strong>
                       </p>
-                      <p className='m-0 leading-relaxed'>
+                      <p className='m-0 font-serif text-[1.0625rem] leading-relaxed'>
                         {item.repNext === '' ? (
                           <em>Nothing, the Call ended.</em>
                         ) : (
@@ -87,13 +86,13 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
                       </p>
                     </blockquote>
                   </div>
-                  <p className='mt-4 mb-0 flex flex-wrap gap-x-5 gap-y-1 border-t pt-3 text-[0.8125rem] font-semibold'>
+                  <p className='mt-4 mb-0 flex flex-wrap gap-x-5 gap-y-1 text-[0.8125rem]'>
                     {/* There is no page for one Call: this lists the Calls of its Deal. */}
                     <Link
                       to='/sales-history/calls'
                       search={{ deal: item.dealRecordId }}
                       aria-label={`Calls of this Deal for Moment ${index + 1}`}
-                      className='rounded-sm text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring'
+                      className='rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
                     >
                       Calls of this Deal
                     </Link>
@@ -101,7 +100,7 @@ function Results(props: { readonly answer: SearchMomentsResponse }) {
                       aria-label={`Deal for Moment ${index + 1}`}
                       to='/sales-history/deals/$dealRecordId'
                       params={{ dealRecordId: item.dealRecordId }}
-                      className='rounded-sm text-primary underline-offset-4 outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring'
+                      className='rounded-sm font-medium text-foreground underline decoration-border-strong underline-offset-4 outline-none hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
                     >
                       Deal
                     </Link>
@@ -138,7 +137,7 @@ export function SearchScreen() {
   }
   return (
     <>
-      <PageHeader icon={Search} eyebrow='Sales history' className='mb-6' title='Search won Deals' />
+      <PageHeader eyebrow='Sales history' className='mb-6' title='Search won Deals' />
       <SearchForm
         label='Search won Deals'
         intro='Write what was said so far. The search finds Moments from your won Deals that sound like it.'

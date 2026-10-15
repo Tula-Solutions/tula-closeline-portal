@@ -10,7 +10,10 @@ export function NotFoundScreen() {
       <Logo className='mb-4 w-40' />
       <h1 className='text-2xl font-semibold tracking-tight'>Page not found</h1>
       <p>There is nothing at this address.</p>
-      <Link to='/' className='font-semibold text-primary underline-offset-4 hover:underline'>
+      <Link
+        to='/'
+        className='font-medium text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-current'
+      >
         Go to the home page
       </Link>
     </main>
