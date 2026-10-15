@@ -115,7 +115,7 @@ export function CallsScreen() {
           state={calls.state}
         >
           <ScrollRegion label='Calls'>
-            <table>
+            <table className='ledger-stack'>
               <thead>
                 <tr>
                   <th scope='col'>File</th>
@@ -124,7 +124,9 @@ export function CallsScreen() {
                   <th scope='col'>Search</th>
                   <th scope='col'>Rep</th>
                   <th scope='col'>Added</th>
-                  <th scope='col'>Actions</th>
+                  <th scope='col' className='text-end'>
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -251,13 +253,13 @@ function CallRow(props: {
       <th scope='row'>
         <Untrusted value={call.fileName} />
       </th>
-      <td>
+      <td data-label='Deal'>
         {/* The address carries the opaque id; the customer's deal id is text only. */}
         <Link to='/sales-history/deals/$dealRecordId' params={{ dealRecordId: call.dealRecordId }}>
           <Untrusted value={call.dealId} />
         </Link>
       </td>
-      <td>
+      <td data-label='Status'>
         <StatusBadge state={call.state}>{callStateLabel(call.state)}</StatusBadge>
         {call.state === 'awaiting_rep' ? (
           <p className='hint'>
@@ -274,14 +276,14 @@ function CallRow(props: {
           </p>
         ) : null}
       </td>
-      <td>{inSearchWords(call)}</td>
-      <td>
+      <td data-label='Search'>{inSearchWords(call)}</td>
+      <td data-label='Rep'>
         <RepText rep={call.rep} />
       </td>
-      <td>
+      <td data-label='Added'>
         <When iso={call.createdAt} />
       </td>
-      <td>
+      <td className='text-end'>
         {call.state === 'deleted' ? (
           <button
             type='button'

@@ -277,7 +277,7 @@ describe('Sales history: Deals', () => {
     await screen.findByRole('link', { name: 'ANY-1' })
     await portal.user.selectOptions(screen.getByLabelText('Outcome'), 'won')
     await screen.findByRole('link', { name: 'WON-1' })
-    await portal.user.click(screen.getByRole('checkbox', { name: /no CSV has named/i }))
+    await portal.user.click(screen.getByRole('checkbox', { name: /created from a Call upload/i }))
     await waitFor(() =>
       expect(portal.calls.some((call) => param(call.url, 'appearedInImport') === 'false')).toBe(
         true

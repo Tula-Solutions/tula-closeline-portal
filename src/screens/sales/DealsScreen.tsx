@@ -16,6 +16,7 @@ import { useDeals } from '~/data/queries'
 import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
 import { Banner } from '~/ui/Banner'
 import { Field } from '~/ui/Field'
+import { dealTransitionName } from '~/ui/motion'
 import { Paged } from '~/ui/Paged'
 import { ScrollRegion } from '~/ui/ScrollRegion'
 import { SelectField } from '~/ui/SelectField'
@@ -55,10 +56,10 @@ export function DealsScreen() {
         description='A Deal is a sale. Its Outcome decides whether its Calls are used in search.'
       />
       <div className='grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]'>
-        <div className='panel xl:sticky xl:top-6 xl:order-2'>
+        <div className='panel order-2 xl:sticky xl:top-6'>
           <LookupForm />
         </div>
-        <div className='page-stack gap-3 xl:order-1'>
+        <div className='page-stack order-1 gap-3'>
           <div className='flex flex-wrap items-end justify-between gap-3 border-t border-rule-strong pt-4'>
             <h2 className='m-0'>All Deals</h2>
             <div className='flex flex-wrap items-center gap-x-4 gap-y-2'>
@@ -73,7 +74,7 @@ export function DealsScreen() {
                     checked={unseen}
                     onChange={(event) => setUnseen(event.target.checked)}
                   />{' '}
-                  Only Deals no CSV has named (they came from a Call upload)
+                  Only Deals created from a Call upload
                 </label>
               </div>
               <SelectField
@@ -99,7 +100,7 @@ export function DealsScreen() {
             state={deals.state}
           >
             <ScrollRegion label='Deals'>
-              <table>
+              <table className='ledger-stack'>
                 <thead>
                   <tr>
                     <th scope='col'>Deal id</th>
@@ -116,27 +117,37 @@ export function DealsScreen() {
                 </thead>
                 <tbody>
                   {deals.items.map((deal) => (
-                    <tr key={deal.id}>
+                    <tr key={deal.id} className='ink-hover'>
                       <th scope='row'>
                         {/* The address carries the opaque id; the customer's deal id is text only. */}
                         <Link
                           to='/sales-history/deals/$dealRecordId'
                           params={{ dealRecordId: deal.id }}
+                          className='ink-link row-link'
+                          onClick={(event) =>
+                            // The id moves from this row to the Deal's heading.
+                            event.currentTarget.style.setProperty(
+                              'view-transition-name',
+                              dealTransitionName(deal.id)
+                            )
+                          }
                         >
                           <Untrusted value={deal.dealId} />
                         </Link>
                       </th>
                       <td>{deal.name === null ? '-' : <Untrusted value={deal.name} />}</td>
-                      <td>
+                      <td data-label='Outcome'>
                         <StatusBadge state={deal.outcome}>{outcomeLabel(deal.outcome)}</StatusBadge>
                       </td>
-                      <td className='text-muted-foreground'>
+                      <td data-label='Closed' className='text-muted-foreground'>
                         {deal.closedAt === null ? '-' : <DateOnly value={deal.closedAt} />}
                       </td>
-                      <td className='num'>
+                      <td data-label='Amount' className='num'>
                         <Money amount={deal.amount} currency={deal.currency} />
                       </td>
-                      <td className='num'>{deal.callCount}</td>
+                      <td data-label='Calls' className='num'>
+                        {deal.callCount}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -209,7 +220,7 @@ function LookupForm() {
         autoComplete='off'
         value={value}
         error={error}
-        hint='The id from your CRM or CSV. It is sent to Closeline in the request body, never in the address.'
+        hint='The id from your CRM or CSV.'
         onChange={(event) => {
           setValue(event.target.value)
           setError(undefined)

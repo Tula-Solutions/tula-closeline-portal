@@ -173,6 +173,14 @@ export function transitionName(name: string) {
 }
 
 /**
+ * The view-transition name a Deal's row and its page share, so the Deal id moves from the list to
+ * the page heading. Only letters, digits, `-` and `_` survive, so any id makes a valid name.
+ */
+export function dealTransitionName(id: string): string {
+  return `deal-${id.replace(/[^\w-]/g, '_')}`
+}
+
+/**
  * Writes a number into an element as it arrives. From nothing, a number of 10 or more counts up
  * over 700 ms (ease-out-expo), and a smaller one rises into place; a later change slides the new
  * value in. It writes `textContent` from requestAnimationFrame, not React state, so nothing

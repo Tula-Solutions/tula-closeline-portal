@@ -451,11 +451,35 @@
   }
 
   tbody tr {
-    transition: background-color 150ms var(--ease);
+    transition:
+      background-color var(--dur-hover) var(--ease-out),
+      box-shadow var(--dur-hover) var(--ease-out);
   }
 
+  /* A row under the pointer takes a 4 % ink tint and a 2 px ink rule at its start. */
   tbody tr:hover {
-    background: color-mix(in oklab, var(--foreground) 3%, transparent);
+    background-color: color-mix(in oklab, var(--foreground) 4%, transparent);
+    box-shadow: inset 2px 0 0 var(--foreground);
+  }
+
+  /*
+   * A row with one destination is one link: its .row-link stretches a box over the whole row, and
+   * any other control in the row sits above that box so it still takes its own clicks.
+   */
+  tr:has(.row-link) {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .row-link::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+  }
+
+  tr:has(.row-link) :is(a, button, select, input, label):not(.row-link) {
+    position: relative;
+    z-index: 1;
   }
 
   tbody th {
@@ -471,7 +495,8 @@
     white-space: nowrap;
   }
 
-  td time {
+  td time,
+  tbody th time {
     color: var(--muted-foreground);
     font-family: var(--font-mono);
     font-size: 0.75rem;
@@ -690,6 +715,20 @@
     .ledger-stack td.ledger-pair {
       grid-column: auto;
     }
+    /* A stacked cell names its column, since the header row is gone. */
+    .ledger-stack td[data-label]::before {
+      display: block;
+      margin-block-end: 0.125rem;
+      color: var(--muted-foreground);
+      content: attr(data-label);
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .ledger-stack td[data-label] {
+      grid-column: auto;
+    }
   }
 
   /*
@@ -709,6 +748,11 @@
   }
 
   @media (prefers-reduced-motion: no-preference) {
+    /* A dot whose work is under way breathes, slowly enough not to pull the eye. */
+    .status-busy {
+      animation: breathe 1.8s var(--ease-move) infinite;
+    }
+
     .check-draw path {
       animation: draw 260ms var(--ease-out) 60ms both;
     }
@@ -764,6 +808,12 @@
   }
   to {
     background-position: -150% 0;
+  }
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.35;
   }
 }
 
