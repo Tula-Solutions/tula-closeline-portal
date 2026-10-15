@@ -28,6 +28,7 @@ import { CallUpload } from '~/screens/sales/CallUpload'
 import { RecordingUpload } from '~/screens/sales/RecordingUpload'
 import { Banner } from '~/ui/Banner'
 import { Confirm } from '~/ui/Confirm'
+import { flash } from '~/ui/motion'
 import { Paged } from '~/ui/Paged'
 import { plain } from '~/ui/plain'
 import { ScrollRegion } from '~/ui/ScrollRegion'
@@ -202,12 +203,15 @@ function CallRow(props: {
   const canChange = repChangeAllowed(call.state, call.failureReason)
   // What each speaker said comes from reading this one Call (a page of Calls does not carry it), only while the picker is open.
   const speakers = useCallSpeakers(call.id, editing && canChange).data?.speakers
+  // The row flashes once an action on it has landed.
+  const row = useRef<HTMLTableRowElement>(null)
 
   const remove = useSubmit<void>(
     async () => {
       setError(null)
       const gone = await app.salesHistory.deleteCall(call.id)
       await refresh(app, 'calls').catch(() => undefined)
+      flash(row.current)
       props.onDone(
         gone.purgeAt === null
           ? `Deleted ${label}.`
@@ -222,6 +226,7 @@ function CallRow(props: {
       setError(null)
       await app.salesHistory.restoreCall(call.id)
       await refresh(app, 'calls').catch(() => undefined)
+      flash(row.current)
       props.onDone(`Restored ${label}. It is processed again.`)
       props.heading.current?.focus()
     },
@@ -236,12 +241,13 @@ function CallRow(props: {
         `Rep of ${label} changed. The Call is out of search until it has been processed again.`
       )
       await refresh(app, 'calls').catch(() => undefined)
+      flash(row.current)
     },
     { onError: (failure) => setError(presentSales(failure, 'call-rep').message) }
   )
 
   return (
-    <tr>
+    <tr ref={row}>
       <th scope='row'>
         <Untrusted value={call.fileName} />
       </th>

@@ -11,6 +11,7 @@ import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
 import { Money } from '~/screens/sales/DealsScreen'
 import { Banner } from '~/ui/Banner'
 import { Field } from '~/ui/Field'
+import { SaveButton } from '~/ui/SaveButton'
 import { SelectField } from '~/ui/SelectField'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
@@ -129,6 +130,7 @@ function OutcomeForm(props: {
   }, [props.readAt, saved])
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
+  const [savedAt, setSavedAt] = useState(0)
   // The closing date as typed (`YYYY-MM-DD`, from a date input); null until touched, then it follows the Deal.
   const [typedDate, setTypedDate] = useState<string | null>(null)
   const [dateError, setDateError] = useState<string | undefined>(undefined)
@@ -143,6 +145,7 @@ function OutcomeForm(props: {
       setError(null)
       await app.salesHistory.setDealOutcome(props.id, chosen, closedAt)
       setNotice('Outcome saved.')
+      setSavedAt((now) => now + 1)
       // The select keeps showing what was saved until a read of the Deal succeeds (the effect
       // above). A failed read is the page's own error, not this save's.
       // The read count as the save answers: a read that finished while it was in flight is older than the save.
@@ -217,9 +220,9 @@ function OutcomeForm(props: {
           setDateError(undefined)
         }}
       />
-      <button type='submit' className='button' aria-disabled={save.pending}>
-        {save.pending ? 'Saving...' : 'Save Outcome'}
-      </button>
+      <SaveButton pending={save.pending} savedAt={savedAt} pendingLabel='Saving...'>
+        Save Outcome
+      </SaveButton>
       <p role='status' aria-label='Notice' className='notice'>
         {notice}
       </p>

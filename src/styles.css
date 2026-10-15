@@ -209,8 +209,8 @@
   textarea[aria-invalid="true"],
   select[aria-invalid="true"] {
     border-color: var(--destructive);
-    border-style: dashed;
-    border-width: 2px;
+    /* The heavier rule at the start is the cue that does not rely on colour. */
+    box-shadow: inset 2px 0 0 var(--danger);
   }
 
   .field-error {
@@ -702,7 +702,17 @@
     background-color: var(--muted);
   }
 
+  /* The check of a saved button: a stroke of length 1, drawn by moving its dash. */
+  .check-draw path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+
   @media (prefers-reduced-motion: no-preference) {
+    .check-draw path {
+      animation: draw 260ms var(--ease-out) 60ms both;
+    }
+
     .button,
     input,
     textarea,
@@ -754,6 +764,12 @@
   }
   to {
     background-position: -150% 0;
+  }
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
   }
 }
 
