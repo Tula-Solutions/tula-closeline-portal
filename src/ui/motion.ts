@@ -217,6 +217,8 @@ export function useCountUp(
       return undefined
     }
     const undo = (animation: Animation | null) => () => {
+      // Cancelling rejects `finished` with an AbortError: expected here, so never left unhandled.
+      animation?.finished.catch(() => undefined)
       animation?.cancel()
       replay.current = { before, value }
     }
