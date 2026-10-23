@@ -37,7 +37,8 @@ describe('the signed-in shell', () => {
     renderPortal({ url: '/', signedIn: tokens({ organization: { id: 'org_1', role: 'manager' } }) })
     expect(await screen.findByText('Northline')).toBeTruthy()
     expect(screen.getByText('Manager')).toBeTruthy()
-    expect(screen.getByRole('img', { name: 'Tula Solution' })).toBeTruthy()
+    // Once in the sidebar and once in the phone's top bar (each hidden at the other width).
+    expect(screen.getAllByRole('img', { name: 'Tula Solution' })).toHaveLength(2)
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Skip to content' }).getAttribute('href')).toBe('#main')
     expect(screen.getByRole('heading', { name: 'Home' })).toBeTruthy()

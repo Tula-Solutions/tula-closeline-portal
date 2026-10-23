@@ -58,7 +58,7 @@
   --elev-2: 0 1px 2px rgb(26 26 24 / 0.06), 0 8px 24px -8px rgb(26 26 24 / 0.18);
   --elev-3: 0 2px 4px rgb(26 26 24 / 0.06), 0 16px 40px -10px rgb(26 26 24 / 0.22);
   --highlight: none;
-  /* The paper grain, drawn as the page background under the content; off in dark mode. */
+  /* The paper grain, drawn as the page background under the content; off under more contrast. */
   --grain: url("/paper-grain.svg");
   color-scheme: light;
 }
@@ -102,7 +102,8 @@
   --border-strong: rgb(241 239 232 / 0.5);
   --elev-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.5);
   --elev-3: 0 2px 6px rgb(0 0 0 / 0.35), 0 16px 40px -10px rgb(0 0 0 / 0.6);
-  --grain: none;
+  /* Light specks at about 3.5 %, so the dark page is paper too. */
+  --grain: url("/paper-grain-dark.svg");
   color-scheme: dark;
 }
 
@@ -204,14 +205,89 @@
   }
 }
 
+/*
+ * Motion. Every movement explains a change, then gets out of the way: 3 to 8 px of travel, exits at
+ * about 0.65 times their entrance, and nothing loops but the skeleton shimmer and the "processing"
+ * dot. Script-driven motion (src/ui/motion.ts) reads the same values.
+ */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-move: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-press: 80ms;
+  --dur-hover: 120ms;
+  --dur-ui: 180ms;
+  --dur-page: 260ms;
+  --dur-hero: 700ms;
+}
+
+/*
+ * Page changes run as view transitions (the router's defaultViewTransition). The sidebar and the
+ * phone's top bar are named so they hold still; the old page fades out, then the new one rises.
+ * All of it sits behind no-preference, so under reduced motion only the rule further down applies
+ * (a named pseudo-element here would otherwise outrank its `*`).
+ */
+@media (prefers-reduced-motion: no-preference) {
+  /* In sequence, never overlapping: the old page is gone (90 ms) before the new one rises (240 ms). */
+  ::view-transition-old(page) {
+    animation: vt-out 90ms var(--ease-in) both;
+  }
+  ::view-transition-new(page) {
+    animation: vt-in 240ms var(--ease-out) 70ms both;
+  }
+  ::view-transition-group(*) {
+    animation-duration: var(--dur-page);
+    animation-timing-function: var(--ease-move);
+  }
+  /* A theme change crossfades the whole page, with nothing moving. */
+  html[data-transition="theme"]::view-transition-old(*),
+  html[data-transition="theme"]::view-transition-new(*) {
+    animation-duration: 240ms;
+    animation-timing-function: var(--ease-move);
+    animation-delay: 0ms;
+  }
+  html[data-transition="theme"]::view-transition-new(page) {
+    animation-name: vt-fade-in;
+  }
+  /* A removed row fades and the rows below close up. */
+  html[data-transition="remove"]::view-transition-group(*) {
+    animation-duration: var(--dur-ui);
+  }
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms;
+    animation-delay: 0ms;
     animation-iteration-count: 1;
     transition-duration: 0.01ms;
+    transition-delay: 0ms;
     scroll-behavior: auto;
+  }
+  /* The rule above does not reach the view-transition pseudo-elements: they need their own. */
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
   }
 }
 
@@ -228,5 +304,6 @@
     --border-strong: rgb(241 239 232 / 0.72);
     /* 6.6:1 on ink; the underline 8.3:1. */
     --input: #a29f93;
+    --grain: none;
   }
 }

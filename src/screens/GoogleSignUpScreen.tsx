@@ -13,8 +13,7 @@ import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { useFocusOnError } from '~/ui/useFocusOnError'
 import { useSubmit } from '~/ui/useSubmit'
 
-const LINK_CLASS =
-  'font-medium text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-current'
+const LINK_CLASS = 'font-medium text-foreground ink-link'
 
 const START_AGAIN = (
   <Link to='/sign-up' className={LINK_CLASS}>

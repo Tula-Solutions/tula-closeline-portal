@@ -1,10 +1,11 @@
 import { RotateCw } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { type ReactNode, useLayoutEffect, useRef } from 'react'
 import { presentManage } from '~/api/manage-messages'
 import { EmptyState } from '~/components/app/empty-state'
 import { Button } from '~/components/ui/button'
 import { Skeleton } from '~/components/ui/skeleton'
 import { Banner } from '~/ui/Banner'
+import { reveal } from '~/ui/motion'
 
 /** The state of a paginated list as the screen needs it. */
 export type PagedState = {
@@ -34,6 +35,19 @@ export function Paged(props: {
   readonly emptyAction?: ReactNode
 }) {
   const { state, noun } = props
+  const list = useRef<HTMLDivElement>(null)
+  // Rows arrive one after another the first time the list loads here; a cached list, a refetch
+  // and Load more put them in place without motion.
+  const waited = useRef(state.isPending)
+  const shown = state.hasData && !state.isPending
+  // Before paint, so a row never shows for a frame and then fades in from nothing.
+  useLayoutEffect(() => {
+    if (!shown || !waited.current) {
+      return
+    }
+    waited.current = false
+    reveal(list.current?.querySelectorAll('tbody > tr, [data-row]') ?? [])
+  }, [shown])
   if (state.isPending) {
     return (
       <div>
@@ -77,7 +91,9 @@ export function Paged(props: {
   }
   return (
     <>
-      {props.children}
+      <div ref={list} className='contents'>
+        {props.children}
+      </div>
       {state.isError ? (
         <Banner kind='error' className='mt-4'>
           {presentManage(state.error).message}

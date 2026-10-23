@@ -24,6 +24,36 @@ const IDEMPOTENCY = 'idempotency-key'
 const salesCalls = (portal: ReturnType<typeof visit>) =>
   portal.calls.filter((call) => call.path.startsWith(PB))
 
+describe('Sales history: the overview', () => {
+  test('each line carries a live figure, each from one first page, the import a page of one', async () => {
+    const portal = visit('/sales-history', 'admin', [
+      route('GET', RIGHTS, json(200, rightsBody())),
+      route('GET', DEALS, (call) =>
+        json(
+          200,
+          new URL(call.url, 'http://x').searchParams.get('outcome') === 'won'
+            ? page([dealBody(1, { outcome: 'won' }), dealBody(2, { outcome: 'won' })])
+            : page([dealBody(1), dealBody(2), dealBody(3)])
+        )
+      ),
+      route('GET', `${PB}/calls`, json(200, page([]))),
+      route('GET', IMPORTS, json(200, page([importBody(1)], 'next'))),
+    ])
+    const list = within(await screen.findByRole('list', { name: 'Sales history' }))
+    await waitFor(() => expect(list.getByText('3 Deals, 2 won')).toBeTruthy())
+    await waitFor(() => expect(list.getByText('0 Calls')).toBeTruthy())
+    await waitFor(() => expect(list.getByText(/^last import /)).toBeTruthy())
+    for (const path of [DEALS, `${PB}/calls`, IMPORTS]) {
+      for (const call of portal.calls.filter((sent) => sent.path === path)) {
+        expect(new URL(call.url, 'http://x').searchParams.get('cursor')).toBeNull()
+      }
+    }
+    const imports = portal.calls.filter((call) => call.path === IMPORTS)
+    expect(imports).toHaveLength(1)
+    expect(new URL(imports[0]?.url ?? '', 'http://x').searchParams.get('limit')).toBe('1')
+  })
+})
+
 describe('Sales history: Owner and Admin only', () => {
   const urls = [
     '/sales-history',
@@ -226,6 +256,70 @@ describe('Sales history: Deals', () => {
     expect(within(row).getByText('EUR', { exact: false })).toBeTruthy()
   })
 
+  test('a Deal already read on its own page is not replaced by the list copy', async () => {
+    const listed = dealBody(1, { dealId: 'D-100', name: 'Old name' })
+    let fail = false
+    const portal = visit(`/sales-history/deals/${listed.id}`, 'owner', [
+      route('GET', `${DEALS}/${listed.id}`, () =>
+        fail
+          ? failure(503, SALES_HISTORY_ERRORS['deal.not_found'].code)
+          : json(200, { ...listed, name: 'New name' })
+      ),
+      route('GET', DEALS, json(200, page([listed]))),
+    ])
+    expect(await screen.findByRole('heading', { level: 1, name: 'New name' })).toBeTruthy()
+    fail = true
+    await portal.router.navigate({ to: '/sales-history/deals' })
+    await portal.user.click(await screen.findByRole('link', { name: 'D-100' }))
+    // The newer page copy stays; the list's older name never replaces it.
+    expect(await screen.findByRole('heading', { level: 1, name: 'New name' })).toBeTruthy()
+  })
+
+  test('a click that opens a new tab leaves the row unnamed', async () => {
+    const deal = dealBody(1, { dealId: 'D-100' })
+    const portal = visit('/sales-history/deals', 'owner', [
+      route('GET', DEALS, json(200, page([deal]))),
+    ])
+    const link = await screen.findByRole('link', { name: 'D-100' })
+    await portal.user.keyboard('{Meta>}')
+    await portal.user.click(link)
+    await portal.user.keyboard('{/Meta}')
+    expect(link.style.getPropertyValue('view-transition-name')).toBe('')
+    expect(document.querySelector('[style*="view-transition-name"]')).toBeNull()
+  })
+
+  test('opening a Deal from its row shows it at once, named as the page heading, then reads it fresh', async () => {
+    const deal = dealBody(1, { dealId: 'D-100', name: 'Acme renewal' })
+    let release: () => void = () => undefined
+    const held = new Promise<void>((done) => {
+      release = done
+    })
+    const portal = visit('/sales-history/deals', 'owner', [
+      route('GET', `${DEALS}/${deal.id}`, async () => {
+        await held
+        return json(200, deal)
+      }),
+      route('GET', DEALS, json(200, page([deal]))),
+    ])
+    const link = await screen.findByRole('link', { name: 'D-100' })
+    const name = within(link.closest('tr') as HTMLElement).getByText('Acme renewal')
+    await portal.user.click(link)
+    // The name (not the id) moves into the page's heading, the same words at another size, and the
+    // page does not wait for the read.
+    const from = name.closest<HTMLElement>('[data-deal-name]')
+    expect(from?.style.getPropertyValue('view-transition-name')).toBe(`deal-${deal.id}`)
+    expect(link.style.getPropertyValue('view-transition-name')).toBe('')
+    const heading = await screen.findByRole('heading', { level: 1, name: 'Acme renewal' })
+    const target = heading.querySelector<HTMLElement>('[data-deal-name]')
+    expect(target?.style.getPropertyValue('view-transition-name')).toBe(`deal-${deal.id}`)
+    // The id stays a plain label above it.
+    expect(screen.getByText('D-100').closest('h1')).toBeNull()
+    release()
+    await waitFor(() =>
+      expect(portal.calls.some((call) => call.path === `${DEALS}/${deal.id}`)).toBe(true)
+    )
+  })
+
   test.each(['=HYPERLINK("http://evil.example","x")', '+1+1', '-2+3', '@SUM(A1)'])(
     'a deal id that begins like a formula (%s) is shown as plain text, never in an address',
     async (dealId) => {
@@ -277,7 +371,7 @@ describe('Sales history: Deals', () => {
     await screen.findByRole('link', { name: 'ANY-1' })
     await portal.user.selectOptions(screen.getByLabelText('Outcome'), 'won')
     await screen.findByRole('link', { name: 'WON-1' })
-    await portal.user.click(screen.getByRole('checkbox', { name: /no CSV has named/i }))
+    await portal.user.click(screen.getByRole('checkbox', { name: /created from a Call upload/i }))
     await waitFor(() =>
       expect(portal.calls.some((call) => param(call.url, 'appearedInImport') === 'false')).toBe(
         true
@@ -313,7 +407,7 @@ describe('Sales history: Deals', () => {
     ])
     await portal.user.type(await screen.findByLabelText("Customer's deal id"), '=SECRET-1')
     await portal.user.click(screen.getByRole('button', { name: 'Find Deal' }))
-    expect(await screen.findByRole('heading', { name: 'Deal' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { level: 1, name: '=SECRET-1' })).toBeTruthy()
     const lookup = portal.calls.find((call) => call.path === `${DEALS}/lookup`)
     expect(lookup?.method).toBe('POST')
     expect(lookup?.body).toEqual({ dealId: '=SECRET-1' })
