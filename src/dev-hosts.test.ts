@@ -10,10 +10,14 @@ describe('parseAllowedHosts', () => {
   })
 
   test('splits on commas, trims and drops empty entries', () => {
-    expect(parseAllowedHosts(' a.example.com, ,b.example.com:8080,')).toEqual([
+    expect(parseAllowedHosts(' a.example.com, ,B.Example.com,')).toEqual([
       'a.example.com',
-      'b.example.com:8080',
+      'b.example.com',
     ])
+  })
+
+  test('rejects an entry with a port, which Vite would never match', () => {
+    expect(() => parseAllowedHosts('a.example.com:8080')).toThrow('PORTAL_DEV_ALLOWED_HOSTS')
   })
 
   test('rejects a value that would allow every host', () => {

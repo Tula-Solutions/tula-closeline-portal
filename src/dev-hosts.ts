@@ -2,16 +2,22 @@
 export function parseAllowedHosts(raw: string | undefined): string[] | undefined {
   const hosts = (raw ?? '')
     .split(',')
-    .map((host) => host.trim())
+    .map((host) => host.trim().toLowerCase())
     .filter((host) => host !== '')
   if (hosts.length === 0) {
     return undefined
   }
   for (const host of hosts) {
-    // `true`, a wildcard or a leading-dot suffix would admit hosts nobody listed.
-    if (host.toLowerCase() === 'true' || host.includes('*') || host.startsWith('.')) {
+    // `true`, a wildcard or a leading-dot suffix would admit hosts nobody listed; Vite matches the
+    // hostname without its port, so an entry with a port could never match.
+    if (
+      host.toLowerCase() === 'true' ||
+      host.includes('*') ||
+      host.startsWith('.') ||
+      host.includes(':')
+    ) {
       throw new Error(
-        `PORTAL_DEV_ALLOWED_HOSTS must list exact hosts, not "${host}" (no true, wildcard or suffix)`
+        `PORTAL_DEV_ALLOWED_HOSTS must list exact hosts, not "${host}" (bare hostnames: no true, wildcard, suffix or port)`
       )
     }
   }
