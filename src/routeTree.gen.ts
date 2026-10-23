@@ -30,11 +30,14 @@ import { Route as AppPlaybookIndexRouteImport } from './routes/_app/playbook/ind
 import { Route as AppPlaybookSearchRouteImport } from './routes/_app/playbook/search'
 import { Route as AppProspectsIndexRouteImport } from './routes/_app/prospects/index'
 import { Route as AppProspectsProspectIdRouteImport } from './routes/_app/prospects/$prospectId'
+import { Route as AppProspectsImportsRouteImport } from './routes/_app/prospects/imports'
 import { Route as AppProspectsNewRouteImport } from './routes/_app/prospects/new'
 import { Route as AppSalesHistoryIndexRouteImport } from './routes/_app/sales-history/index'
 import { Route as AppSalesHistoryRightsRouteImport } from './routes/_app/sales-history/rights'
 import { Route as AppSalesHistorySearchRouteImport } from './routes/_app/sales-history/search'
 import { Route as PublicSignUpGoogleRouteImport } from './routes/_public/sign-up_.google'
+import { Route as AppProspectsImportsIndexRouteImport } from './routes/_app/prospects/imports/index'
+import { Route as AppProspectsImportsImportIdRouteImport } from './routes/_app/prospects/imports/$importId'
 import { Route as AppSalesHistoryCallsIndexRouteImport } from './routes/_app/sales-history/calls/index'
 import { Route as AppSalesHistoryDealsIndexRouteImport } from './routes/_app/sales-history/deals/index'
 import { Route as AppSalesHistoryDealsDealRecordIdRouteImport } from './routes/_app/sales-history/deals/$dealRecordId'
@@ -143,6 +146,11 @@ const AppProspectsProspectIdRoute = AppProspectsProspectIdRouteImport.update({
   path: '/prospects/$prospectId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProspectsImportsRoute = AppProspectsImportsRouteImport.update({
+  id: '/prospects/imports',
+  path: '/prospects/imports',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProspectsNewRoute = AppProspectsNewRouteImport.update({
   id: '/prospects/new',
   path: '/prospects/new',
@@ -168,6 +176,18 @@ const PublicSignUpGoogleRoute = PublicSignUpGoogleRouteImport.update({
   path: '/sign-up/google',
   getParentRoute: () => PublicRoute,
 } as any)
+const AppProspectsImportsIndexRoute =
+  AppProspectsImportsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppProspectsImportsRoute,
+  } as any)
+const AppProspectsImportsImportIdRoute =
+  AppProspectsImportsImportIdRouteImport.update({
+    id: '/$importId',
+    path: '/$importId',
+    getParentRoute: () => AppProspectsImportsRoute,
+  } as any)
 const AppSalesHistoryCallsIndexRoute =
   AppSalesHistoryCallsIndexRouteImport.update({
     id: '/calls/',
@@ -216,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/the-playbook': typeof SiteThePlaybookRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/prospects/$prospectId': typeof AppProspectsProspectIdRoute
+  '/prospects/imports': typeof AppProspectsImportsRouteWithChildren
   '/prospects/new': typeof AppProspectsNewRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/sales-history/search': typeof AppSalesHistorySearchRoute
@@ -223,8 +244,10 @@ export interface FileRoutesByFullPath {
   '/playbook/': typeof AppPlaybookIndexRoute
   '/prospects/': typeof AppProspectsIndexRoute
   '/sales-history/': typeof AppSalesHistoryIndexRoute
+  '/prospects/imports/$importId': typeof AppProspectsImportsImportIdRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/prospects/imports/': typeof AppProspectsImportsIndexRoute
   '/sales-history/calls/': typeof AppSalesHistoryCallsIndexRoute
   '/sales-history/deals/': typeof AppSalesHistoryDealsIndexRoute
   '/sales-history/imports/': typeof AppSalesHistoryImportsIndexRoute
@@ -251,8 +274,10 @@ export interface FileRoutesByTo {
   '/playbook': typeof AppPlaybookIndexRoute
   '/prospects': typeof AppProspectsIndexRoute
   '/sales-history': typeof AppSalesHistoryIndexRoute
+  '/prospects/imports/$importId': typeof AppProspectsImportsImportIdRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/prospects/imports': typeof AppProspectsImportsIndexRoute
   '/sales-history/calls': typeof AppSalesHistoryCallsIndexRoute
   '/sales-history/deals': typeof AppSalesHistoryDealsIndexRoute
   '/sales-history/imports': typeof AppSalesHistoryImportsIndexRoute
@@ -278,6 +303,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/playbook/search': typeof AppPlaybookSearchRoute
   '/_app/prospects/$prospectId': typeof AppProspectsProspectIdRoute
+  '/_app/prospects/imports': typeof AppProspectsImportsRouteWithChildren
   '/_app/prospects/new': typeof AppProspectsNewRoute
   '/_app/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/_app/sales-history/search': typeof AppSalesHistorySearchRoute
@@ -285,8 +311,10 @@ export interface FileRoutesById {
   '/_app/playbook/': typeof AppPlaybookIndexRoute
   '/_app/prospects/': typeof AppProspectsIndexRoute
   '/_app/sales-history/': typeof AppSalesHistoryIndexRoute
+  '/_app/prospects/imports/$importId': typeof AppProspectsImportsImportIdRoute
   '/_app/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/_app/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/_app/prospects/imports/': typeof AppProspectsImportsIndexRoute
   '/_app/sales-history/calls/': typeof AppSalesHistoryCallsIndexRoute
   '/_app/sales-history/deals/': typeof AppSalesHistoryDealsIndexRoute
   '/_app/sales-history/imports/': typeof AppSalesHistoryImportsIndexRoute
@@ -310,6 +338,7 @@ export interface FileRouteTypes {
     | '/the-playbook'
     | '/playbook/search'
     | '/prospects/$prospectId'
+    | '/prospects/imports'
     | '/prospects/new'
     | '/sales-history/rights'
     | '/sales-history/search'
@@ -317,8 +346,10 @@ export interface FileRouteTypes {
     | '/playbook/'
     | '/prospects/'
     | '/sales-history/'
+    | '/prospects/imports/$importId'
     | '/sales-history/deals/$dealRecordId'
     | '/sales-history/imports/$importId'
+    | '/prospects/imports/'
     | '/sales-history/calls/'
     | '/sales-history/deals/'
     | '/sales-history/imports/'
@@ -345,8 +376,10 @@ export interface FileRouteTypes {
     | '/playbook'
     | '/prospects'
     | '/sales-history'
+    | '/prospects/imports/$importId'
     | '/sales-history/deals/$dealRecordId'
     | '/sales-history/imports/$importId'
+    | '/prospects/imports'
     | '/sales-history/calls'
     | '/sales-history/deals'
     | '/sales-history/imports'
@@ -371,6 +404,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/playbook/search'
     | '/_app/prospects/$prospectId'
+    | '/_app/prospects/imports'
     | '/_app/prospects/new'
     | '/_app/sales-history/rights'
     | '/_app/sales-history/search'
@@ -378,8 +412,10 @@ export interface FileRouteTypes {
     | '/_app/playbook/'
     | '/_app/prospects/'
     | '/_app/sales-history/'
+    | '/_app/prospects/imports/$importId'
     | '/_app/sales-history/deals/$dealRecordId'
     | '/_app/sales-history/imports/$importId'
+    | '/_app/prospects/imports/'
     | '/_app/sales-history/calls/'
     | '/_app/sales-history/deals/'
     | '/_app/sales-history/imports/'
@@ -540,6 +576,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProspectsProspectIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/prospects/imports': {
+      id: '/_app/prospects/imports'
+      path: '/prospects/imports'
+      fullPath: '/prospects/imports'
+      preLoaderRoute: typeof AppProspectsImportsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/prospects/new': {
       id: '/_app/prospects/new'
       path: '/prospects/new'
@@ -574,6 +617,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/sign-up/google'
       preLoaderRoute: typeof PublicSignUpGoogleRouteImport
       parentRoute: typeof PublicRoute
+    }
+    '/_app/prospects/imports/': {
+      id: '/_app/prospects/imports/'
+      path: '/'
+      fullPath: '/prospects/imports/'
+      preLoaderRoute: typeof AppProspectsImportsIndexRouteImport
+      parentRoute: typeof AppProspectsImportsRoute
+    }
+    '/_app/prospects/imports/$importId': {
+      id: '/_app/prospects/imports/$importId'
+      path: '/$importId'
+      fullPath: '/prospects/imports/$importId'
+      preLoaderRoute: typeof AppProspectsImportsImportIdRouteImport
+      parentRoute: typeof AppProspectsImportsRoute
     }
     '/_app/sales-history/calls/': {
       id: '/_app/sales-history/calls/'
@@ -653,6 +710,19 @@ const AppSalesHistoryRouteWithChildren = AppSalesHistoryRoute._addFileChildren(
   AppSalesHistoryRouteChildren,
 )
 
+interface AppProspectsImportsRouteChildren {
+  AppProspectsImportsImportIdRoute: typeof AppProspectsImportsImportIdRoute
+  AppProspectsImportsIndexRoute: typeof AppProspectsImportsIndexRoute
+}
+
+const AppProspectsImportsRouteChildren: AppProspectsImportsRouteChildren = {
+  AppProspectsImportsImportIdRoute: AppProspectsImportsImportIdRoute,
+  AppProspectsImportsIndexRoute: AppProspectsImportsIndexRoute,
+}
+
+const AppProspectsImportsRouteWithChildren =
+  AppProspectsImportsRoute._addFileChildren(AppProspectsImportsRouteChildren)
+
 interface AppRouteChildren {
   AppInvitationsRoute: typeof AppInvitationsRoute
   AppMembersRoute: typeof AppMembersRoute
@@ -661,6 +731,7 @@ interface AppRouteChildren {
   AppTeamsRoute: typeof AppTeamsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppProspectsProspectIdRoute: typeof AppProspectsProspectIdRoute
+  AppProspectsImportsRoute: typeof AppProspectsImportsRouteWithChildren
   AppProspectsNewRoute: typeof AppProspectsNewRoute
   AppProspectsIndexRoute: typeof AppProspectsIndexRoute
 }
@@ -673,6 +744,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppTeamsRoute: AppTeamsRoute,
   AppIndexRoute: AppIndexRoute,
   AppProspectsProspectIdRoute: AppProspectsProspectIdRoute,
+  AppProspectsImportsRoute: AppProspectsImportsRouteWithChildren,
   AppProspectsNewRoute: AppProspectsNewRoute,
   AppProspectsIndexRoute: AppProspectsIndexRoute,
 }

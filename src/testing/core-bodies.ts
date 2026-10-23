@@ -1,6 +1,17 @@
 /** An id in the contract's shape: a prefix and 32 hex digits, made from a number. */
 export function hexId(
-  prefix: 'mem' | 'inv' | 'team' | 'usr' | 'doc' | 'deal' | 'dimp' | 'call' | 'prs' | 'pco',
+  prefix:
+    | 'mem'
+    | 'inv'
+    | 'team'
+    | 'usr'
+    | 'doc'
+    | 'deal'
+    | 'dimp'
+    | 'call'
+    | 'prs'
+    | 'pco'
+    | 'pimp',
   n: number
 ): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`
@@ -270,5 +281,60 @@ export function companyBody(n: number, name = `Company ${n}`) {
     },
     createdAt: '2026-10-02T08:30:00Z',
     updatedAt: '2026-10-02T08:30:00Z',
+  }
+}
+
+/** A Prospect import as core returns it: a completed one with 5 rows (2 created, 1 updated, 1 skipped, 1 rejected). */
+export function prospectImportBody(
+  n: number,
+  overrides: Partial<{
+    state: string
+    failureReason: string | null
+    rowCount: number | null
+    createdCount: number | null
+    updatedCount: number | null
+    skippedCount: number | null
+    rejectedCount: number | null
+  }> = {}
+) {
+  return {
+    id: hexId('pimp', n),
+    state: 'completed',
+    failureReason: null,
+    rowCount: 5,
+    createdCount: 2,
+    updatedCount: 1,
+    skippedCount: 1,
+    rejectedCount: 1,
+    uploadedByUserId: hexId('usr', 1),
+    createdAt: '2026-10-13T09:30:00Z',
+    updatedAt: '2026-10-13T09:31:00Z',
+    ...overrides,
+  }
+}
+
+/** A Prospect import still on its way: no counts yet. */
+export function runningImportBody(n: number, state: 'uploaded' | 'processing' = 'processing') {
+  return prospectImportBody(n, {
+    state,
+    rowCount: null,
+    createdCount: null,
+    updatedCount: null,
+    skippedCount: null,
+    rejectedCount: null,
+  })
+}
+
+/** One row of a Prospect import's report. */
+export function prospectImportRowBody(
+  rowNumber: number,
+  overrides: Partial<{ result: string; reason: string | null; prospectId: string | null }> = {}
+) {
+  return {
+    rowNumber,
+    result: 'created',
+    reason: null,
+    prospectId: hexId('prs', rowNumber),
+    ...overrides,
   }
 }

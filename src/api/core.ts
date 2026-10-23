@@ -10,20 +10,28 @@ import {
   type ListInvitationsResponse,
   type ListMembersResponse,
   type ListProspectCompaniesResponse,
+  type ListProspectImportRowsResponse,
+  type ListProspectImportsResponse,
   type ListProspectsResponse,
   type ListTeamsResponse,
   listInvitationsResponseSchema,
   listMembersResponseSchema,
   listProspectCompaniesResponseSchema,
+  listProspectImportRowsResponseSchema,
+  listProspectImportsResponseSchema,
   listProspectsResponseSchema,
   listTeamsResponseSchema,
   type Member,
   memberSchema,
   type Organization,
   organizationSchema,
+  PROSPECT_IMPORT_FILE_FIELD,
   type Prospect,
   type ProspectCompany,
+  type ProspectImport,
+  type ProspectImportRowResult,
   prospectCompanySchema,
+  prospectImportSchema,
   prospectSchema,
   type Role,
   type Team,
@@ -34,6 +42,9 @@ import {
   updateProspectRequestSchema,
 } from 'tula-closeline-contract'
 import type { HttpClient } from '~/api/http'
+
+/** A file upload may take longer than a read: two minutes (as the playbook uploads). */
+const IMPORT_UPLOAD_TIMEOUT_MS = 120_000
 
 /** The page size every list asks for; the server allows up to 100. */
 export const PAGE_SIZE = 25
@@ -87,6 +98,23 @@ export type CoreApi = {
   removeTeamMember(teamId: string, membershipId: string, idempotencyKey: string): Promise<void>
   /** One page of the Prospects the caller may see (core decides by role), newest first, or in id order when `q` is set; a page may be short, even empty, while a cursor is present. */
   listProspects(page: PageRequest & ProspectFilter): Promise<ListProspectsResponse>
+  /** One page of Prospect imports, newest first. */
+  listProspectImports(page: PageRequest): Promise<ListProspectImportsResponse>
+  /** One Prospect import with its state and counts. */
+  getProspectImport(importId: string, signal?: AbortSignal): Promise<ProspectImport>
+  /** One page of an import's report, in CSV order; with a `result` only rows that ended so. */
+  listProspectImportRows(
+    importId: string,
+    page: PageRequest & { readonly result?: ProspectImportRowResult | undefined }
+  ): Promise<ListProspectImportRowsResponse>
+  /** Uploads a CSV of Prospects; the key makes a repeat of the same request answer with the stored import. */
+  uploadProspectImport(
+    file: File,
+    idempotencyKey: string,
+    signal?: AbortSignal
+  ): Promise<ProspectImport>
+  /** The import's report exactly as core writes it (CSV text: row number, result, reason and Prospect id, no cell content). */
+  getProspectImportReport(importId: string, signal?: AbortSignal): Promise<string>
   /** One Prospect with the Source and time of each field. */
   getProspect(prospectId: string, signal?: AbortSignal): Promise<Prospect>
   /** Creates a Prospect by hand; the key makes a repeat of the same request create it once. */
@@ -225,6 +253,63 @@ export function createCoreApi(http: HttpClient): CoreApi {
         auth: true,
         ...(page.signal ? { signal: page.signal } : {}),
         parse: (json) => listProspectsResponseSchema.parse(json),
+      }),
+    listProspectImports: (page) =>
+      http.request({
+        path: '/v1/prospect-imports',
+        query: query(page),
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => listProspectImportsResponseSchema.parse(json),
+      }),
+    getProspectImport: (importId, signal) =>
+      http.request({
+        path: `/v1/prospect-imports/${segment(importId)}`,
+        auth: true,
+        ...(signal ? { signal } : {}),
+        parse: (json) => prospectImportSchema.parse(json),
+      }),
+    listProspectImportRows: (importId, page) =>
+      http.request({
+        path: `/v1/prospect-imports/${segment(importId)}/rows`,
+        query: { ...query(page), result: page.result },
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => listProspectImportRowsResponseSchema.parse(json),
+      }),
+    uploadProspectImport: (file, idempotencyKey, signal) => {
+      const form = new FormData()
+      form.set(PROSPECT_IMPORT_FILE_FIELD, file, file.name)
+      return http.request({
+        method: 'POST',
+        path: '/v1/prospect-imports',
+        body: form,
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        timeoutMs: IMPORT_UPLOAD_TIMEOUT_MS,
+        auth: true,
+        ...(signal ? { signal } : {}),
+        parse: (json, status) => {
+          if (status !== 202) {
+            throw new Error('unexpected status')
+          }
+          return prospectImportSchema.parse(json)
+        },
+      })
+    },
+    getProspectImportReport: (importId, signal) =>
+      http.request({
+        path: `/v1/prospect-imports/${segment(importId)}/report.csv`,
+        headers: { accept: 'text/csv' },
+        text: true,
+        timeoutMs: IMPORT_UPLOAD_TIMEOUT_MS,
+        auth: true,
+        ...(signal ? { signal } : {}),
+        parse: (text) => {
+          if (typeof text !== 'string') {
+            throw new Error('not text')
+          }
+          return text
+        },
       }),
     getProspect: (prospectId, signal) =>
       http.request({

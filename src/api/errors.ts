@@ -1,4 +1,7 @@
-import { errorBodySchema } from 'tula-closeline-contract'
+import { errorBodySchema, PROSPECT_IMPORT_INVALID_REASONS } from 'tula-closeline-contract'
+
+/** Why core refused an import file (a contract value). */
+export type ImportInvalidReason = (typeof PROSPECT_IMPORT_INVALID_REASONS)[number]
 
 /** Codes the client itself raises when no service answered; the status is 0. */
 export const CLIENT_ERRORS = {
@@ -16,12 +19,15 @@ export class ApiError extends Error {
   readonly retryAfterSeconds: number | undefined
   /** Which identity clashed, on `prospect.duplicate_identity` only. */
   readonly identityKind: 'email' | 'phone' | 'linkedin' | undefined
+  /** Why core refused an import file, on `prospect.import_invalid` only. */
+  readonly importReason: ImportInvalidReason | undefined
 
   constructor(init: {
     code: string
     status: number
     retryAfterSeconds?: number
     identityKind?: 'email' | 'phone' | 'linkedin'
+    importReason?: ImportInvalidReason
   }) {
     super(init.code)
     this.name = 'ApiError'
@@ -29,6 +35,7 @@ export class ApiError extends Error {
     this.status = init.status
     this.retryAfterSeconds = init.retryAfterSeconds
     this.identityKind = init.identityKind
+    this.importReason = init.importReason
   }
 }
 
@@ -73,11 +80,14 @@ export async function parseErrorResponse(response: Response, now = Date.now()): 
   const kind = parsed.data.error.details?.identityKind
   const identityKind =
     kind === 'email' || kind === 'phone' || kind === 'linkedin' ? kind : undefined
+  const why = parsed.data.error.details?.reason
+  const importReason = PROSPECT_IMPORT_INVALID_REASONS.find((reason) => reason === why)
   return new ApiError({
     code: parsed.data.error.code,
     status: response.status,
     ...(retryAfterSeconds === undefined ? {} : { retryAfterSeconds }),
     ...(identityKind === undefined ? {} : { identityKind }),
+    ...(importReason === undefined ? {} : { importReason }),
   })
 }
 

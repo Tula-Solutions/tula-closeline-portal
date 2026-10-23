@@ -130,6 +130,8 @@ export type RequestOptions<T> = {
   readonly onUploadProgress?: UploadProgress
   readonly auth?: boolean
   readonly signal?: AbortSignal
+  /** The answer is plain text (a CSV), not JSON: it is read as text and handed to `parse` as a string. */
+  readonly text?: boolean
   /** Checks and narrows the JSON answer (and sees the status, for a route with two success codes); a throw becomes `client.bad_response`. */
   readonly parse?: (json: unknown, status: number) => T
 }
@@ -222,7 +224,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
       if (response.status === 204) {
         return undefined as T
       }
-      const json: unknown = await response.json()
+      const json: unknown = options.text ? await response.text() : await response.json()
       try {
         return options.parse ? options.parse(json, response.status) : (json as T)
       } catch {
