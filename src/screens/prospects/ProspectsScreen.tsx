@@ -9,7 +9,7 @@ import {
 import { PageHeader } from '~/components/app/page-header'
 import { can } from '~/data/permissions'
 import { fieldValue, prospectName, SOURCE_CHOICES, sourceLabel } from '~/data/prospects'
-import { useMembersByIds, useProspectCompanyNames, useProspects } from '~/data/queries'
+import { useMembersByIdsState, useProspectCompanyNames, useProspects } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { cn } from '~/lib/utils'
 import { Field } from '~/ui/Field'
@@ -52,7 +52,7 @@ export function ProspectsScreen() {
     ...(search.company ? [search.company] : []),
   ])
   // One lookup for the whole page of rows, never one per row; only those who may list members.
-  const owners = useMembersByIds(
+  const { members: owners, loading: ownersLoading } = useMembersByIdsState(
     prospects.items.flatMap((prospect) =>
       prospect.ownerMembershipId ? [prospect.ownerMembershipId] : []
     ),
@@ -249,6 +249,7 @@ export function ProspectsScreen() {
                       key={prospect.id}
                       prospect={prospect}
                       showOwner={showOwner}
+                      ownerLoading={ownersLoading}
                       owner={
                         prospect.ownerMembershipId
                           ? owners.get(prospect.ownerMembershipId)
@@ -273,6 +274,7 @@ function ProspectRow(props: {
   readonly prospect: Prospect
   readonly company: string | undefined
   readonly showOwner: boolean
+  readonly ownerLoading: boolean
   readonly owner: { readonly name: string | null; readonly email: string } | undefined
 }) {
   const { prospect } = props
@@ -297,8 +299,14 @@ function ProspectRow(props: {
         <td className='ledger-pair'>
           {prospect.ownerMembershipId === null ? (
             '—'
+          ) : props.owner ? (
+            <Untrusted value={props.owner.name || props.owner.email} />
+          ) : props.ownerLoading ? (
+            <span className='skeleton'>
+              <span className='sr-only'>Loading owner</span>
+            </span>
           ) : (
-            <Untrusted value={props.owner?.name || props.owner?.email || 'Owner'} />
+            'Unknown member'
           )}
         </td>
       ) : null}
