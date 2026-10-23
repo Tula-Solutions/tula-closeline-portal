@@ -463,11 +463,15 @@ export function useProspects(filter: ProspectFilter) {
     query.hasNextPage &&
     pages.length <= MAX_EMPTY_PAGES
   const { fetchNextPage, isFetchingNextPage, isError } = query
+  const pageCount = pages.length
+  // pageCount is a dependency so each arrived empty page asks for the next, even when a fast
+  // fetch never showed as "fetching" in a render.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pageCount only re-triggers the effect
   useEffect(() => {
     if (searching && !isFetchingNextPage && !isError) {
       void fetchNextPage()
     }
-  }, [searching, isFetchingNextPage, isError, fetchNextPage])
+  }, [searching, isFetchingNextPage, isError, fetchNextPage, pageCount])
   return {
     items: paged.items,
     state: {

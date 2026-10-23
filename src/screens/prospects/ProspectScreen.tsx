@@ -21,6 +21,7 @@ import {
   parseTags,
   prospectName,
   sourceLabel,
+  sourcePhrase,
 } from '~/data/prospects'
 import { refresh, useProspect, useProspectCompanies } from '~/data/queries'
 import {
@@ -77,7 +78,7 @@ export function ProspectScreen() {
       <PageHeader
         eyebrow='Prospect'
         title={<Untrusted value={name} />}
-        description={`${record.status === 'active' ? 'Active' : 'Archived'}. Added by ${sourceLabel(record.source)}.`}
+        description={`${record.status === 'active' ? 'Active' : 'Archived'}. Added through ${sourcePhrase(record.source)} on ${ADDED_ON.format(new Date(record.createdAt))}.`}
         actions={
           <Link to='/prospects' className='button button-quiet'>
             Back to Prospects
@@ -139,15 +140,17 @@ function Details(props: { readonly prospect: Prospect }) {
           return (
             <div key={name} className='dl-group'>
               <dt>{FIELD_LABEL[name]}</dt>
-              <dd>
+              <dd className='field-value'>
                 {field === undefined ? (
                   <span className='text-muted-foreground'>Not set</span>
                 ) : (
                   <>
-                    <Untrusted value={field.value} />{' '}
+                    <span>
+                      <Untrusted value={field.value} />
+                    </span>
                     <button
                       type='button'
-                      className='button button-quiet'
+                      className='source-toggle'
                       aria-expanded={open.has(name)}
                       aria-controls={rowId}
                       onClick={() => toggle(name)}
@@ -191,6 +194,8 @@ function Details(props: { readonly prospect: Prospect }) {
     </section>
   )
 }
+
+const ADDED_ON = new Intl.DateTimeFormat('en-GB', { dateStyle: 'long', timeZone: 'UTC' })
 
 function valuesOf(prospect: Prospect): IdentityValues {
   return {

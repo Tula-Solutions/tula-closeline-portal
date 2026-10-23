@@ -84,7 +84,7 @@ export function ProspectsScreen() {
       <PageHeader
         eyebrow='Sales'
         title='Prospects'
-        description='The people you sell to. Every detail keeps its Source, so you can see where it came from.'
+        description='The people you sell to. Every detail keeps its source, so you can see where it came from.'
         actions={bareEmpty ? undefined : add}
       />
       <div className='flex flex-col gap-4'>

@@ -129,6 +129,13 @@ describe('Prospect: the detail', () => {
     expect((screen.getByLabelText('Job title') as HTMLInputElement).value).toBe('VP Sales')
   })
 
+  test('the subtitle reads as a sentence with the source in lower case', async () => {
+    visit(route('GET', ONE, json(200, prospectBody(1))))
+    expect(
+      await screen.findByText(/^Active\. Added through manual entry on \d{1,2} \w+ 20\d\d\.$/)
+    ).toBeTruthy()
+  })
+
   test('a Prospect that is gone is explained by its code', async () => {
     visit(route('GET', ONE, failure(404, 'prospect.not_found')))
     expect(await screen.findByText(/no longer exists, or you cannot see it/)).toBeTruthy()

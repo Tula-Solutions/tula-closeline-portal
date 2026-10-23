@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import axe from 'axe-core'
+import { MAX_EMPTY_PAGES } from '~/data/queries'
 import { companyBody, hexId, memberBody, page, prospectBody } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
@@ -75,6 +76,19 @@ describe('Prospects: the list', () => {
     await screen.findByText('First7 Last7')
     expect(screen.queryByText('No Prospect matches.')).toBeNull()
     expect(listed(portal).length).toBe(2)
+  })
+
+  test('empty pages that each carry a cursor stop at the cap and offer Load more', async () => {
+    const portal = visit(
+      'rep',
+      '/prospects?q=ann',
+      route('GET', PROSPECTS, (call) =>
+        json(200, page([], `c${(params(call.url).get('cursor') ?? 'c0').slice(1)}x`))
+      )
+    )
+    await screen.findByRole('button', { name: 'Load more Prospects' }, { timeout: 4000 })
+    expect(listed(portal).length).toBe(MAX_EMPTY_PAGES + 1)
+    expect(screen.queryByText('No Prospect matches.')).toBeNull()
   })
 
   test('says nothing matches only when the list has ended', async () => {

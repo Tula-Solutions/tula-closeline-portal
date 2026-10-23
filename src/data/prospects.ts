@@ -43,6 +43,17 @@ export function sourceLabel(source: string): string {
   return 'Another Source'
 }
 
+/** A Source worded for the middle of a sentence: generic words in lower case, product names kept. */
+export function sourcePhrase(source: string): string {
+  const label = sourceLabel(source)
+  return label === 'HubSpot' || label === 'Salesforce'
+    ? label
+    : `${label.charAt(0).toLowerCase()}${label.slice(1)}`.replace(
+        'another Source',
+        'another source'
+      )
+}
+
 /** The text of one field of a Prospect, or an empty string when it has none. */
 export function fieldValue(prospect: Prospect, name: ProspectFieldName): string {
   return prospect.fields[name]?.value ?? ''
