@@ -21,6 +21,12 @@ import {
   type ProspectImportRowResult,
   prospectCompanyIdSchema,
 } from 'tula-closeline-contract'
+import type {
+  ConsentEventsPage,
+  ConsentWordingsPage,
+  SuppressionFilter,
+  SuppressionPage,
+} from '~/api/consent'
 import type { ProspectFilter } from '~/api/core'
 import type { CallsPage } from '~/api/sales-history'
 import type { LinesPage } from '~/api/voice'
@@ -50,6 +56,10 @@ export const KEYS = {
   prospects: (organizationId: string) => [organizationId, 'prospects'] as const,
   /** Every cached read about Prospect Companies. */
   prospectCompanies: (organizationId: string) => [organizationId, 'prospect-companies'] as const,
+  /** Every cached read about Contact Consent (a Prospect's states, ledger and the Consent Wordings). */
+  consent: (organizationId: string) => [organizationId, 'consent'] as const,
+  /** Every cached list of Suppression entries, whatever its filters. */
+  suppression: (organizationId: string) => [organizationId, 'suppression'] as const,
   /** The rights confirmation. */
   rights: (organizationId: string) => [organizationId, 'rights'] as const,
 }
@@ -751,4 +761,85 @@ export function useMemberOptions(enabled: boolean) {
     }
   }, [hasNextPage, isFetchingNextPage, isError, fetchNextPage, pageCount])
   return { items: (query.data?.pages ?? []).flatMap((page) => page.items) }
+}
+
+/** The Contact Consent state of one Prospect, every channel. */
+export function useProspectConsent(prospectId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.consent(organizationId), 'state', prospectId],
+    queryFn: ({ signal }) => app.consent.getProspectConsent(prospectId, signal),
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The consent ledger of one Prospect, newest first, a page at a time. */
+export function useConsentEvents(prospectId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ConsentEventsPage,
+    Error,
+    InfiniteData<ConsentEventsPage, string | undefined>,
+    readonly unknown[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.consent(organizationId), 'events', prospectId],
+    queryFn: ({ pageParam, signal }) =>
+      app.consent.listConsentEvents(prospectId, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+    retry: false,
+  })
+  return pagedState(query)
+}
+
+/** The most pages of Consent Wordings the record form reads, so a long history stays bounded. */
+export const WORDING_PAGES = 4
+
+/** The Consent Wordings of the Organization, newest page first, up to `WORDING_PAGES` pages. */
+export function useConsentWordings(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ConsentWordingsPage,
+    Error,
+    InfiniteData<ConsentWordingsPage, string | undefined>,
+    readonly unknown[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.consent(organizationId), 'wordings'],
+    queryFn: ({ pageParam, signal }) =>
+      app.consent.listConsentWordings({ cursor: pageParam, signal, limit: MAX_PAGE_SIZE }),
+    initialPageParam: undefined,
+    getNextPageParam: (last, pages) =>
+      pages.length >= WORDING_PAGES ? undefined : (last.nextCursor ?? undefined),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+  return pagedState(query)
+}
+
+/** The Suppression entries that match the filters, a page at a time. `enabled` is false for a role that may not list them. */
+export function useSuppressionEntries(filter: SuppressionFilter, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    SuppressionPage,
+    Error,
+    InfiniteData<SuppressionPage, string | undefined>,
+    readonly unknown[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.suppression(organizationId), filter],
+    queryFn: ({ pageParam, signal }) =>
+      app.consent.listSuppressionEntries({ ...filter, cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
 }

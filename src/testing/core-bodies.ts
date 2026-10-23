@@ -12,7 +12,10 @@ export function hexId(
     | 'prs'
     | 'pco'
     | 'pimp'
-    | 'line',
+    | 'line'
+    | 'cev'
+    | 'cwd'
+    | 'sup',
   n: number
 ): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`
@@ -362,6 +365,127 @@ export function lineBody(
     assignment: { kind: 'unassigned' },
     createdAt: '2026-10-01T00:00:00Z',
     releasedAt: overrides.state === 'released' ? '2026-10-02T00:00:00Z' : null,
+    ...overrides,
+  }
+}
+
+/** The five channels in the contract's order, for a Prospect's consent. */
+const CONSENT_CHANNEL_ORDER = ['phone', 'sms', 'whatsapp', 'email', 'linkedin'] as const
+
+/** A Prospect's consent as core returns it: every channel once, `none` unless overridden. */
+export function consentBody(
+  prospectN: number,
+  states: Partial<Record<(typeof CONSENT_CHANNEL_ORDER)[number], 'granted' | 'withdrawn'>> = {},
+  overrides: Partial<{ suppressed: boolean; suppressionReason: string | null }> = {}
+) {
+  return {
+    prospectId: hexId('prs', prospectN),
+    channels: CONSENT_CHANNEL_ORDER.map((channel, index) => {
+      const state = states[channel] ?? 'none'
+      return {
+        channel,
+        state,
+        since: state === 'none' ? null : '2026-10-03T10:00:00Z',
+        lastEventId: state === 'none' ? null : hexId('cev', index + 1),
+        wordingId: state === 'granted' ? hexId('cwd', 1) : null,
+      }
+    }),
+    suppressed: false,
+    suppressionReason: null,
+    ...overrides,
+  }
+}
+
+/** One entry of a Prospect's consent ledger as core returns it. */
+export function consentEventBody(
+  n: number,
+  overrides: Partial<{
+    channel: string
+    kind: string
+    source: string
+    wordingId: string | null
+    evidenceRef: string | null
+    callId: string | null
+    stopAll: boolean
+    occurredAt: string
+  }> = {}
+) {
+  return {
+    id: hexId('cev', n),
+    prospectId: hexId('prs', 1),
+    channel: 'phone',
+    kind: 'granted',
+    source: 'verbal_call',
+    wordingId: hexId('cwd', 1),
+    evidenceRef: 'Call notes, 3 October',
+    callId: hexId('call', 1),
+    formId: null,
+    stopAll: false,
+    recordedByUserId: hexId('usr', 1),
+    occurredAt: '2026-10-03T10:00:00Z',
+    recordedAt: '2026-10-03T10:00:05Z',
+    ...overrides,
+  }
+}
+
+/** One withdrawal in a Prospect's consent ledger: it carries no wording, evidence or Call. */
+export function withdrawalEventBody(
+  n: number,
+  overrides: Parameters<typeof consentEventBody>[1] = {}
+) {
+  return consentEventBody(n, {
+    kind: 'withdrawn',
+    source: 'manual',
+    wordingId: null,
+    evidenceRef: null,
+    callId: null,
+    ...overrides,
+  })
+}
+
+/** A Consent Wording as core returns it. */
+export function wordingBody(
+  n: number,
+  overrides: Partial<{ text: string; channels: string[]; version: number }> = {}
+) {
+  return {
+    id: hexId('cwd', n),
+    version: 1,
+    text: `We may call you about Northline products (wording ${n}).`,
+    channels: ['phone', 'sms'],
+    locked: true,
+    supersedesId: null,
+    createdAt: '2026-09-01T00:00:00Z',
+    createdByUserId: hexId('usr', 1),
+    ...overrides,
+  }
+}
+
+/** A Suppression entry as core returns it. */
+export function suppressionBody(
+  n: number,
+  overrides: Partial<{
+    addressKind: string
+    maskedAddress: string | null
+    reason: string
+    removable: boolean
+    removedAt: string | null
+    removalReason: string | null
+  }> = {}
+) {
+  return {
+    id: hexId('sup', n),
+    addressKind: 'email',
+    maskedAddress: `p***${n}@example.com`,
+    reason: 'manual',
+    channel: null,
+    sourceRef: null,
+    addedByUserId: hexId('usr', 1),
+    removable: true,
+    createdAt: '2026-10-05T09:00:00Z',
+    removedAt: null,
+    removedByUserId: overrides.removedAt ? hexId('usr', 2) : null,
+    removalReason: overrides.removedAt ? 'Added by mistake' : null,
     ...overrides,
   }
 }

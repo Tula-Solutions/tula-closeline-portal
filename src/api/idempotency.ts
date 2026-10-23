@@ -54,6 +54,14 @@ export const fingerprint = {
     JSON.stringify(['call', name, size, modified, dealId, rep]),
   /** Adding a Line with this request body (as JSON): the same body is the same intent. */
   line: (body: string) => JSON.stringify(['line', body]),
+  /** Recording a grant on a Prospect with this body (as JSON): the same grant is the same intent. */
+  consentGrant: (prospectId: string, body: string) =>
+    JSON.stringify(['consent-grant', prospectId, body]),
+  /** Withdrawing consent on a Prospect with this body (as JSON). */
+  consentWithdrawal: (prospectId: string, body: string) =>
+    JSON.stringify(['consent-withdrawal', prospectId, body]),
+  /** Adding an address to Suppression with this body (as JSON). */
+  suppression: (body: string) => JSON.stringify(['suppression', body]),
   /** Adding `membershipId` to the Team `teamId`. */
   teamMember: (teamId: string, membershipId: string) =>
     JSON.stringify(['team-member', teamId, membershipId]),
