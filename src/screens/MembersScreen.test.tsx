@@ -341,10 +341,16 @@ describe('members: changing a role and removing', () => {
 
 describe('navigation', () => {
   test.each([
-    ['owner', ['Home', 'Members', 'Invitations', 'Teams', 'Playbook', 'Sales history']],
-    ['admin', ['Home', 'Members', 'Invitations', 'Teams', 'Playbook', 'Sales history']],
-    ['manager', ['Home', 'Members', 'Teams', 'Playbook']],
-    ['rep', ['Home', 'Teams', 'Playbook']],
+    [
+      'owner',
+      ['Home', 'Prospects', 'Members', 'Invitations', 'Teams', 'Playbook', 'Sales history'],
+    ],
+    [
+      'admin',
+      ['Home', 'Prospects', 'Members', 'Invitations', 'Teams', 'Playbook', 'Sales history'],
+    ],
+    ['manager', ['Home', 'Prospects', 'Members', 'Teams', 'Playbook']],
+    ['rep', ['Home', 'Prospects', 'Teams', 'Playbook']],
   ] as const)('%s sees %j', async (role, links) => {
     visit(role, route('GET', MEMBERS, json(200, page([]))))
     const nav = await screen.findByRole('navigation', { name: 'Main' })

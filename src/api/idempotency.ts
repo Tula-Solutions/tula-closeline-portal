@@ -36,6 +36,10 @@ export const fingerprint = {
   invitation: (email: string, role: string) => JSON.stringify(['invitation', email, role]),
   /** Creating a Team called `name`. */
   team: (name: string) => JSON.stringify(['team', name]),
+  /** Creating a Prospect from this body (as JSON text, so the same details are the same intent). */
+  prospect: (body: string) => JSON.stringify(['prospect', body]),
+  /** Creating a Prospect Company called `name`. */
+  prospectCompany: (name: string) => JSON.stringify(['prospect-company', name]),
   /** Uploading a file with this name, size and last-modified time (the same file chosen again is the same intent). */
   document: (name: string, size: number, modified: number) =>
     JSON.stringify(['document', name, size, modified]),

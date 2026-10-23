@@ -574,6 +574,20 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* A dt with its dd rows, kept as one grouping without a box of its own. */
+  .dl-group {
+    display: contents;
+  }
+
+  /* The Source and time of one field: a ruled row under it, revealed on demand. */
+  dl dd.source-row {
+    grid-column: 1 / -1;
+    padding-inline-start: 1rem;
+    border-inline-start: 2px solid var(--rule-strong);
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+
   a:not([class]) {
     color: var(--foreground);
     font-weight: 500;

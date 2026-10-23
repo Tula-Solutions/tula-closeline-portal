@@ -27,6 +27,11 @@ describe('the routing table', () => {
       '/v1/invitations -> core',
       '/v1/teams -> core',
       '/v1/marketing -> core',
+      '/v1/prospects -> core',
+      '/v1/prospect-companies -> core',
+      '/v1/prospect-imports -> core',
+      '/v1/suppression-entries -> core',
+      '/v1/contact-checks -> core',
       '/v1/playbook -> playbook',
     ])
     expect(new Set(SERVICE_ROUTES.map((route) => route.prefix)).size).toBe(SERVICE_ROUTES.length)

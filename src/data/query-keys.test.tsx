@@ -7,6 +7,7 @@ import {
   importBody,
   memberBody,
   page,
+  prospectBody,
   rightsBody,
   teamBody,
 } from '~/testing/core-bodies'
@@ -33,6 +34,7 @@ describe('what the query cache holds', () => {
     ['/sales-history/imports', 'Completed'],
     ['/sales-history/calls', 'call-1.txt'],
     ['/sales-history/rights', /Rights confirmed/],
+    ['/prospects', 'First1 Last1'],
   ])('%s: every cached query is Organization-keyed', async (url, text) => {
     const portal = renderPortal({
       url,
@@ -41,6 +43,8 @@ describe('what the query cache holds', () => {
         route('GET', '/v1/members', json(200, page([memberBody(1, { name: 'Maya Chen' })]))),
         route('GET', '/v1/teams', json(200, page([teamBody(1, 'Northern')]))),
         route('GET', '/v1/invitations', json(200, page([]))),
+        route('GET', '/v1/prospects', json(200, page([prospectBody(1)]))),
+        route('GET', '/v1/prospect-companies', json(200, page([]))),
         route('GET', '/v1/playbook/documents', json(200, page([documentBody(1)]))),
         route('GET', '/v1/playbook/calls', json(200, page([callBody(1)]))),
         route('GET', '/v1/playbook/deals', json(200, page([dealBody(1)]))),

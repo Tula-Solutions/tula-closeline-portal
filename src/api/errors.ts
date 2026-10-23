@@ -14,13 +14,21 @@ export class ApiError extends Error {
   readonly code: string
   readonly status: number
   readonly retryAfterSeconds: number | undefined
+  /** Which identity clashed, on `prospect.duplicate_identity` only. */
+  readonly identityKind: 'email' | 'phone' | 'linkedin' | undefined
 
-  constructor(init: { code: string; status: number; retryAfterSeconds?: number }) {
+  constructor(init: {
+    code: string
+    status: number
+    retryAfterSeconds?: number
+    identityKind?: 'email' | 'phone' | 'linkedin'
+  }) {
     super(init.code)
     this.name = 'ApiError'
     this.code = init.code
     this.status = init.status
     this.retryAfterSeconds = init.retryAfterSeconds
+    this.identityKind = init.identityKind
   }
 }
 
@@ -62,10 +70,14 @@ export async function parseErrorResponse(response: Response, now = Date.now()): 
   const retryAfterSeconds =
     fromHeader(response.headers.get('retry-after'), now) ??
     (typeof detail === 'number' ? clampSeconds(detail) : undefined)
+  const kind = parsed.data.error.details?.identityKind
+  const identityKind =
+    kind === 'email' || kind === 'phone' || kind === 'linkedin' ? kind : undefined
   return new ApiError({
     code: parsed.data.error.code,
     status: response.status,
     ...(retryAfterSeconds === undefined ? {} : { retryAfterSeconds }),
+    ...(identityKind === undefined ? {} : { identityKind }),
   })
 }
 

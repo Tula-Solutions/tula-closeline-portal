@@ -190,6 +190,7 @@ export function Shell() {
             <NavLink to='/' exact>
               Home
             </NavLink>
+            <NavLink to='/prospects'>Prospects</NavLink>
           </div>
           <NavGroup id='organization' label='Organization'>
             {can.viewMembers(role) ? <NavLink to='/members'>Members</NavLink> : null}

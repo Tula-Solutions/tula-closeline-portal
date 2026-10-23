@@ -1,6 +1,6 @@
 /** An id in the contract's shape: a prefix and 32 hex digits, made from a number. */
 export function hexId(
-  prefix: 'mem' | 'inv' | 'team' | 'usr' | 'doc' | 'deal' | 'dimp' | 'call',
+  prefix: 'mem' | 'inv' | 'team' | 'usr' | 'doc' | 'deal' | 'dimp' | 'call' | 'prs' | 'pco',
   n: number
 ): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`
@@ -213,5 +213,62 @@ export function callBody(
     createdAt: '2026-10-13T09:30:00Z',
     updatedAt: '2026-10-13T09:31:00Z',
     ...overrides,
+  }
+}
+
+/** A Prospect as core returns it: a manual Prospect with a name and an email address unless overridden. */
+export function prospectBody(
+  n: number,
+  overrides: Partial<{
+    status: string
+    source: string
+    tags: string[]
+    notes: string | null
+    companyId: string | null
+    ownerMembershipId: string | null
+    fields: Record<string, unknown>
+  }> = {}
+) {
+  const set = (value: string, source = 'manual') => ({
+    value,
+    source,
+    sourceRef: null,
+    setAt: '2026-10-02T08:30:00Z',
+    setByUserId: hexId('usr', 1),
+  })
+  return {
+    id: hexId('prs', n),
+    companyId: null,
+    ownerMembershipId: hexId('mem', 1),
+    status: 'active',
+    source: 'manual',
+    tags: [],
+    notes: null,
+    fields: {
+      firstName: set(`First${n}`),
+      lastName: set(`Last${n}`),
+      email: set(`prospect${n}@example.com`),
+    },
+    createdAt: '2026-10-02T08:30:00Z',
+    updatedAt: '2026-10-02T08:30:00Z',
+    ...overrides,
+  }
+}
+
+/** A Prospect Company as core returns it. */
+export function companyBody(n: number, name = `Company ${n}`) {
+  return {
+    id: hexId('pco', n),
+    fields: {
+      name: {
+        value: name,
+        source: 'manual',
+        sourceRef: null,
+        setAt: '2026-10-02T08:30:00Z',
+        setByUserId: hexId('usr', 1),
+      },
+    },
+    createdAt: '2026-10-02T08:30:00Z',
+    updatedAt: '2026-10-02T08:30:00Z',
   }
 }

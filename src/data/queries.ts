@@ -1,4 +1,5 @@
 import { type InfiniteData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import {
   type CallState,
   type DocumentState,
@@ -8,10 +9,13 @@ import {
   type ListDocumentsResponse,
   type ListInvitationsResponse,
   type ListMembersResponse,
+  type ListProspectCompaniesResponse,
+  type ListProspectsResponse,
   type ListTeamsResponse,
   MAX_PAGE_SIZE,
   type Outcome,
 } from 'tula-closeline-contract'
+import type { ProspectFilter } from '~/api/core'
 import type { CallsPage } from '~/api/sales-history'
 import type { App } from '~/app'
 import { useApp, useSessionState } from '~/app-context'
@@ -30,6 +34,10 @@ export const KEYS = {
   dealImports: (organizationId: string) => [organizationId, 'deal-imports'] as const,
   /** Every cached list of Calls, whatever its filters. */
   calls: (organizationId: string) => [organizationId, 'calls'] as const,
+  /** Every cached read about Prospects (lists and single Prospects): invalidate this after one changes. */
+  prospects: (organizationId: string) => [organizationId, 'prospects'] as const,
+  /** Every cached read about Prospect Companies. */
+  prospectCompanies: (organizationId: string) => [organizationId, 'prospect-companies'] as const,
   /** The rights confirmation. */
   rights: (organizationId: string) => [organizationId, 'rights'] as const,
 }
@@ -411,4 +419,85 @@ export function useCalls(filter: {
     enabled: organizationId !== '',
   })
   return { ...pagedState(query), refetch: () => query.refetch() }
+}
+
+/** How many pages in a row may come back empty before the screen stops asking and offers "Load more". */
+export const MAX_EMPTY_PAGES = 5
+
+/**
+ * The Prospects the caller may see, a page at a time. A page may hold fewer than the page size,
+ * even none, while a cursor is present (core filters after it reads), so the list is empty only
+ * when no cursor is left; while nothing has been found yet the next page is asked for, up to
+ * `MAX_EMPTY_PAGES`, and then the person decides with "Load more".
+ */
+export function useProspects(filter: ProspectFilter) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListProspectsResponse,
+    Error,
+    InfiniteData<ListProspectsResponse, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [
+      ...KEYS.prospects(organizationId),
+      'list',
+      filter.q ?? '',
+      filter.status ?? '',
+      filter.source ?? '',
+      filter.ownerMembershipId ?? '',
+      filter.companyId ?? '',
+    ],
+    queryFn: ({ pageParam, signal }) =>
+      app.core.listProspects({ ...filter, cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  const paged = pagedState(query)
+  const pages = query.data?.pages ?? []
+  const searching =
+    query.data !== undefined &&
+    paged.items.length === 0 &&
+    query.hasNextPage &&
+    pages.length <= MAX_EMPTY_PAGES
+  const { fetchNextPage, isFetchingNextPage, isError } = query
+  useEffect(() => {
+    if (searching && !isFetchingNextPage && !isError) {
+      void fetchNextPage()
+    }
+  }, [searching, isFetchingNextPage, isError, fetchNextPage])
+  return {
+    items: paged.items,
+    state: {
+      ...paged.state,
+      // Nothing yet is not nothing at all: only an end of the list with no rows says "empty".
+      isEmpty: paged.state.isEmpty && !query.hasNextPage,
+      isPending: paged.state.isPending || searching,
+    },
+  }
+}
+
+/** One Prospect with the Source and time of each field. */
+export function useProspect(prospectId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.prospects(organizationId), 'one', prospectId],
+    queryFn: ({ signal }) => app.core.getProspect(prospectId, signal),
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The first page (up to 100) of Prospect Companies, for a choice in a form or a name beside a Prospect. */
+export function useProspectCompanies() {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery<ListProspectCompaniesResponse>({
+    queryKey: [...KEYS.prospectCompanies(organizationId), 'first-page'],
+    queryFn: ({ signal }) => app.core.listProspectCompanies({ limit: MAX_PAGE_SIZE, signal }),
+    enabled: organizationId !== '',
+  })
 }
