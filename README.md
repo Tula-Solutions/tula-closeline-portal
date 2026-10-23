@@ -48,6 +48,9 @@ Nothing under `/internal` is forwarded. `/healthz` and `/readyz` exist on both s
 not routed; probe a service on its own port. Where the services listen comes from three dev-server
 settings, not `VITE_*` (see `.env.example`): `AUTH_PROXY_TARGET` (default `http://127.0.0.1:3001`),
 `CORE_PROXY_TARGET` (default `http://127.0.0.1:3002`) and `PLAYBOOK_PROXY_TARGET` (default `http://127.0.0.1:3003`).
+The dev server answers 403 to a Host header it does not know; `PORTAL_DEV_ALLOWED_HOSTS` adds hosts (for
+example a tunnel) as a comma-separated list of exact hostnames (no port). Unset keeps Vite's default; `true`, `*` and
+wildcard or suffix entries are refused.
 
 Run auth with `SESSION_ALLOWED_ORIGINS` set to the portal's origin (`http://localhost:5173`) and, over
 plain http, `SESSION_COOKIE_INSECURE=true` (the cookie is then named `tula_refresh`).
