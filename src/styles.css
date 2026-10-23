@@ -306,6 +306,16 @@
     white-space: pre-wrap;
   }
 
+  /* A quiet stand-in for a name still being fetched: a fixed width, so the row does not shift. */
+  .skeleton {
+    display: inline-block;
+    inline-size: 8ch;
+    block-size: 1lh;
+    vertical-align: middle;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    border-radius: 2px;
+  }
+
   .sr-only {
     position: absolute;
     width: 1px;

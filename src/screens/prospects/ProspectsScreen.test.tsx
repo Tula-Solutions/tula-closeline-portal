@@ -412,3 +412,58 @@ describe('Prospects: the Owner on each row', () => {
     expect(portal.calls.filter((call) => call.path === '/v1/members')).toHaveLength(0)
   })
 })
+
+describe('Prospects: the owner cell', () => {
+  const owned = (n = 1) => prospectBody(n, { ownerMembershipId: hexId('mem', 1) })
+  const byIds =
+    (handler: Handler): Handler =>
+    (call) =>
+      call.path === '/v1/members' && params(call.url).has('ids') ? handler(call) : null
+
+  test('while the name is being resolved the cell says it is loading, never "Owner"', async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    visit(
+      'admin',
+      '/prospects',
+      byIds(async () => {
+        await gate
+        return json(200, page([memberBody(1, { name: 'Maya Chen' })]))
+      }),
+      route('GET', PROSPECTS, json(200, page([owned()])))
+    )
+    const row = (await screen.findByRole('link', { name: 'First1 Last1' })).closest('tr')
+    await waitFor(() => expect(row?.textContent).toContain('Loading owner'))
+    const cells = row?.querySelectorAll('td') ?? []
+    expect(Array.from(cells).some((td) => td.textContent === 'Owner')).toBe(false)
+    expect(row?.textContent).not.toContain('Unknown member')
+    release()
+    await waitFor(() => expect(row?.textContent).toContain('Maya Chen'))
+    expect(row?.textContent).not.toContain('Loading owner')
+  })
+
+  test('a failed lookup shows "Unknown member"', async () => {
+    visit(
+      'admin',
+      '/prospects',
+      byIds(() => failure(500, 'internal.error')),
+      route('GET', PROSPECTS, json(200, page([owned()])))
+    )
+    const row = (await screen.findByRole('link', { name: 'First1 Last1' })).closest('tr')
+    await waitFor(() => expect(row?.textContent).toContain('Unknown member'))
+    expect(row?.textContent).not.toContain('Loading owner')
+  })
+
+  test('a member the lookup leaves out shows "Unknown member"', async () => {
+    visit(
+      'admin',
+      '/prospects',
+      byIds(() => json(200, page([]))),
+      route('GET', PROSPECTS, json(200, page([owned()])))
+    )
+    const row = (await screen.findByRole('link', { name: 'First1 Last1' })).closest('tr')
+    await waitFor(() => expect(row?.textContent).toContain('Unknown member'))
+  })
+})

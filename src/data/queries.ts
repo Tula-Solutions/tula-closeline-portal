@@ -743,6 +743,11 @@ const MEMBER_IDS_PER_CALL = MAX_MEMBER_IDS
  * from id to the member; an id core does not list is absent.
  */
 export function useMembersByIds(ids: readonly string[], enabled = true) {
+  return useMembersByIdsState(ids, enabled).members
+}
+
+/** Like `useMembersByIds`, and says whether a lookup is still under way (`loading`). */
+export function useMembersByIdsState(ids: readonly string[], enabled = true) {
   const app = useApp()
   const organizationId = useOrganizationId()
   const wanted = [...new Set(ids)].sort()
@@ -766,7 +771,10 @@ export function useMembersByIds(ids: readonly string[], enabled = true) {
     enabled: enabled && organizationId !== '' && wanted.length > 0,
     placeholderData: (previous) => previous,
   })
-  return query.data ?? new Map<string, ListMembersResponse['items'][number]>()
+  return {
+    members: query.data ?? new Map<string, ListMembersResponse['items'][number]>(),
+    loading: query.isFetching,
+  }
 }
 
 /** The Contact Consent state of one Prospect, every channel. */
