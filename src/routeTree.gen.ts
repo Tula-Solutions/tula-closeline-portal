@@ -23,6 +23,7 @@ import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
 import { Route as SiteCopilotRouteImport } from './routes/_site/copilot'
 import { Route as SiteInboundAgentRouteImport } from './routes/_site/inbound-agent'
 import { Route as SiteOutboundAgentRouteImport } from './routes/_site/outbound-agent'
+import { Route as SiteSecurityRouteImport } from './routes/_site/security'
 import { Route as SiteThePlaybookRouteImport } from './routes/_site/the-playbook'
 import { Route as AppPlaybookIndexRouteImport } from './routes/_app/playbook/index'
 import { Route as AppPlaybookSearchRouteImport } from './routes/_app/playbook/search'
@@ -103,6 +104,11 @@ const SiteOutboundAgentRoute = SiteOutboundAgentRouteImport.update({
   path: '/outbound-agent',
   getParentRoute: () => SiteRoute,
 } as any)
+const SiteSecurityRoute = SiteSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => SiteRoute,
+} as any)
 const SiteThePlaybookRoute = SiteThePlaybookRouteImport.update({
   id: '/the-playbook',
   path: '/the-playbook',
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/copilot': typeof SiteCopilotRoute
   '/inbound-agent': typeof SiteInboundAgentRoute
   '/outbound-agent': typeof SiteOutboundAgentRoute
+  '/security': typeof SiteSecurityRoute
   '/the-playbook': typeof SiteThePlaybookRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByTo {
   '/copilot': typeof SiteCopilotRoute
   '/inbound-agent': typeof SiteInboundAgentRoute
   '/outbound-agent': typeof SiteOutboundAgentRoute
+  '/security': typeof SiteSecurityRoute
   '/the-playbook': typeof SiteThePlaybookRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
@@ -232,6 +240,7 @@ export interface FileRoutesById {
   '/_site/copilot': typeof SiteCopilotRoute
   '/_site/inbound-agent': typeof SiteInboundAgentRoute
   '/_site/outbound-agent': typeof SiteOutboundAgentRoute
+  '/_site/security': typeof SiteSecurityRoute
   '/_site/the-playbook': typeof SiteThePlaybookRoute
   '/_app/': typeof AppIndexRoute
   '/_app/playbook/search': typeof AppPlaybookSearchRoute
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/copilot'
     | '/inbound-agent'
     | '/outbound-agent'
+    | '/security'
     | '/the-playbook'
     | '/playbook/search'
     | '/sales-history/rights'
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/copilot'
     | '/inbound-agent'
     | '/outbound-agent'
+    | '/security'
     | '/the-playbook'
     | '/playbook/search'
     | '/sales-history/rights'
@@ -310,6 +321,7 @@ export interface FileRouteTypes {
     | '/_site/copilot'
     | '/_site/inbound-agent'
     | '/_site/outbound-agent'
+    | '/_site/security'
     | '/_site/the-playbook'
     | '/_app/'
     | '/_app/playbook/search'
@@ -429,6 +441,13 @@ declare module '@tanstack/react-router' {
       path: '/outbound-agent'
       fullPath: '/outbound-agent'
       preLoaderRoute: typeof SiteOutboundAgentRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/security': {
+      id: '/_site/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof SiteSecurityRouteImport
       parentRoute: typeof SiteRoute
     }
     '/_site/the-playbook': {
@@ -597,6 +616,7 @@ interface SiteRouteChildren {
   SiteCopilotRoute: typeof SiteCopilotRoute
   SiteInboundAgentRoute: typeof SiteInboundAgentRoute
   SiteOutboundAgentRoute: typeof SiteOutboundAgentRoute
+  SiteSecurityRoute: typeof SiteSecurityRoute
   SiteThePlaybookRoute: typeof SiteThePlaybookRoute
 }
 
@@ -604,6 +624,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteCopilotRoute: SiteCopilotRoute,
   SiteInboundAgentRoute: SiteInboundAgentRoute,
   SiteOutboundAgentRoute: SiteOutboundAgentRoute,
+  SiteSecurityRoute: SiteSecurityRoute,
   SiteThePlaybookRoute: SiteThePlaybookRoute,
 }
 

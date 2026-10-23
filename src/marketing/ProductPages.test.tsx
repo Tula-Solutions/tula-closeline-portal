@@ -12,7 +12,7 @@ const PAGES = [
 ] as const
 
 const ALLOWED =
-  /^(\/#trust|\/copilot|\/inbound-agent|\/outbound-agent|\/the-playbook|#main|\/sign-in|\/sign-up|\/)$/
+  /^(\/security|\/copilot|\/inbound-agent|\/outbound-agent|\/the-playbook|#main|\/sign-in|\/sign-up|\/)$/
 
 /** Runs axe on the page. Colour contrast needs real layout, so the browser check covers it. */
 async function violations() {
