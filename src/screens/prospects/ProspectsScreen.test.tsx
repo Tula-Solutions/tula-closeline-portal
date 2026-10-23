@@ -205,4 +205,16 @@ describe('Prospects: companies and owners beyond the first page', () => {
     await screen.findByText('First1 Last1')
     await waitFor(() => expect(screen.getByRole('option', { name: 'Zed Late' })).toBeTruthy())
   })
+
+  test('an Owner filter from the address stays selectable when that member is not loaded', async () => {
+    const unseen = hexId('mem', 900)
+    visit(
+      'admin',
+      `/prospects?owner=${unseen}`,
+      route('GET', PROSPECTS, json(200, page([prospectBody(1)])))
+    )
+    await screen.findByText('First1 Last1')
+    const select = screen.getByLabelText('Owner') as HTMLSelectElement
+    await waitFor(() => expect(select.value).toBe(unseen))
+  })
 })

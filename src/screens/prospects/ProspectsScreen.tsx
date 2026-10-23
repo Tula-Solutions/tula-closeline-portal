@@ -137,6 +137,9 @@ export function ProspectsScreen() {
               value={search.owner ?? ''}
               options={[
                 { value: '', text: 'Any owner' },
+                ...(search.owner && !members.items.some((member) => member.id === search.owner)
+                  ? [{ value: search.owner, text: 'Selected owner' }]
+                  : []),
                 ...members.items.map((member) => ({
                   value: member.id,
                   text: plain(member.name ?? member.email, 'Unnamed member'),
