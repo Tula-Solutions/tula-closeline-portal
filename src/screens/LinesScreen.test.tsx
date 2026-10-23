@@ -274,7 +274,49 @@ describe('Lines: assign', () => {
     })
   })
 
-  test('assigns a Line to a Rep, offering only Reps', async () => {
+  test('finds a Rep by email on the server and assigns the Line to them', async () => {
+    const portal = visit(
+      'admin',
+      '/lines',
+      route('PUT', assignment(1), json(200, lineBody(1))),
+      lines,
+      teams,
+      route('GET', MEMBERS, (call) =>
+        param(call.url, 'q') === 'maya@north'
+          ? json(
+              200,
+              page([memberBody(1, { name: 'Maya Chen', role: 'rep', email: 'maya@northline.app' })])
+            )
+          : json(
+              200,
+              page([
+                memberBody(2, { name: 'Omar Admin', role: 'admin' }),
+                memberBody(3, { name: 'Zed Rep', role: 'rep' }),
+              ])
+            )
+      )
+    )
+    await screen.findByText('+14155550001')
+    await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
+    await choose(portal.user, await screen.findByLabelText('Who answers'), 'rep')
+    const rep = await screen.findByLabelText('Rep')
+    expect(rep.getAttribute('role')).toBe('combobox')
+    await portal.user.click(rep)
+    await screen.findByRole('option', { name: 'Zed Rep' })
+    expect(screen.queryByRole('option', { name: 'Omar Admin' })).toBeNull()
+    await portal.user.clear(rep)
+    await portal.user.type(rep, 'maya@north')
+    await portal.user.click(await screen.findByRole('option', { name: 'Maya Chen' }))
+    await portal.user.click(screen.getByRole('button', { name: 'Save assignment' }))
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Line assigned.'))
+    expect(portal.calls.some((call) => call.url.includes('q=maya%40north'))).toBe(true)
+    expect(portal.calls.find((call) => call.method === 'PUT')?.body).toEqual({
+      kind: 'rep',
+      membershipId: hexId('mem', 1),
+    })
+  })
+
+  test('a Rep is chosen from the keyboard without sending the form', async () => {
     const portal = visit(
       'admin',
       '/lines',
@@ -285,14 +327,13 @@ describe('Lines: assign', () => {
     )
     await screen.findByText('+14155550001')
     await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
-    const select = await screen.findByLabelText('Who answers')
-    let texts: string[] = []
-    await waitFor(async () => {
-      texts = (await optionsOf(portal.user, select, true)).map((option) => option.text)
-      expect(texts.some((text) => /Maya Chen/.test(text))).toBe(true)
-    })
-    expect(texts.some((text) => /Omar Admin/.test(text))).toBe(false)
-    await choose(portal.user, select, `rep:${hexId('mem', 1)}`)
+    await choose(portal.user, await screen.findByLabelText('Who answers'), 'rep')
+    const rep = (await screen.findByLabelText('Rep')) as HTMLInputElement
+    await portal.user.click(rep)
+    await screen.findByRole('option', { name: 'Maya Chen' })
+    await portal.user.keyboard('{ArrowDown}{Enter}')
+    expect(rep.value).toBe('Maya Chen')
+    expect(portal.calls.filter((call) => call.method === 'PUT').length).toBe(0)
     await portal.user.click(screen.getByRole('button', { name: 'Save assignment' }))
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Line assigned.'))
     expect(portal.calls.find((call) => call.method === 'PUT')?.body).toEqual({
@@ -301,22 +342,27 @@ describe('Lines: assign', () => {
     })
   })
 
-  test('offers a Team and a Rep that sit on a later page, and names them', async () => {
+  test('saving as a Rep without choosing one asks for a Rep', async () => {
+    const portal = visit('admin', '/lines', lines, teams, members)
+    await screen.findByText('+14155550001')
+    await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
+    await choose(portal.user, await screen.findByLabelText('Who answers'), 'rep')
+    await portal.user.click(screen.getByRole('button', { name: 'Save assignment' }))
+    await screen.findByText(/Choose a Rep/)
+    expect(portal.calls.filter((call) => call.method === 'PUT').length).toBe(0)
+  })
+
+  test('offers a Team that sits on a later page', async () => {
     const portal = visit(
       'admin',
       '/lines',
-      route('PUT', assignment(1), json(200, lineBody(1))),
       route('GET', LINES, json(200, page([lineBody(1)]))),
       route('GET', TEAMS, (call) =>
         param(call.url, 'cursor') === 't2'
           ? json(200, page([teamBody(2, 'Far Team')]))
           : json(200, page([teamBody(1, 'Near Team')], 't2'))
       ),
-      route('GET', MEMBERS, (call) =>
-        param(call.url, 'cursor') === 'm2'
-          ? json(200, page([memberBody(2, { name: 'Far Rep', role: 'rep' })]))
-          : json(200, page([memberBody(1, { name: 'Near Admin', role: 'admin' })], 'm2'))
-      )
+      members
     )
     await screen.findByText('+14155550001')
     await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
@@ -324,7 +370,6 @@ describe('Lines: assign', () => {
     await waitFor(async () => {
       const texts = (await optionsOf(portal.user, select)).map((option) => option.text)
       expect(texts.some((text) => /Far Team/.test(text))).toBe(true)
-      expect(texts.some((text) => /Far Rep/.test(text))).toBe(true)
     })
   })
 

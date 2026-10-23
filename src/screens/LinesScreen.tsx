@@ -12,11 +12,12 @@ import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
 import { Section } from '~/components/app/section'
 import { can } from '~/data/permissions'
-import { refresh, useLines, useMemberOptions, useTeamOptions } from '~/data/queries'
+import { refresh, useLines, useMemberSearch, useTeamOptions } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { Banner } from '~/ui/Banner'
 import { Confirm } from '~/ui/Confirm'
 import { Field } from '~/ui/Field'
+import { OwnerCombobox } from '~/ui/OwnerCombobox'
 import { Paged } from '~/ui/Paged'
 import { plain } from '~/ui/plain'
 import { SelectField } from '~/ui/SelectField'
@@ -56,7 +57,8 @@ export function LinesScreen() {
 function LinesAdmin() {
   const lines = useLines(true)
   const teams = useTeamOptions(true)
-  const members = useMemberOptions(true)
+  // Names for the "who answers" lines only; choosing a Rep searches the server (OwnerCombobox).
+  const members = useMemberSearch('', true)
   const feedback = useFeedback()
   const headingRef = useRef<HTMLHeadingElement>(null)
   return (
@@ -424,7 +426,6 @@ function LineItem(props: {
         <AssignForm
           line={line}
           teams={props.teams}
-          reps={props.reps}
           onDone={props.onDone}
           onFail={props.onFail}
           onClose={() => {
@@ -440,14 +441,18 @@ function LineItem(props: {
 function AssignForm(props: {
   readonly line: Line
   readonly teams: readonly Named[]
-  readonly reps: readonly Named[]
   readonly onDone: (notice: string) => void
   readonly onFail: () => void
   readonly onClose: () => void
 }) {
   const app = useApp()
-  const [value, setValue] = useState(assignmentValue(props.line))
+  const [value, setValue] = useState(assignmentValue(props.line).replace(/^rep:.*/, 'rep'))
+  const [rep, setRep] = useState({
+    id: props.line.assignment.kind === 'rep' ? props.line.assignment.membershipId : '',
+    name: props.line.assignment.kind === 'rep' ? 'Current Rep' : '',
+  })
   const [error, setError] = useState<string | null>(null)
+  const [repError, setRepError] = useState<string | undefined>(undefined)
   const { formRef, bannerRef, focusFirstError } = useFocusOnError()
   const assign = useSubmit<string>(
     async (chosen) => {
@@ -466,20 +471,16 @@ function AssignForm(props: {
   )
   const options = [
     { value: 'unassigned', text: 'Nobody' },
-    // The current Team or Rep, kept choosable while the lists load or when it is not in them.
-    ...(props.line.assignment.kind === 'unassigned' ||
-    props.teams.some((team) => `team:${team.id}` === assignmentValue(props.line)) ||
-    props.reps.some((rep) => `rep:${rep.id}` === assignmentValue(props.line))
+    // The current Team, kept choosable while the list loads or when it is not in it.
+    ...(props.line.assignment.kind !== 'team' ||
+    props.teams.some((team) => `team:${team.id}` === assignmentValue(props.line))
       ? []
       : [{ value: assignmentValue(props.line), text: 'Current assignment' }]),
     ...props.teams.map((team) => ({
       value: `team:${team.id}`,
       text: `Team: ${isolate(team.name ?? '')}`,
     })),
-    ...props.reps.map((rep) => ({
-      value: `rep:${rep.id}`,
-      text: `Rep: ${isolate(rep.name ?? rep.email ?? '')}`,
-    })),
+    { value: 'rep', text: 'A Rep' },
   ]
   return (
     <form
@@ -493,7 +494,12 @@ function AssignForm(props: {
         if (!assign.pending) {
           props.onFail()
           setError(null)
-          assign.submit(value)
+          setRepError(undefined)
+          if (value === 'rep' && rep.id === '') {
+            setRepError('Choose a Rep.')
+            return
+          }
+          assign.submit(value === 'rep' ? `rep:${rep.id}` : value)
         }
       }}
       onKeyDown={(event) => {
@@ -514,6 +520,18 @@ function AssignForm(props: {
         options={options}
         onChange={(event) => setValue(event.target.value)}
       />
+      {value === 'rep' ? (
+        <OwnerCombobox
+          label='Rep'
+          anyText='Choose a Rep'
+          enabled
+          value={rep.id}
+          valueName={rep.name}
+          error={repError}
+          accept={(member) => member.role === 'rep'}
+          onChange={(id, name) => setRep({ id, name })}
+        />
+      ) : null}
       <div className='row-actions'>
         <button type='submit' className='button' aria-disabled={assign.pending}>
           {assign.pending ? 'Saving...' : 'Save assignment'}

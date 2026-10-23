@@ -731,38 +731,6 @@ export function useMemberSearch(term: string, enabled: boolean) {
   return { items: query.data?.items ?? [], hasMore: Boolean(query.data?.nextCursor) }
 }
 
-/**
- * Members for an Owner choice: pages are read one after another up to `MEMBER_OPTION_PAGES`
- * (core has no name search for members). No request is made unless `enabled`.
- */
-export function useMemberOptions(enabled: boolean) {
-  const app = useApp()
-  const organizationId = useOrganizationId()
-  const query = useInfiniteQuery<
-    ListMembersResponse,
-    Error,
-    InfiniteData<ListMembersResponse, string | undefined>,
-    readonly string[],
-    string | undefined
-  >({
-    queryKey: [...KEYS.members(organizationId), 'options'],
-    queryFn: ({ pageParam, signal }) =>
-      app.core.listMembers({ cursor: pageParam, limit: MAX_PAGE_SIZE, signal }),
-    initialPageParam: undefined,
-    getNextPageParam: (last) => last.nextCursor ?? undefined,
-    enabled: enabled && organizationId !== '',
-  })
-  const { fetchNextPage, hasNextPage, isFetchingNextPage, isError } = query
-  const pageCount = query.data?.pages.length ?? 0
-  // pageCount is a dependency so each arrived page asks for the next one.
-  useEffect(() => {
-    if (hasNextPage && !isFetchingNextPage && !isError && pageCount < MEMBER_OPTION_PAGES) {
-      void fetchNextPage()
-    }
-  }, [hasNextPage, isFetchingNextPage, isError, fetchNextPage, pageCount])
-  return { items: (query.data?.pages ?? []).flatMap((page) => page.items) }
-}
-
 /** The Contact Consent state of one Prospect, every channel. */
 export function useProspectConsent(prospectId: string) {
   const app = useApp()
