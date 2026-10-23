@@ -7,7 +7,7 @@
  */
 
 /** A service the browser reaches through the portal's origin. */
-export type Service = 'auth' | 'core' | 'playbook'
+export type Service = 'auth' | 'core' | 'playbook' | 'voice'
 
 /** One path prefix and the service that serves everything under it (the prefix itself, or `prefix/...`). */
 export type ServiceRoute = { readonly prefix: string; readonly service: Service }
@@ -26,6 +26,7 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/suppression-entries', service: 'core' },
   { prefix: '/v1/contact-checks', service: 'core' },
   { prefix: '/v1/playbook', service: 'playbook' },
+  { prefix: '/v1/lines', service: 'voice' },
 ]
 
 /**
@@ -60,12 +61,14 @@ export type ProxyTargets = {
   readonly auth: string
   readonly core: string
   readonly playbook: string
+  readonly voice: string
 }
 
 const DEFAULT_TARGETS: ProxyTargets = {
   auth: 'http://127.0.0.1:3001',
   core: 'http://127.0.0.1:3002',
   playbook: 'http://127.0.0.1:3003',
+  voice: 'http://127.0.0.1:3004',
 }
 
 function originOnly(name: string, value: string): string {
@@ -88,7 +91,7 @@ function originOnly(name: string, value: string): string {
   return url.origin
 }
 
-/** Reads `AUTH_PROXY_TARGET`, `CORE_PROXY_TARGET` and `PLAYBOOK_PROXY_TARGET` (dev server settings, not `VITE_*`), or throws naming the bad one. */
+/** Reads `AUTH_PROXY_TARGET`, `CORE_PROXY_TARGET`, `PLAYBOOK_PROXY_TARGET` and `VOICE_PROXY_TARGET` (dev server settings, not `VITE_*`), or throws naming the bad one. */
 export function parseProxyTargets(raw: Readonly<Record<string, string | undefined>>): ProxyTargets {
   const read = (name: string, fallback: string) => {
     const value = raw[name]?.trim()
@@ -98,6 +101,7 @@ export function parseProxyTargets(raw: Readonly<Record<string, string | undefine
     auth: read('AUTH_PROXY_TARGET', DEFAULT_TARGETS.auth),
     core: read('CORE_PROXY_TARGET', DEFAULT_TARGETS.core),
     playbook: read('PLAYBOOK_PROXY_TARGET', DEFAULT_TARGETS.playbook),
+    voice: read('VOICE_PROXY_TARGET', DEFAULT_TARGETS.voice),
   }
 }
 

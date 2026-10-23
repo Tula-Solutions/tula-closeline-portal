@@ -14,6 +14,7 @@ import { Route as PublicRouteImport } from './routes/_public'
 import { Route as SiteRouteImport } from './routes/_site'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppInvitationsRouteImport } from './routes/_app/invitations'
+import { Route as AppLinesRouteImport } from './routes/_app/lines'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppPlaybookRouteImport } from './routes/_app/playbook'
 import { Route as AppSalesHistoryRouteImport } from './routes/_app/sales-history'
@@ -64,6 +65,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppInvitationsRoute = AppInvitationsRouteImport.update({
   id: '/invitations',
   path: '/invitations',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLinesRoute = AppLinesRouteImport.update({
+  id: '/lines',
+  path: '/lines',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMembersRoute = AppMembersRouteImport.update({
@@ -222,6 +228,7 @@ const AppSalesHistoryImportsImportIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/invitations': typeof AppInvitationsRoute
+  '/lines': typeof AppLinesRoute
   '/members': typeof AppMembersRoute
   '/playbook': typeof AppPlaybookRouteWithChildren
   '/sales-history': typeof AppSalesHistoryRouteWithChildren
@@ -255,6 +262,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/invitations': typeof AppInvitationsRoute
+  '/lines': typeof AppLinesRoute
   '/members': typeof AppMembersRoute
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
@@ -288,6 +296,7 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_site': typeof SiteRouteWithChildren
   '/_app/invitations': typeof AppInvitationsRoute
+  '/_app/lines': typeof AppLinesRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/playbook': typeof AppPlaybookRouteWithChildren
   '/_app/sales-history': typeof AppSalesHistoryRouteWithChildren
@@ -324,6 +333,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/invitations'
+    | '/lines'
     | '/members'
     | '/playbook'
     | '/sales-history'
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/invitations'
+    | '/lines'
     | '/members'
     | '/teams'
     | '/sign-in'
@@ -389,6 +400,7 @@ export interface FileRouteTypes {
     | '/_public'
     | '/_site'
     | '/_app/invitations'
+    | '/_app/lines'
     | '/_app/members'
     | '/_app/playbook'
     | '/_app/sales-history'
@@ -462,6 +474,13 @@ declare module '@tanstack/react-router' {
       path: '/invitations'
       fullPath: '/invitations'
       preLoaderRoute: typeof AppInvitationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/lines': {
+      id: '/_app/lines'
+      path: '/lines'
+      fullPath: '/lines'
+      preLoaderRoute: typeof AppLinesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/members': {
@@ -725,6 +744,7 @@ const AppProspectsImportsRouteWithChildren =
 
 interface AppRouteChildren {
   AppInvitationsRoute: typeof AppInvitationsRoute
+  AppLinesRoute: typeof AppLinesRoute
   AppMembersRoute: typeof AppMembersRoute
   AppPlaybookRoute: typeof AppPlaybookRouteWithChildren
   AppSalesHistoryRoute: typeof AppSalesHistoryRouteWithChildren
@@ -738,6 +758,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppInvitationsRoute: AppInvitationsRoute,
+  AppLinesRoute: AppLinesRoute,
   AppMembersRoute: AppMembersRoute,
   AppPlaybookRoute: AppPlaybookRouteWithChildren,
   AppSalesHistoryRoute: AppSalesHistoryRouteWithChildren,

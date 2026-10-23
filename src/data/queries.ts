@@ -20,6 +20,7 @@ import {
 } from 'tula-closeline-contract'
 import type { ProspectFilter } from '~/api/core'
 import type { CallsPage } from '~/api/sales-history'
+import type { LinesPage } from '~/api/voice'
 import type { App } from '~/app'
 import { useApp, useSessionState } from '~/app-context'
 import { companyName } from '~/data/prospects'
@@ -30,6 +31,8 @@ export const KEYS = {
   members: (organizationId: string) => [organizationId, 'members'] as const,
   invitations: (organizationId: string) => [organizationId, 'invitations'] as const,
   teams: (organizationId: string) => [organizationId, 'teams'] as const,
+  /** The Lines of the Organization (voice service). */
+  lines: (organizationId: string) => [organizationId, 'lines'] as const,
   /** Every list of documents of the Organization, whatever its state filter: invalidate this to refresh them all. */
   documents: (organizationId: string) => [organizationId, 'documents'] as const,
   /** Every cached read about Deals (lists and single Deals): invalidate this after an Outcome changes. */
@@ -165,6 +168,26 @@ export function useTeams() {
     initialPageParam: undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** The Lines, a page at a time. `enabled` is false for a role that may not manage them (no request is made). */
+export function useLines(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    LinesPage,
+    Error,
+    InfiniteData<LinesPage, string | undefined>,
+    readonly [string, string],
+    string | undefined
+  >({
+    queryKey: KEYS.lines(organizationId),
+    queryFn: ({ pageParam, signal }) => app.voice.listLines({ cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
   })
   return pagedState(query)
 }

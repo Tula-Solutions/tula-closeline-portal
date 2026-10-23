@@ -343,11 +343,29 @@ describe('navigation', () => {
   test.each([
     [
       'owner',
-      ['Home', 'Prospects', 'Members', 'Invitations', 'Teams', 'Playbook', 'Sales history'],
+      [
+        'Home',
+        'Prospects',
+        'Members',
+        'Invitations',
+        'Teams',
+        'Lines',
+        'Playbook',
+        'Sales history',
+      ],
     ],
     [
       'admin',
-      ['Home', 'Prospects', 'Members', 'Invitations', 'Teams', 'Playbook', 'Sales history'],
+      [
+        'Home',
+        'Prospects',
+        'Members',
+        'Invitations',
+        'Teams',
+        'Lines',
+        'Playbook',
+        'Sales history',
+      ],
     ],
     ['manager', ['Home', 'Prospects', 'Members', 'Teams', 'Playbook']],
     ['rep', ['Home', 'Prospects', 'Teams', 'Playbook']],

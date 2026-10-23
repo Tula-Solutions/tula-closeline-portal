@@ -8,6 +8,7 @@ const REPO = join(import.meta.dir, '..')
 const AUTH_SPEC = readFileSync(join(REPO, 'openapi/auth.openapi.json'), 'utf8')
 const CORE_SPEC = readFileSync(join(REPO, 'openapi/core.openapi.json'), 'utf8')
 const PLAYBOOK_SPEC = readFileSync(join(REPO, 'openapi/playbook.openapi.json'), 'utf8')
+const VOICE_SPEC = readFileSync(join(REPO, 'openapi/voice.openapi.json'), 'utf8')
 
 // A fixed date makes the same content the same commit, so a rebuilt clone stays in sync.
 const FIXED = '2026-01-01T00:00:00Z'
@@ -244,6 +245,26 @@ describe('generate-api --check --siblings', () => {
     const drift = await run('--check', '--siblings')
     expect(drift.code).not.toBe(0)
     expect(drift.output).toContain('openapi/playbook.openapi.json')
+    rmSync(clone, { recursive: true })
+  })
+
+  test('a voice clone is compared too: in sync is ok, an extra path fails and names the copy', async () => {
+    resetCore()
+    await run('--core-from', join(siblings, 'tula-closeline-core'), '--core-ref', 'origin/develop')
+    const clone = join(siblings, 'tula-closeline-voice')
+    fakeService(clone, VOICE_SPEC)
+    await run('--voice-from', clone, '--voice-ref', 'origin/develop')
+    const same = await run('--check', '--siblings')
+    expect(same.output).toContain('ok: voice @')
+    expect(same.code).toBe(0)
+    const changed = JSON.parse(VOICE_SPEC) as { paths: Record<string, unknown> }
+    changed.paths['/v1/lines/brand-new'] = {
+      get: { responses: { '200': { description: 'ok' } } },
+    }
+    fakeService(clone, JSON.stringify(changed, null, 2))
+    const drift = await run('--check', '--siblings')
+    expect(drift.code).not.toBe(0)
+    expect(drift.output).toContain('openapi/voice.openapi.json')
     rmSync(clone, { recursive: true })
   })
 })

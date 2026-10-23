@@ -12,9 +12,11 @@
  *                                                              types are generated from it
  *   bun run generate:api -- --playbook-from ../tula-closeline-playbook [--playbook-ref origin/develop]
  *                                                              the same for the playbook service's document
+ *   bun run generate:api -- --voice-from ../tula-closeline-voice [--voice-ref origin/develop]
+ *                                                              the same for the voice service's document
  *   bun run spec:check                                         --check, plus drift against origin/develop of the
  *                                                              sibling clones ../tula-closeline-auth and
- *                                                              ../tula-closeline-core and ../tula-closeline-playbook; a missing clone is skipped
+ *                                                              ../tula-closeline-core and ../tula-closeline-playbook and ../tula-closeline-voice; a missing clone is skipped
  *                                                              with a message (CI has none, so CI skips it)
  *   --fetch (with --siblings) first runs `git fetch origin develop` in each sibling; without it the
  *   comparison is against the clone's last fetch.
@@ -37,6 +39,8 @@ const VALUE_FLAGS = [
   '--core-ref',
   '--playbook-from',
   '--playbook-ref',
+  '--voice-from',
+  '--voice-ref',
 ]
 const SWITCHES = ['--check', '--siblings', '--fetch', '--strict-hash']
 
@@ -59,7 +63,11 @@ function validateArguments(args: readonly string[]): string | null {
     has('--strict-hash') &&
     !(
       has('--check') &&
-      (has('--siblings') || has('--from') || has('--core-from') || has('--playbook-from'))
+      (has('--siblings') ||
+        has('--from') ||
+        has('--core-from') ||
+        has('--playbook-from') ||
+        has('--voice-from'))
     )
   ) {
     return 'error: --strict-hash needs --check and a checkout to compare (--siblings, --from or --core-from)'
@@ -108,6 +116,8 @@ const CORE_SPEC = new URL('openapi/core.openapi.json', ROOT)
 const CORE_COMMIT = new URL('openapi/core.commit', ROOT)
 const PLAYBOOK_SPEC = new URL('openapi/playbook.openapi.json', ROOT)
 const PLAYBOOK_COMMIT = new URL('openapi/playbook.commit', ROOT)
+const VOICE_SPEC = new URL('openapi/voice.openapi.json', ROOT)
+const VOICE_COMMIT = new URL('openapi/voice.commit', ROOT)
 
 function git(directory: string, args: readonly string[]): string {
   const result = spawnSync('git', ['-C', directory, ...args], { encoding: 'utf8' })
@@ -185,6 +195,7 @@ const fetching = process.argv.includes('--fetch')
 let from = option('--from')
 let coreFrom = option('--core-from')
 let playbookFrom = option('--playbook-from')
+let voiceFrom = option('--voice-from')
 if (siblings) {
   const sibling = (short: string): string | undefined => {
     const base = option('--siblings-dir') ?? new URL('../', ROOT).pathname
@@ -208,6 +219,7 @@ if (siblings) {
   from ??= sibling('auth')
   coreFrom ??= sibling('core')
   playbookFrom ??= sibling('playbook')
+  voiceFrom ??= sibling('voice')
 }
 const defaultRef = siblings ? 'origin/develop' : 'HEAD'
 if (from !== undefined) {
@@ -225,10 +237,14 @@ if (playbookFrom !== undefined) {
     'playbook'
   )
 }
+if (voiceFrom !== undefined) {
+  vendor(voiceFrom, option('--voice-ref') ?? defaultRef, VOICE_SPEC, VOICE_COMMIT, 'voice')
+}
 if (checking) {
   for (const [name, spec, commitFile] of [
     ['core', CORE_SPEC, CORE_COMMIT],
     ['playbook', PLAYBOOK_SPEC, PLAYBOOK_COMMIT],
+    ['voice', VOICE_SPEC, VOICE_COMMIT],
   ] as const) {
     let valid = false
     try {
