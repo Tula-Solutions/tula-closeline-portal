@@ -42,7 +42,12 @@ export default defineConfig(({ command, mode }) => {
       ? undefined
       : devProxy(
           parseProxyTargets({
-            ...loadEnv(mode, process.cwd(), ['AUTH_PROXY_', 'CORE_PROXY_', 'PLAYBOOK_PROXY_']),
+            ...loadEnv(mode, process.cwd(), [
+              'AUTH_PROXY_',
+              'CORE_PROXY_',
+              'PLAYBOOK_PROXY_',
+              'VOICE_PROXY_',
+            ]),
             ...process.env,
           })
         )

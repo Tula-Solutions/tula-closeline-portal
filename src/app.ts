@@ -7,6 +7,7 @@ import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
 import { createMarketingApi, type MarketingApi } from '~/api/marketing'
 import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
 import { createSalesHistoryApi, type SalesHistoryApi } from '~/api/sales-history'
+import { createVoiceApi, type VoiceApi } from '~/api/voice'
 import { createPendingCall, type PendingCallHolder } from '~/data/pending-call'
 import type { Env } from '~/env'
 import { createInvitationHolder, type InvitationHolder } from '~/invitation'
@@ -19,6 +20,7 @@ export type App = {
   readonly auth: AuthApi
   readonly core: CoreApi
   readonly playbook: PlaybookApi
+  readonly voice: VoiceApi
   /** The public marketing route (the Demo Request form); sends no token. */
   readonly marketing: MarketingApi
   readonly salesHistory: SalesHistoryApi
@@ -61,7 +63,7 @@ export type AppInit = {
   readonly rightsWording?: (version: number) => RightsWording | undefined
 }
 
-/** Builds the app: HTTP clients for auth, core and playbook, the session, the query cache and the reporter. */
+/** Builds the app: HTTP clients for auth, core, playbook and voice, the session, the query cache and the reporter. */
 export function createApp(init: AppInit): App {
   const shared = {
     ...(init.fetch ? { fetch: init.fetch } : {}),
@@ -131,6 +133,7 @@ export function createApp(init: AppInit): App {
     auth,
     core: createCoreApi(coreHttp),
     playbook: createPlaybookApi(coreHttp),
+    voice: createVoiceApi(coreHttp),
     marketing: createMarketingApi(coreHttp),
     salesHistory: createSalesHistoryApi(coreHttp, init.reporter.report),
     sleep,

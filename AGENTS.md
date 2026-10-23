@@ -65,8 +65,12 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
 - Sign-out calls auth, then clears memory whatever the answer, and tells other tabs over a
   `BroadcastChannel` (`signed_in` / `signed_out` only, never a token).
 - The path-to-service table is `src/api/service-routes.ts`. The dev server proxies those prefixes,
-  unchanged, to `AUTH_PROXY_TARGET` / `CORE_PROXY_TARGET` / `PLAYBOOK_PROXY_TARGET`; `/internal` is never routed. A new route
-  in auth, core or playbook (`/v1/playbook`) needs its prefix there (a test fails until it has one).
+  unchanged, to `AUTH_PROXY_TARGET` / `CORE_PROXY_TARGET` / `PLAYBOOK_PROXY_TARGET` / `VOICE_PROXY_TARGET`; `/internal` is never routed. A new route
+  in auth, core, playbook (`/v1/playbook`) or voice (`/v1/lines`) needs its prefix there (a test fails until it has one).
+- Lines admin (`src/screens/LinesScreen.tsx`, voice): Owners and Admins only (`can.manageLines`); for
+  anyone else the nav link is hidden and the page shows a notice and makes no request. A Line's number
+  and label are untrusted text (`Untrusted`, `plain`). Errors are worded by `presentLine`
+  (`src/api/voice-messages.ts`) from `VOICE_ERRORS`, falling back to `presentManage`.
 - Playbook documents (`src/screens/DocumentsScreen.tsx`): file names are untrusted and shown as text
   only (`Untrusted`, `plain` for labels), never as a link or markup. Upload limits come from the
   contract's constants and `checkUploadFile`, never typed numbers. The follow-up poll waits through

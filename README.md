@@ -43,11 +43,13 @@ cookie's `Path` is `/v1/client/sessions/`) and leaving `Host` and `Origin` as th
 | `/v1/client` | auth |
 | `/v1/organization`, `/v1/members`, `/v1/invitations`, `/v1/teams` | core |
 | `/v1/playbook` | playbook |
+| `/v1/lines` | voice |
 
 Nothing under `/internal` is forwarded. `/healthz` and `/readyz` exist on both services, so they are
 not routed; probe a service on its own port. Where the services listen comes from three dev-server
 settings, not `VITE_*` (see `.env.example`): `AUTH_PROXY_TARGET` (default `http://127.0.0.1:3001`),
-`CORE_PROXY_TARGET` (default `http://127.0.0.1:3002`) and `PLAYBOOK_PROXY_TARGET` (default `http://127.0.0.1:3003`).
+`CORE_PROXY_TARGET` (default `http://127.0.0.1:3002`), `PLAYBOOK_PROXY_TARGET` (default `http://127.0.0.1:3003`)
+and `VOICE_PROXY_TARGET` (default `http://127.0.0.1:3004`).
 The dev server answers 403 to a Host header it does not know; `PORTAL_DEV_ALLOWED_HOSTS` adds hosts (for
 example a tunnel) as a comma-separated list of exact hostnames (no port). Unset keeps Vite's default; `true`, `*` and
 wildcard or suffix entries are refused.
@@ -79,7 +81,8 @@ OpenAPI document, with the auth commit it came from in `openapi/auth.commit`. Ne
 hand.
 
 `openapi/core.openapi.json` (with `openapi/core.commit`) is core's document, and
-`openapi/playbook.openapi.json` (with `openapi/playbook.commit`) the playbook service's, each vendored
+`openapi/playbook.openapi.json` (with `openapi/playbook.commit`) the playbook service's and
+`openapi/voice.openapi.json` (with `openapi/voice.commit`) the voice service's, each vendored
 the same way but only for its paths: the routing-table test reads them, so a new core or playbook
 route fails `bun run verify` until its prefix is in `src/api/service-routes.ts`. Refresh each from the
 service's `develop`, not a working tree. The playbook client (`src/api/playbook.ts`) is typed by the
@@ -91,10 +94,11 @@ bun run generate:api                                                          # 
 bun run generate:api -- --core-from ../tula-closeline-core --core-ref origin/develop   # refresh core's copy
 bun run generate:api -- --check --core-from ../tula-closeline-core --core-ref origin/develop   # drift against core
 bun run generate:api -- --playbook-from ../tula-closeline-playbook --playbook-ref origin/develop   # refresh playbook's copy
+bun run generate:api -- --voice-from ../tula-closeline-voice --voice-ref origin/develop   # refresh voice's copy
 ```
 
 `bun run spec:check` runs `--check` and also compares both copies with `origin/develop` of the
-sibling clones `../tula-closeline-auth`, `../tula-closeline-core` and `../tula-closeline-playbook`; a
+sibling clones `../tula-closeline-auth`, `../tula-closeline-core`, `../tula-closeline-playbook` and `../tula-closeline-voice`; a
 clone that is not present is skipped with a message. A copy whose content matches but whose recorded commit differs passes with an `info:` line;
 `--strict-hash` fails on that too. Each comparison prints `ok:` with the
 clone's last fetch time: without `--fetch` it is against that last fetch, and `bun run spec:check --fetch` first runs `git fetch origin develop` in each clone. The scheduled hub workflow and the

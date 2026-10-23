@@ -11,7 +11,8 @@ export function hexId(
     | 'call'
     | 'prs'
     | 'pco'
-    | 'pimp',
+    | 'pimp'
+    | 'line',
   n: number
 ): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`
@@ -335,6 +336,32 @@ export function prospectImportRowBody(
     result: 'created',
     reason: null,
     prospectId: hexId('prs', rowNumber),
+    ...overrides,
+  }
+}
+
+/** A Line as the voice service returns it. */
+export function lineBody(
+  n: number,
+  overrides: Partial<{
+    number: string
+    label: string | null
+    state: 'porting' | 'active' | 'released'
+    assignment:
+      | { kind: 'unassigned' }
+      | { kind: 'team'; teamId: string }
+      | { kind: 'rep'; membershipId: string }
+  }> = {}
+) {
+  return {
+    id: hexId('line', n),
+    number: `+1415555${String(n).padStart(4, '0')}`,
+    country: 'US',
+    label: null,
+    state: 'active',
+    assignment: { kind: 'unassigned' },
+    createdAt: '2026-10-01T00:00:00Z',
+    releasedAt: overrides.state === 'released' ? '2026-10-02T00:00:00Z' : null,
     ...overrides,
   }
 }
