@@ -1,23 +1,37 @@
 import {
+  type CreateProspectCompanyRequest,
+  type CreateProspectRequest,
+  createProspectCompanyRequestSchema,
+  createProspectRequestSchema,
   IDEMPOTENCY_KEY_HEADER,
   type InvitableRole,
   type Invitation,
   invitationSchema,
   type ListInvitationsResponse,
   type ListMembersResponse,
+  type ListProspectCompaniesResponse,
+  type ListProspectsResponse,
   type ListTeamsResponse,
   listInvitationsResponseSchema,
   listMembersResponseSchema,
+  listProspectCompaniesResponseSchema,
+  listProspectsResponseSchema,
   listTeamsResponseSchema,
   type Member,
   memberSchema,
   type Organization,
   organizationSchema,
+  type Prospect,
+  type ProspectCompany,
+  prospectCompanySchema,
+  prospectSchema,
   type Role,
   type Team,
   type TeamMember,
   teamMemberSchema,
   teamSchema,
+  type UpdateProspectRequest,
+  updateProspectRequestSchema,
 } from 'tula-closeline-contract'
 import type { HttpClient } from '~/api/http'
 
@@ -29,6 +43,15 @@ export type PageRequest = {
   readonly cursor?: string | undefined
   readonly limit?: number | undefined
   readonly signal?: AbortSignal
+}
+
+/** What a page of Prospects may be narrowed by; each is sent only when set. */
+export type ProspectFilter = {
+  readonly q?: string | undefined
+  readonly status?: 'active' | 'archived' | undefined
+  readonly source?: string | undefined
+  readonly ownerMembershipId?: string | undefined
+  readonly companyId?: string | undefined
 }
 
 /** The core service routes the portal uses. */
@@ -62,6 +85,25 @@ export type CoreApi = {
   addTeamMember(teamId: string, membershipId: string, idempotencyKey: string): Promise<TeamMember>
   /** Removes a member from a Team; the key makes a repeat of the same request answer as the first did, and core refuses a member who is not in the Team as a missing member. */
   removeTeamMember(teamId: string, membershipId: string, idempotencyKey: string): Promise<void>
+  /** One page of the Prospects the caller may see (core decides by role), newest first, or in id order when `q` is set; a page may be short, even empty, while a cursor is present. */
+  listProspects(page: PageRequest & ProspectFilter): Promise<ListProspectsResponse>
+  /** One Prospect with the Source and time of each field. */
+  getProspect(prospectId: string, signal?: AbortSignal): Promise<Prospect>
+  /** Creates a Prospect by hand; the key makes a repeat of the same request create it once. */
+  createProspect(body: CreateProspectRequest, idempotencyKey: string): Promise<Prospect>
+  /** Changes a Prospect; only the fields in the body change, and null clears one. */
+  updateProspect(prospectId: string, body: UpdateProspectRequest): Promise<Prospect>
+  /** One page of Prospect Companies, optionally narrowed by a name search. */
+  listProspectCompanies(
+    page: PageRequest & { readonly q?: string | undefined }
+  ): Promise<ListProspectCompaniesResponse>
+  /** One Prospect Company. */
+  getProspectCompany(companyId: string, signal?: AbortSignal): Promise<ProspectCompany>
+  /** Creates a Prospect Company; the key makes a repeat of the same request create it once. */
+  createProspectCompany(
+    body: CreateProspectCompanyRequest,
+    idempotencyKey: string
+  ): Promise<ProspectCompany>
 }
 
 const segment = encodeURIComponent
@@ -168,6 +210,69 @@ export function createCoreApi(http: HttpClient): CoreApi {
         path: `/v1/teams/${segment(teamId)}/members/${segment(membershipId)}`,
         headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
         auth: true,
+      }),
+    listProspects: (page) =>
+      http.request({
+        path: '/v1/prospects',
+        query: {
+          ...query(page),
+          q: page.q,
+          status: page.status,
+          source: page.source,
+          ownerMembershipId: page.ownerMembershipId,
+          companyId: page.companyId,
+        },
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => listProspectsResponseSchema.parse(json),
+      }),
+    getProspect: (prospectId, signal) =>
+      http.request({
+        path: `/v1/prospects/${segment(prospectId)}`,
+        auth: true,
+        signal,
+        parse: (json) => prospectSchema.parse(json),
+      }),
+    createProspect: (body, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: '/v1/prospects',
+        body: createProspectRequestSchema.parse(body),
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json) => prospectSchema.parse(json),
+      }),
+    updateProspect: (prospectId, body) =>
+      http.request({
+        method: 'PATCH',
+        path: `/v1/prospects/${segment(prospectId)}`,
+        body: updateProspectRequestSchema.parse(body),
+        auth: true,
+        parse: (json) => prospectSchema.parse(json),
+      }),
+    listProspectCompanies: (page) =>
+      http.request({
+        path: '/v1/prospect-companies',
+        query: { ...query(page), q: page.q },
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => listProspectCompaniesResponseSchema.parse(json),
+      }),
+    getProspectCompany: (companyId, signal) =>
+      http.request({
+        path: `/v1/prospect-companies/${segment(companyId)}`,
+        auth: true,
+        signal,
+        parse: (json) => prospectCompanySchema.parse(json),
+      }),
+    createProspectCompany: (body, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: '/v1/prospect-companies',
+        body: createProspectCompanyRequestSchema.parse(body),
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json) => prospectCompanySchema.parse(json),
       }),
   }
 }

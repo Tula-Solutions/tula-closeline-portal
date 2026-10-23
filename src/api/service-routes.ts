@@ -20,6 +20,11 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/invitations', service: 'core' },
   { prefix: '/v1/teams', service: 'core' },
   { prefix: '/v1/marketing', service: 'core' },
+  { prefix: '/v1/prospects', service: 'core' },
+  { prefix: '/v1/prospect-companies', service: 'core' },
+  { prefix: '/v1/prospect-imports', service: 'core' },
+  { prefix: '/v1/suppression-entries', service: 'core' },
+  { prefix: '/v1/contact-checks', service: 'core' },
   { prefix: '/v1/playbook', service: 'playbook' },
 ]
 

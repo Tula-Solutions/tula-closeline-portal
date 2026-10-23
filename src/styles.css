@@ -574,6 +574,48 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* A dt with its dd rows, kept as one grouping without a box of its own. */
+  .dl-group {
+    display: contents;
+  }
+
+  /* The value and its quiet Source control, the control at the right end of the row. */
+  dl dd.field-value {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .source-toggle {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .source-toggle:hover,
+  .source-toggle:focus-visible,
+  .source-toggle[aria-expanded="true"] {
+    color: var(--foreground);
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+
+  /* The Source and time of one field: a ruled row under it, revealed on demand. */
+  dl dd.source-row {
+    grid-column: 1 / -1;
+    padding-inline-start: 1rem;
+    border-inline-start: 2px solid var(--rule-strong);
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+  }
+
   a:not([class]) {
     color: var(--foreground);
     font-weight: 500;

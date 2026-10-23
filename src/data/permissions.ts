@@ -23,6 +23,8 @@ export const can = {
   viewMembers: (role: Role) => roleAtLeast(role, 'manager'),
   /** Owner and Admin change roles and remove members (within the limits of `assignableRoles`). */
   manageMembers: (role: Role) => roleAtLeast(role, 'admin'),
+  /** Owner and Admin may name another member as a Prospect's owner; a Rep or Manager owns what they add. */
+  assignProspectOwner: (role: Role) => roleAtLeast(role, 'admin'),
   /** Owner and Admin list, send and revoke Invitations. */
   manageInvitations: (role: Role) => roleAtLeast(role, 'admin'),
   /** Owner and Admin create, rename and delete Teams and change who is in them. */
