@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { callBody, dealBody, page, rightsBody } from '~/testing/core-bodies'
 import { failure, json, route } from '~/testing/fixtures'
 import { visit } from '~/testing/sales'
+import { choose, optionsOf } from '~/testing/select'
 import { formatDateOnly } from '~/ui/When'
 
 const PB = '/v1/playbook'
@@ -44,7 +45,7 @@ describe('the Outcome form takes a date', () => {
 
   test('sends the chosen date as YYYY-MM-DD with the Outcome', async () => {
     const portal = open()
-    await portal.user.selectOptions(await screen.findByLabelText('Outcome'), 'won')
+    await choose(portal.user, await screen.findByLabelText('Outcome'), 'won')
     const field = screen.getByLabelText(/Closing date/) as HTMLInputElement
     expect(field.type).toBe('date')
     await portal.user.type(field, '2026-01-31')
@@ -55,7 +56,7 @@ describe('the Outcome form takes a date', () => {
 
   test('with no date, sends the Outcome alone', async () => {
     const portal = open()
-    await portal.user.selectOptions(await screen.findByLabelText('Outcome'), 'won')
+    await choose(portal.user, await screen.findByLabelText('Outcome'), 'won')
     await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
     await waitFor(() => expect(put(portal)).toHaveLength(1))
     expect(put(portal)[0]?.body).toEqual({ outcome: 'won' })
@@ -97,7 +98,7 @@ describe('the Outcome form takes a date', () => {
   test('an untouched date is not sent again with an Outcome-only save', async () => {
     const withDate = dealBody(4, { outcome: 'open', closedAt: '2026-01-31' })
     const portal = open(withDate)
-    await portal.user.selectOptions(await screen.findByLabelText('Outcome'), 'won')
+    await choose(portal.user, await screen.findByLabelText('Outcome'), 'won')
     await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
     await waitFor(() => expect(put(portal)).toHaveLength(1))
     expect(put(portal)[0]?.body).toEqual({ outcome: 'won' })
@@ -180,13 +181,13 @@ describe('the Rep picker shows what each speaker said', () => {
   })
 
   test('with no speakers on the Call the picker is as before', async () => {
-    await open(awaiting)
+    const portal = await open(awaiting)
     const select = await screen.findByLabelText('Rep for call-1.txt')
-    expect(
-      within(select)
-        .getAllByRole('option')
-        .map((option) => option.textContent)
-    ).toEqual(['Choose a speaker', 'A', 'B'])
+    expect((await optionsOf(portal.user, select)).map((option) => option.text)).toEqual([
+      'Choose a speaker',
+      'A',
+      'B',
+    ])
     expect(screen.queryByRole('list', { name: 'What each speaker said' })).toBeNull()
   })
 

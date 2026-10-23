@@ -5,6 +5,7 @@ import { hexId, lineBody, memberBody, page, teamBody } from '~/testing/core-bodi
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
 import { param } from '~/testing/sales'
+import { choose, optionsOf } from '~/testing/select'
 
 const LINES = '/v1/lines'
 const TEAMS = '/v1/teams'
@@ -190,7 +191,7 @@ describe('Lines: add', () => {
       teams,
       members
     )
-    await portal.user.selectOptions(await screen.findByLabelText('How'), 'port')
+    await choose(portal.user, await screen.findByLabelText('How'), 'port')
     await portal.user.type(screen.getByLabelText('Number'), '+14155550100')
     await portal.user.click(screen.getByRole('button', { name: 'Add Line' }))
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Line added.'))
@@ -264,8 +265,7 @@ describe('Lines: assign', () => {
     await screen.findByText('+14155550001')
     await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
     const select = await screen.findByLabelText('Who answers')
-    await within(select).findByRole('option', { name: /Southern/ })
-    await portal.user.selectOptions(select, `team:${hexId('team', 2)}`)
+    await choose(portal.user, select, `team:${hexId('team', 2)}`)
     await portal.user.click(screen.getByRole('button', { name: 'Save assignment' }))
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Line assigned.'))
     expect(portal.calls.find((call) => call.method === 'PUT')?.body).toEqual({
@@ -286,9 +286,13 @@ describe('Lines: assign', () => {
     await screen.findByText('+14155550001')
     await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
     const select = await screen.findByLabelText('Who answers')
-    await within(select).findByRole('option', { name: /Maya Chen/ })
-    expect(within(select).queryByRole('option', { name: /Omar Admin/ })).toBeNull()
-    await portal.user.selectOptions(select, `rep:${hexId('mem', 1)}`)
+    let texts: string[] = []
+    await waitFor(async () => {
+      texts = (await optionsOf(portal.user, select, true)).map((option) => option.text)
+      expect(texts.some((text) => /Maya Chen/.test(text))).toBe(true)
+    })
+    expect(texts.some((text) => /Omar Admin/.test(text))).toBe(false)
+    await choose(portal.user, select, `rep:${hexId('mem', 1)}`)
     await portal.user.click(screen.getByRole('button', { name: 'Save assignment' }))
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Line assigned.'))
     expect(portal.calls.find((call) => call.method === 'PUT')?.body).toEqual({
@@ -317,8 +321,11 @@ describe('Lines: assign', () => {
     await screen.findByText('+14155550001')
     await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
     const select = await screen.findByLabelText('Who answers')
-    await within(select).findByRole('option', { name: /Far Team/ })
-    await within(select).findByRole('option', { name: /Far Rep/ })
+    await waitFor(async () => {
+      const texts = (await optionsOf(portal.user, select)).map((option) => option.text)
+      expect(texts.some((text) => /Far Team/.test(text))).toBe(true)
+      expect(texts.some((text) => /Far Rep/.test(text))).toBe(true)
+    })
   })
 
   test('assigns a Line to nobody', async () => {
@@ -332,7 +339,7 @@ describe('Lines: assign', () => {
     )
     await screen.findByText('+14155550002')
     await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550002' }))
-    await portal.user.selectOptions(await screen.findByLabelText('Who answers'), 'Nobody')
+    await choose(portal.user, await screen.findByLabelText('Who answers'), 'Nobody')
     await portal.user.click(screen.getByRole('button', { name: 'Save assignment' }))
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Line assigned.'))
     expect(portal.calls.find((call) => call.method === 'PUT')?.body).toEqual({ kind: 'unassigned' })
@@ -350,8 +357,7 @@ describe('Lines: assign', () => {
     await screen.findByText('+14155550001')
     await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
     const select = await screen.findByLabelText('Who answers')
-    await within(select).findByRole('option', { name: /Northern/ })
-    await portal.user.selectOptions(select, `team:${hexId('team', 1)}`)
+    await choose(portal.user, select, `team:${hexId('team', 1)}`)
     await portal.user.click(screen.getByRole('button', { name: 'Save assignment' }))
     expect((await screen.findByRole('alert')).textContent).toContain(
       'That Team or Rep is not in your Organization'

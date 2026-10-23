@@ -5,6 +5,7 @@ import { MAX_EMPTY_PAGES } from '~/data/queries'
 import { companyBody, hexId, memberBody, page, prospectBody } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
+import { pickFrom } from '~/testing/select'
 
 const PROSPECTS = '/v1/prospects'
 
@@ -264,7 +265,7 @@ describe('Prospects: company names and the Owner search', () => {
       route('GET', PROSPECTS, json(200, page([prospectBody(1)])))
     )
     await screen.findByText('First1 Last1')
-    const box = screen.getByLabelText('Search owners') as HTMLInputElement
+    const box = screen.getByLabelText('Owner') as HTMLInputElement
     expect(box.maxLength).toBe(100)
     await portal.user.type(box, '  zed ')
     const option = await screen.findByRole('option', { name: 'Zed Late' }, { timeout: 3000 })
@@ -284,7 +285,7 @@ describe('Prospects: company names and the Owner search', () => {
       route('GET', PROSPECTS, json(200, page([prospectBody(1)])))
     )
     await screen.findByText('First1 Last1')
-    await portal.user.type(screen.getByLabelText('Search owners'), '   ')
+    await portal.user.type(screen.getByLabelText('Owner'), '   ')
     await screen.findByRole('option', { name: 'Maya Chen' })
     await new Promise((resolve) => setTimeout(resolve, 500))
     const members = portal.calls.filter((c) => c.path === '/v1/members')
@@ -305,13 +306,15 @@ describe('Prospects: company names and the Owner search', () => {
       route('GET', PROSPECTS, json(200, page([prospectBody(1)])))
     )
     await screen.findByText('First1 Last1')
-    const select = screen.getByLabelText('Owner') as HTMLSelectElement
-    await portal.user.selectOptions(select, 'Maya Chen')
-    await portal.user.type(screen.getByLabelText('Search owners'), 'zzz')
+    const owner = screen.getByLabelText('Owner') as HTMLInputElement
+    await pickFrom(portal.user, owner, 'Maya Chen')
+    await portal.user.clear(owner)
+    await portal.user.type(owner, 'zzz')
     await waitFor(() =>
       expect(portal.calls.some((c) => params(c.url).get('q') === 'zzz')).toBe(true)
     )
-    await waitFor(() => expect(select.selectedOptions[0]?.text).toBe('Maya Chen'))
+    await portal.user.keyboard('{Escape}')
+    await waitFor(() => expect(owner.value).toBe('Maya Chen'))
   })
 
   test('an Owner filter from the address stays selectable when that member is not listed', async () => {
@@ -322,7 +325,7 @@ describe('Prospects: company names and the Owner search', () => {
       route('GET', PROSPECTS, json(200, page([prospectBody(1)])))
     )
     await screen.findByText('First1 Last1')
-    const select = screen.getByLabelText('Owner') as HTMLSelectElement
-    await waitFor(() => expect(select.value).toBe(unseen))
+    const owner = screen.getByLabelText('Owner') as HTMLInputElement
+    await waitFor(() => expect(owner.value).toBe('Selected owner'))
   })
 })

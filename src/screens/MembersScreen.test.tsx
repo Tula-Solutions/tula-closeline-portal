@@ -4,6 +4,7 @@ import { CORE_ERRORS } from 'tula-closeline-contract'
 import { hexId, memberBody, page } from '~/testing/core-bodies'
 import { failure, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal, waitUntilGone } from '~/testing/render'
+import { choose, optionsOf, shownBy } from '~/testing/select'
 
 const MEMBERS = '/v1/members'
 
@@ -20,8 +21,8 @@ function visit(
 
 function roleIn(row: HTMLElement | undefined): string | undefined {
   const cell = within(row as HTMLElement).getAllByRole('cell')[1]
-  const select = cell?.querySelector('select')
-  return select ? select.selectedOptions[0]?.textContent : cell?.textContent
+  const select = cell?.querySelector('button[data-slot="select-trigger"]')
+  return select ? shownBy(select as HTMLElement) : cell?.textContent
 }
 
 describe('members: the list', () => {
@@ -201,7 +202,7 @@ describe('members: changing a role and removing', () => {
       list
     )
     await screen.findByText('Rita Rep')
-    await portal.user.selectOptions(screen.getByLabelText('Role for Rita Rep'), 'manager')
+    await choose(portal.user, screen.getByLabelText('Role for Rita Rep'), 'manager')
     const save = screen.getByRole('button', { name: 'Save role for Rita Rep' })
     await portal.user.click(save)
     await portal.user.click(save)
@@ -222,10 +223,10 @@ describe('members: changing a role and removing', () => {
   })
 
   test('an Admin gets only the roles core allows, and no controls on an Owner or another Admin', async () => {
-    visit('admin', list)
+    const portal = visit('admin', list)
     await screen.findByText('Rita Rep')
     const rep = screen.getByLabelText('Role for Rita Rep')
-    expect([...rep.querySelectorAll('option')].map((option) => option.textContent)).toEqual([
+    expect((await optionsOf(portal.user, rep)).map((option) => option.text)).toEqual([
       'Manager',
       'Rep',
     ])
@@ -253,7 +254,7 @@ describe('members: changing a role and removing', () => {
       list
     )
     await screen.findByText('Olive Owner')
-    await portal.user.selectOptions(screen.getByLabelText('Role for Olive Owner'), 'rep')
+    await choose(portal.user, screen.getByLabelText('Role for Olive Owner'), 'rep')
     await portal.user.click(screen.getByRole('button', { name: 'Save role for Olive Owner' }))
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('The last Owner cannot be removed or demoted')
@@ -269,7 +270,7 @@ describe('members: changing a role and removing', () => {
       list
     )
     await screen.findByText('Rita Rep')
-    await portal.user.selectOptions(screen.getByLabelText('Role for Rita Rep'), 'admin')
+    await choose(portal.user, screen.getByLabelText('Role for Rita Rep'), 'admin')
     await portal.user.click(screen.getByRole('button', { name: 'Save role for Rita Rep' }))
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Your role does not allow this'

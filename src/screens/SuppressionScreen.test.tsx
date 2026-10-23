@@ -5,6 +5,7 @@ import { CONSENT_ERRORS } from 'tula-closeline-contract'
 import { hexId, page, suppressionBody, teamBody } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
+import { choose } from '~/testing/select'
 
 const ENTRIES = '/v1/suppression-entries'
 const LOOKUPS = '/v1/suppression-entries/lookups'
@@ -106,9 +107,9 @@ describe('Suppression: the list', () => {
   test('filters by reason, address type and state, asking again each time', async () => {
     const portal = visit('admin', '/suppression', entries)
     await screen.findByRole('list', { name: 'Suppression entries' })
-    await portal.user.selectOptions(screen.getByLabelText('Reason'), 'bounce')
-    await portal.user.selectOptions(screen.getByLabelText('Address type'), 'email')
-    await portal.user.selectOptions(screen.getByLabelText('Show'), 'removed')
+    await choose(portal.user, screen.getByLabelText('Reason'), 'bounce')
+    await choose(portal.user, screen.getByLabelText('Address type'), 'email')
+    await choose(portal.user, screen.getByLabelText('Show'), 'removed')
     await waitFor(() => {
       const last = portal.calls.filter((call) => call.path === ENTRIES).at(-1)
       const params = new URL(last?.url ?? '', 'http://x').searchParams
@@ -176,7 +177,7 @@ describe('Suppression: adding by hand', () => {
       entries
     )
     await screen.findByRole('list', { name: 'Suppression entries' })
-    await portal.user.selectOptions(screen.getByLabelText('Type of address to add'), 'phone')
+    await choose(portal.user, screen.getByLabelText('Type of address to add'), 'phone')
     await portal.user.type(screen.getByLabelText('Address'), '+14155550100')
     await portal.user.click(screen.getByRole('button', { name: 'Add to Suppression' }))
     await screen.findByText('Added to Suppression.')

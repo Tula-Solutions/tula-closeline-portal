@@ -4,6 +4,7 @@ import { CORE_ERRORS, ERRORS } from 'tula-closeline-contract'
 import { hexId, memberBody, page, teamBody } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal, waitUntilGone } from '~/testing/render'
+import { choose, optionsOf } from '~/testing/select'
 
 const TEAMS = '/v1/teams'
 const MEMBERS = '/v1/members'
@@ -341,7 +342,7 @@ describe('Teams: adding and removing members', () => {
     const portal = visit('owner', teams, members)
     const select = await open(portal)
     expect(screen.getByText(/who is in a Team is not available yet/)).toBeTruthy()
-    const options = [...select.querySelectorAll('option')].map((option) => option.textContent ?? '')
+    const options = (await optionsOf(portal.user, select)).map((option) => option.text)
     expect(options).toHaveLength(2)
     expect(options[0]).toContain('Maya Chen')
     expect(options[1]).toContain('bob@northline.app')
@@ -369,7 +370,7 @@ describe('Teams: adding and removing members', () => {
       members
     )
     const select = await open(portal)
-    await portal.user.selectOptions(select, hexId('mem', 2))
+    await choose(portal.user, select, hexId('mem', 2))
     const add = screen.getByRole('button', { name: 'Add to Team' })
     await portal.user.dblClick(add)
     release()
@@ -461,7 +462,7 @@ describe('Teams: adding and removing members', () => {
       route('GET', MEMBERS, json(200, page([memberBody(1, { name })])))
     )
     const select = await open(portal)
-    const text = select.querySelector('option')?.textContent ?? ''
+    const text = (await optionsOf(portal.user, select))[0]?.text ?? ''
     expect(text.startsWith('⁨')).toBe(true)
     expect(text).toContain(`⁨${name}⁩`)
   })

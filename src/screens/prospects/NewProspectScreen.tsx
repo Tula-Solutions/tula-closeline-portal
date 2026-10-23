@@ -3,7 +3,6 @@ import { type FormEvent, useRef, useState } from 'react'
 import {
   type CreateProspectRequest,
   createProspectRequestSchema,
-  MAX_MEMBER_QUERY_LENGTH,
   MAX_PROSPECT_NOTES_LENGTH,
   MAX_PROSPECT_TAG_LENGTH,
   MAX_PROSPECT_TAGS,
@@ -16,7 +15,7 @@ import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
 import { can } from '~/data/permissions'
 import { FIELD_ORDER, parseTags } from '~/data/prospects'
-import { refresh, useMemberSearch } from '~/data/queries'
+import { refresh } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import {
   CompanyChoice,
@@ -27,12 +26,10 @@ import {
 } from '~/screens/prospects/ProspectFormFields'
 import { Banner } from '~/ui/Banner'
 import { Field } from '~/ui/Field'
-import { plain } from '~/ui/plain'
-import { SelectField } from '~/ui/SelectField'
+import { OwnerCombobox } from '~/ui/OwnerCombobox'
 import { TextAreaField } from '~/ui/TextAreaField'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import { useFocusOnError } from '~/ui/useFocusOnError'
-import { useSettled } from '~/ui/useSettled'
 import { useSubmit } from '~/ui/useSubmit'
 
 const BLANK: IdentityValues = {
@@ -69,8 +66,6 @@ export function NewProspectScreen() {
   const role = useRole()
   const navigate = useNavigate()
   const chooseOwner = role !== null && can.assignProspectOwner(role)
-  const [ownerTerm, setOwnerTerm] = useState('')
-  const members = useMemberSearch(useSettled(ownerTerm), chooseOwner)
   const [values, setValues] = useState<IdentityValues>(BLANK)
   const [companyId, setCompanyId] = useState('')
   const [newCompany, setNewCompany] = useState('')
@@ -217,48 +212,24 @@ export function NewProspectScreen() {
           onChange={(event) => setNewCompany(event.target.value)}
         />
         {chooseOwner ? (
-          <Field
-            label='Search owners'
-            autoComplete='off'
-            maxLength={MAX_MEMBER_QUERY_LENGTH}
-            hint={
-              members.hasMore
+          <OwnerCombobox
+            label='Owner'
+            anyText='Me'
+            enabled={chooseOwner}
+            value={owner}
+            valueName={ownerName}
+            error={errors.owner}
+            accept={(member) => member.role === 'rep' || member.role === 'manager'}
+            hint={(hasMore) =>
+              hasMore
                 ? 'Only the first matches are listed. Type more of the name to narrow them.'
                 : 'Type part of a name to find it.'
             }
-            value={ownerTerm}
-            onChange={(event) => setOwnerTerm(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-              }
-            }}
-          />
-        ) : null}
-        {chooseOwner ? (
-          <SelectField
-            label='Owner'
-            name='ownerMembershipId'
-            value={owner}
-            error={errors.owner}
-            onChange={(event) => {
-              const chosen = membershipIdSchema.safeParse(event.target.value)
+            onChange={(id, name) => {
+              const chosen = membershipIdSchema.safeParse(id)
               setOwner(chosen.success ? chosen.data : '')
-              setOwnerName(event.target.selectedOptions[0]?.text ?? '')
+              setOwnerName(name)
             }}
-            options={[
-              { value: '', text: 'Me' },
-              // The current choice stays selectable whatever the search shows.
-              ...(owner !== '' && !members.items.some((member) => member.id === owner)
-                ? [{ value: owner, text: ownerName || 'Selected owner' }]
-                : []),
-              ...members.items
-                .filter((member) => member.role === 'rep' || member.role === 'manager')
-                .map((member) => ({
-                  value: member.id,
-                  text: plain(member.name ?? member.email, 'Unnamed member'),
-                })),
-            ]}
           />
         ) : null}
         <Field

@@ -3,6 +3,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { hexId } from '~/testing/core-bodies'
 import { failure, json, route, tokens } from '~/testing/fixtures'
 import { visit } from '~/testing/sales'
+import { choose, chosenValue, optionsOf } from '~/testing/select'
 
 const SEARCH = '/v1/playbook/search/moments'
 const URL = '/sales-history/search'
@@ -52,10 +53,10 @@ describe('search over won Deals: the request', () => {
   test('sends the turns and the limit as the contract says', async () => {
     const portal = open('owner')
     await fill(portal, 'We need it cheaper')
-    await portal.user.selectOptions(screen.getByLabelText('Role, turn 1'), 'prospect')
+    await choose(portal.user, screen.getByLabelText('Role, turn 1'), 'prospect')
     await portal.user.click(screen.getByRole('button', { name: 'Add a turn' }))
     await portal.user.type(screen.getByLabelText('What was said, turn 2'), 'Let me check')
-    await portal.user.selectOptions(screen.getByLabelText('Number of results'), '10')
+    await choose(portal.user, screen.getByLabelText('Number of results'), '10')
     await submit(portal)
     await waitFor(() => expect(searches(portal)).toHaveLength(1))
     expect(searches(portal)[0]?.body).toEqual({
@@ -68,10 +69,14 @@ describe('search over won Deals: the request', () => {
   })
 
   test('offers a limit of 5, 10 or 20, starting at 5', async () => {
-    open('owner')
-    const select = (await screen.findByLabelText('Number of results')) as HTMLSelectElement
-    expect(select.value).toBe('5')
-    expect([...select.options].map((option) => option.value)).toEqual(['5', '10', '20'])
+    const portal = open('owner')
+    const select = await screen.findByLabelText('Number of results')
+    expect(chosenValue(select)).toBe('5')
+    expect((await optionsOf(portal.user, select)).map((option) => option.value)).toEqual([
+      '5',
+      '10',
+      '20',
+    ])
   })
 
   test('allows at most six turns, and removes one on request', async () => {
@@ -267,7 +272,7 @@ describe('search over won Deals: the answer', () => {
     expect(screen.queryByRole('list', { name: 'Matching Moments' })).toBeNull()
     await ask(portal)
     await screen.findByRole('list', { name: 'Matching Moments' })
-    await portal.user.selectOptions(screen.getByLabelText('Number of results'), '10')
+    await choose(portal.user, screen.getByLabelText('Number of results'), '10')
     expect(screen.queryByRole('list', { name: 'Matching Moments' })).toBeNull()
   })
 
