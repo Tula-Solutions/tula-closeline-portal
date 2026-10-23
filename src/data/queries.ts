@@ -172,6 +172,38 @@ export function useTeams() {
   return pagedState(query)
 }
 
+/**
+ * Teams for a choice: pages are read one after another up to `MEMBER_OPTION_PAGES`, so a later
+ * Team can be picked too. No request is made unless `enabled`.
+ */
+export function useTeamOptions(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListTeamsResponse,
+    Error,
+    InfiniteData<ListTeamsResponse, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.teams(organizationId), 'options'],
+    queryFn: ({ pageParam, signal }) =>
+      app.core.listTeams({ cursor: pageParam, limit: MAX_PAGE_SIZE, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, isError } = query
+  const pageCount = query.data?.pages.length ?? 0
+  // pageCount is a dependency so each arrived page asks for the next one.
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage && !isError && pageCount < MEMBER_OPTION_PAGES) {
+      void fetchNextPage()
+    }
+  }, [hasNextPage, isFetchingNextPage, isError, fetchNextPage, pageCount])
+  return { items: (query.data?.pages ?? []).flatMap((page) => page.items) }
+}
+
 /** The Lines, a page at a time. `enabled` is false for a role that may not manage them (no request is made). */
 export function useLines(enabled: boolean) {
   const app = useApp()

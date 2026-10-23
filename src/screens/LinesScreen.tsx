@@ -12,7 +12,7 @@ import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
 import { Section } from '~/components/app/section'
 import { can } from '~/data/permissions'
-import { refresh, useLines, useMembers, useTeams } from '~/data/queries'
+import { refresh, useLines, useMemberOptions, useTeamOptions } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { Banner } from '~/ui/Banner'
 import { Confirm } from '~/ui/Confirm'
@@ -30,7 +30,7 @@ const STATE_WORD = { porting: 'Porting', active: 'Active', released: 'Released' 
 
 /** Wraps untrusted text in direction isolates, for places markup cannot reach (an option's text). */
 function isolate(text: string): string {
-  return `⁨${text}⁩`
+  return `\u2068${text}\u2069`
 }
 
 /** The Lines of the Organization; Owners and Admins add, assign and release them, and nobody else sees the page. */
@@ -55,8 +55,8 @@ export function LinesScreen() {
 
 function LinesAdmin() {
   const lines = useLines(true)
-  const teams = useTeams()
-  const members = useMembers(true)
+  const teams = useTeamOptions(true)
+  const members = useMemberOptions(true)
   const feedback = useFeedback()
   const headingRef = useRef<HTMLHeadingElement>(null)
   return (

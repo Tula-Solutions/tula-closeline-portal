@@ -4,6 +4,7 @@ import { ERRORS, VOICE_ERRORS } from 'tula-closeline-contract'
 import { hexId, lineBody, memberBody, page, teamBody } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
+import { param } from '~/testing/sales'
 
 const LINES = '/v1/lines'
 const TEAMS = '/v1/teams'
@@ -294,6 +295,30 @@ describe('Lines: assign', () => {
       kind: 'rep',
       membershipId: hexId('mem', 1),
     })
+  })
+
+  test('offers a Team and a Rep that sit on a later page, and names them', async () => {
+    const portal = visit(
+      'admin',
+      '/lines',
+      route('PUT', assignment(1), json(200, lineBody(1))),
+      route('GET', LINES, json(200, page([lineBody(1)]))),
+      route('GET', TEAMS, (call) =>
+        param(call.url, 'cursor') === 't2'
+          ? json(200, page([teamBody(2, 'Far Team')]))
+          : json(200, page([teamBody(1, 'Near Team')], 't2'))
+      ),
+      route('GET', MEMBERS, (call) =>
+        param(call.url, 'cursor') === 'm2'
+          ? json(200, page([memberBody(2, { name: 'Far Rep', role: 'rep' })]))
+          : json(200, page([memberBody(1, { name: 'Near Admin', role: 'admin' })], 'm2'))
+      )
+    )
+    await screen.findByText('+14155550001')
+    await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
+    const select = await screen.findByLabelText('Who answers')
+    await within(select).findByRole('option', { name: /Far Team/ })
+    await within(select).findByRole('option', { name: /Far Rep/ })
   })
 
   test('assigns a Line to nobody', async () => {
