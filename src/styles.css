@@ -14,7 +14,7 @@
     --ease: cubic-bezier(0.2, 0, 0, 1);
   }
 
-  @media (pointer: coarse) {
+  @media (pointer: coarse), (width < 48rem) {
     :root {
       --control-h: 2.75rem;
     }
@@ -648,8 +648,8 @@
     text-decoration-color: currentColor;
   }
 
-  /* On a phone a stacking ledger reads row by row: each row is a ruled block of its cells, in order. */
-  @media (width < 40rem) {
+  /* Below the md width a stacking ledger reads row by row: each row is a ruled block of its cells, in order. */
+  @media (width < 48rem) {
     .ledger-stack thead {
       display: none;
     }
@@ -676,6 +676,10 @@
     /* Two cells marked as a pair (a control and its row action) share the last line. */
     .ledger-stack td.ledger-pair {
       grid-column: auto;
+    }
+    /* A cell the stacked row leaves out: the name opens the detail, which has it. */
+    .ledger-stack .ledger-detail {
+      display: none;
     }
   }
 
@@ -707,4 +711,21 @@
     opacity: 1;
     transform: none;
   }
+}
+
+/*
+ * Radix Select injects these two rules as <style> elements, which `style-src 'self'` blocks (it
+ * reports a CSP violation and the rules never apply). Shipping them here keeps the listbox
+ * scrollbar hidden and the page from scrolling behind an open menu.
+ */
+[data-radix-select-viewport] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+[data-radix-select-viewport]::-webkit-scrollbar {
+  display: none;
+}
+.with-scroll-bars-hidden {
+  /* biome-ignore lint/complexity/noImportantStyles: the injected rule it replaces is !important */
+  overflow: hidden !important;
 }

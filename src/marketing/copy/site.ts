@@ -4,6 +4,7 @@ export const SITE_COPY = {
   skipToContent: 'Skip to content',
   logoAlt: 'Tula Solution',
   navLabel: 'Main',
+  menu: 'Menu',
   /**
    * The four product pages, Security and Book a demo. Pricing is left out until its page exists, so no
    * link goes to a page that is not there.

@@ -6,7 +6,7 @@ import { SECURITY_PAGE } from './copy/security'
 
 const ALLOWED =
   /^(\/copilot|\/inbound-agent|\/outbound-agent|\/the-playbook|\/security|#main|\/sign-in|\/sign-up|\/book-a-demo|\/)$/
-const STATUS = /^(Enforced by: .{20,}|Planned, phase \d)/
+const STATUS = /^(Enforced by: .{20,}|Our promise: .{20,})/
 const CERTIFICATIONS = /SOC ?2|ISO ?27001|HIPAA|GDPR|CASA|PCI|certified|compliant/i
 
 /** Runs axe on the page. Colour contrast needs real layout, so the browser check covers it. */
@@ -33,7 +33,7 @@ describe('the security and trust page', () => {
     }
   })
 
-  test('every rule is numbered and says "Enforced by: <mechanism>" or "Planned, phase N", with its decision record', async () => {
+  test('every rule is numbered and says "Enforced by: <mechanism>" or "Our promise: ..."', async () => {
     renderPortal({ url: '/security' })
     await screen.findAllByRole('heading', { level: 1 })
     const items = document.querySelectorAll('ol[aria-label="The rules"] > li')
@@ -42,17 +42,17 @@ describe('the security and trust page', () => {
     for (const item of items) {
       const status = item.querySelector('[data-status]')?.textContent ?? ''
       expect(status).toMatch(STATUS)
-      expect(item.textContent ?? '').toMatch(/ADR \d{4}/)
+      expect(item.textContent ?? '').not.toMatch(/ADR|decision record/i)
     }
   })
 
-  test('the copy gives every rule a status in its data, and plans the rules for Agents', () => {
+  test('the copy gives every rule a status in its data, and promises the rules for Agents', () => {
     for (const rule of SECURITY_PAGE.rules.items) {
       expect(rule.status.line).toMatch(STATUS)
-      expect(rule.status.kind === 'planned').toBe(rule.status.line.startsWith('Planned'))
+      expect(rule.status.kind === 'promise').toBe(rule.status.line.startsWith('Our promise'))
     }
-    const planned = SECURITY_PAGE.rules.items.filter((r) => r.status.kind === 'planned')
-    expect(planned.map((r) => r.id)).toEqual(
+    const promised = SECURITY_PAGE.rules.items.filter((r) => r.status.kind === 'promise')
+    expect(promised.map((r) => r.id)).toEqual(
       expect.arrayContaining(['contact-consent', 'disclosure', 'region', 'deletion'])
     )
   })

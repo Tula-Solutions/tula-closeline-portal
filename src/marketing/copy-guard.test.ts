@@ -66,8 +66,25 @@ describe('the copy guard catches what it is for', () => {
     expect(run('Ask for contact consent.').some((v) => v.rule === 'avoided-term')).toBe(true)
   })
 
+  test.each([
+    ['phase 2', 'The Copilot is planned for phase 2.'],
+    ['Phase 4', 'Planned, Phase 4'],
+    ['ADR 0003', 'Rule: ADR 0003'],
+    ['adr 0021', 'Proposed in adr 0021.'],
+    ['built today', 'Only the Playbook is built today.'],
+    ['Built today', 'Built today'],
+    ['planned', 'The Outbound Agent is planned.'],
+    ['roadmap', 'See our roadmap.'],
+  ])('an internal reference: %s', (_label, text) => {
+    expect(run(text).some((v) => v.rule === 'internal-reference')).toBe(true)
+  })
+
+  test('words that only look like a roadmap pass', () => {
+    expect(run('Every phase of a Call is recorded. Plan your Deals.')).toEqual([])
+  })
+
   test('an ordinary x or percent sign that is not a figure passes', () => {
-    expect(run('Phase 2 of 4. Box x, extra, 10 per month.')).toEqual([])
+    expect(run('Box x, extra, 10 per month.')).toEqual([])
   })
 })
 

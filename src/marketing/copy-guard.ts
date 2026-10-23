@@ -1,11 +1,11 @@
 /**
- * The marketing copy guard: finds emoji, words the glossary says to avoid and unsourced figures in
+ * The marketing copy guard: finds emoji, words the glossary says to avoid, roadmap and decision-record wording, and unsourced figures in
  * the strings of the copy modules. Pure functions, so a fixture can prove each rule catches.
  */
 
 /** One thing wrong with one string of copy. */
 export interface CopyViolation {
-  readonly rule: 'emoji' | 'avoided-term' | 'unsourced-figure'
+  readonly rule: 'emoji' | 'avoided-term' | 'unsourced-figure' | 'internal-reference'
   readonly match: string
   readonly text: string
 }
@@ -65,6 +65,11 @@ export function collectStrings(value: unknown): string[] {
 }
 
 const EMOJI = /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u{FE0F}|\u{200D}|\u{20E3}/u
+/**
+ * Roadmap and decision-record wording that is for the team, not the buyer: a phase number, an ADR
+ * number, "built today", "planned" and "roadmap". A part that is not live is "Early access".
+ */
+const INTERNAL = /\bphase \d|\bADR[ -]?\d{2,4}|\bbuilt today\b|\bplanned\b|\broadmap\b/i
 const FIGURE = /\d[\d,.]*\s?(?:%|x\b|×)/gi
 
 function escapeWord(word: string): string {
@@ -91,6 +96,10 @@ export function checkCopy(
     const emoji = EMOJI.exec(text)
     if (emoji !== null) {
       violations.push({ rule: 'emoji', match: emoji[0], text })
+    }
+    const internal = INTERNAL.exec(text)
+    if (internal !== null) {
+      violations.push({ rule: 'internal-reference', match: internal[0], text })
     }
     const plain = text.replace(strip, ' ')
     // A word avoided for two terms ("lead") is reported once.

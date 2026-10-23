@@ -4,6 +4,7 @@ import axe from 'axe-core'
 import { companyBody, hexId, page, prospectBody } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
+import { chosenValue } from '~/testing/select'
 
 const ID = hexId('prs', 1)
 const ONE = `/v1/prospects/${ID}`
@@ -163,7 +164,7 @@ describe('Prospect: a Company outside the first page', () => {
       route('GET', ONE, json(200, prospectBody(1, { companyId: far })))
     )
     expect(await screen.findByText('Zenith Works', { selector: 'dd *, dd' })).toBeTruthy()
-    const select = (await screen.findByLabelText('Prospect Company')) as HTMLSelectElement
-    await waitFor(() => expect(select.value).toBe(far))
+    const select = await screen.findByLabelText('Prospect Company')
+    await waitFor(() => expect(chosenValue(select)).toBe(far))
   })
 })

@@ -131,7 +131,7 @@ export function Shell() {
       >
         Skip to content
       </a>
-      <div
+      <header
         inert={open}
         className='sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3 md:hidden'
       >
@@ -147,7 +147,7 @@ export function Shell() {
           {open ? <X aria-hidden='true' /> : <Menu aria-hidden='true' />}
         </Button>
         <span className='font-serif text-lg tracking-[-0.01em]'>Closeline</span>
-      </div>
+      </header>
       {open ? (
         <button
           type='button'

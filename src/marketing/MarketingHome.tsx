@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { DEMO_PAGE } from '~/marketing/copy/demo'
-import { HOME_COPY } from '~/marketing/copy/home'
+import { EARLY_ACCESS, HOME_COPY } from '~/marketing/copy/home'
 import { HOME_META, SITE_COPY } from '~/marketing/copy/site'
 import { Part } from '~/marketing/Part'
 import { Scale } from '~/marketing/Scale'
@@ -30,7 +30,7 @@ function PageLink(props: {
     <p className='m-0 mt-6'>
       <Link
         to={props.to}
-        className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+        className='rounded-sm max-md:inline-flex max-md:min-h-11 max-md:items-center underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
       >
         {props.label}
       </Link>
@@ -82,7 +82,7 @@ export function MarketingHome() {
                   </Link>
                   <Link
                     to='/book-a-demo'
-                    className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+                    className='rounded-sm max-md:inline-flex max-md:min-h-11 max-md:items-center underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
                   >
                     {DEMO_PAGE.navLabel}
                   </Link>
@@ -130,7 +130,20 @@ export function MarketingHome() {
             heading={part.heading}
           >
             <Paragraphs items={part.paragraphs} />
-            <PageLink to={part.page.to} label={part.page.label} />
+            <div className='mt-6 flex flex-wrap items-center gap-6'>
+              <Link
+                to='/book-a-demo'
+                className='inline-flex h-11 items-center rounded-[4px] border border-foreground px-5 font-semibold outline-hidden hover:bg-foreground/5 focus-visible:ring-2 focus-visible:ring-ring'
+              >
+                {EARLY_ACCESS.cta}
+              </Link>
+              <Link
+                to={part.page.to}
+                className='rounded-sm max-md:inline-flex max-md:min-h-11 max-md:items-center underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+              >
+                {part.page.label}
+              </Link>
+            </div>
           </Part>
         ))}
 
@@ -193,7 +206,6 @@ export function MarketingHome() {
                   <p className='m-0 mt-2 max-w-[48ch] border-t border-background/50 pt-4 text-sm leading-relaxed'>
                     {copy.trust.status}
                   </p>
-                  <p className='label-mono m-0 mt-3 text-background'>{copy.trust.reference}</p>
                 </div>
                 <Specimen title={copy.trust.specimen.title} rows={copy.trust.specimen.rows} />
               </div>
@@ -221,7 +233,7 @@ export function MarketingHome() {
             </Link>
             <Link
               to='/book-a-demo'
-              className='mt-6 ml-6 rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+              className='mt-6 ml-6 rounded-sm max-md:inline-flex max-md:min-h-11 max-md:items-center underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
             >
               {DEMO_PAGE.navLabel}
             </Link>

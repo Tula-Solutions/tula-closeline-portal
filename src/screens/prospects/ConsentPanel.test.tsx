@@ -13,6 +13,7 @@ import {
 } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
+import { choose, optionsOf } from '~/testing/select'
 
 const ID = hexId('prs', 1)
 const ONE = `/v1/prospects/${ID}`
@@ -229,7 +230,7 @@ describe('Contact Consent: recording a grant', () => {
       wordings
     )
     await portal.user.click(await screen.findByRole('button', { name: 'Record consent for Phone' }))
-    await portal.user.selectOptions(screen.getByLabelText('Source'), 'crm')
+    await choose(portal.user, screen.getByLabelText('Source'), 'crm')
     await portal.user.type(screen.getByLabelText('Evidence reference'), '  HubSpot note 42  ')
     await portal.user.click(screen.getByRole('button', { name: 'Record consent' }))
     await waitFor(() => expect(screen.getByText('Consent recorded on Phone.')).toBeTruthy())
@@ -250,9 +251,9 @@ describe('Contact Consent: recording a grant', () => {
   test('offers only the Consent Wordings that cover the channel', async () => {
     const portal = visit('rep', mixed, noEvents, wordings)
     await portal.user.click(await screen.findByRole('button', { name: 'Record consent for Email' }))
-    const select = (await screen.findByLabelText('Consent Wording')) as HTMLSelectElement
+    const select = await screen.findByLabelText('Consent Wording')
     expect(
-      Array.from(select.options).map((o) => o.textContent?.replace(/[\u2068\u2069]/g, ''))
+      (await optionsOf(portal.user, select)).map((o) => o.text.replace(/[\u2068\u2069]/g, ''))
     ).toEqual(['We may email you about Northline.'])
   })
 
@@ -287,7 +288,7 @@ describe('Contact Consent: recording a grant', () => {
     )
     await portal.user.click(await screen.findByRole('button', { name: 'Record consent for Phone' }))
     expect(screen.queryByLabelText('Call reference')).toBeNull()
-    await portal.user.selectOptions(screen.getByLabelText('Source'), 'verbal_call')
+    await choose(portal.user, screen.getByLabelText('Source'), 'verbal_call')
     await portal.user.type(screen.getByLabelText('Evidence reference'), 'Call notes')
     await portal.user.click(screen.getByRole('button', { name: 'Record consent' }))
     expect(await screen.findByText('Enter the Call this consent was given on.')).toBeTruthy()

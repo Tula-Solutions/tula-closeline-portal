@@ -15,6 +15,7 @@ import { SalesLayout } from '~/screens/sales/SalesLayout'
 import { dealBody, hexId, importBody, page, rightsBody, rowBody } from '~/testing/core-bodies'
 import { failure, fakeFetch, json, route, TEST_ENV, tokens } from '~/testing/fixtures'
 import { gatedSleep, param, visit } from '~/testing/sales'
+import { choose, chosenValue } from '~/testing/select'
 
 const PB = '/v1/playbook'
 const DEALS = `${PB}/deals`
@@ -275,7 +276,7 @@ describe('Sales history: Deals', () => {
       ),
     ])
     await screen.findByRole('link', { name: 'ANY-1' })
-    await portal.user.selectOptions(screen.getByLabelText('Outcome'), 'won')
+    await choose(portal.user, screen.getByLabelText('Outcome'), 'won')
     await screen.findByRole('link', { name: 'WON-1' })
     await portal.user.click(screen.getByRole('checkbox', { name: /no CSV has named/i }))
     await waitFor(() =>
@@ -358,7 +359,7 @@ describe('Sales history: one Deal', () => {
     ])
     expect(await screen.findByText('D-1')).toBeTruthy()
     expect(screen.getByText(/no CSV has named it/i)).toBeTruthy()
-    await portal.user.selectOptions(screen.getByLabelText('Outcome'), 'won')
+    await choose(portal.user, screen.getByLabelText('Outcome'), 'won')
     await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
     await waitFor(() =>
       expect(screen.getByRole('status', { name: 'Notice' }).textContent).toContain('Outcome saved')
@@ -393,7 +394,7 @@ describe('Sales history: one Deal', () => {
       ),
       route('GET', `${DEALS}/${deal.id}`, json(200, deal)),
     ])
-    await portal.user.selectOptions(await screen.findByLabelText('Outcome'), 'lost')
+    await choose(portal.user, await screen.findByLabelText('Outcome'), 'lost')
     await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
     expect((await screen.findAllByRole('alert'))[0]?.textContent).toContain('no longer exists')
   })
@@ -938,21 +939,21 @@ describe('Sales history review round 1', () => {
           : json(200, { ...deal, outcome })
       ),
     ])
-    const select = (await screen.findByLabelText('Outcome')) as HTMLSelectElement
-    await portal.user.selectOptions(select, 'won')
+    const select = await screen.findByLabelText('Outcome')
+    await choose(portal.user, select, 'won')
     await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
     await waitFor(() =>
       expect(screen.getByRole('status', { name: 'Notice' }).textContent).toContain('Outcome saved')
     )
     expect(screen.queryByRole('alert')).toBeNull()
-    expect(select.value).toBe('won')
+    expect(chosenValue(select)).toBe('won')
     // Once a read succeeds the select follows whatever the service now says.
     failing = false
     outcome = 'lost'
     void portal.app.queryClient.invalidateQueries()
     await waitFor(() => {
-      if (select.value !== 'lost') {
-        throw new Error(`the select still shows ${select.value}`)
+      if (chosenValue(select) !== 'lost') {
+        throw new Error(`the select still shows ${chosenValue(select)}`)
       }
     })
   })
@@ -969,12 +970,12 @@ describe('Sales history review round 1', () => {
         json(200, { ...deal, outcome: saved ? 'lost' : 'open' })
       ),
     ])
-    const select = (await screen.findByLabelText('Outcome')) as HTMLSelectElement
-    await portal.user.selectOptions(select, 'won')
+    const select = await screen.findByLabelText('Outcome')
+    await choose(portal.user, select, 'won')
     await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
     await waitFor(() => {
-      if (select.value !== 'lost') {
-        throw new Error(`the select still shows ${select.value}`)
+      if (chosenValue(select) !== 'lost') {
+        throw new Error(`the select still shows ${chosenValue(select)}`)
       }
     })
   })
@@ -999,18 +1000,18 @@ describe('Sales history review round 1', () => {
         return json(200, { ...deal, outcome: saved ? 'won' : 'open' })
       }),
     ])
-    const select = (await screen.findByLabelText('Outcome')) as HTMLSelectElement
-    await portal.user.selectOptions(select, 'won')
+    const select = await screen.findByLabelText('Outcome')
+    await choose(portal.user, select, 'won')
     await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
     await waitFor(() => {
       if (!inFlight) {
         throw new Error('the read after the save has not started')
       }
     })
-    await portal.user.selectOptions(select, 'lost')
+    await choose(portal.user, select, 'lost')
     release()
     await waitFor(() => expect(screen.getAllByText('Won').length).toBeGreaterThan(0))
-    expect(select.value).toBe('lost')
+    expect(chosenValue(select)).toBe('lost')
   })
 
   test('a read that finishes while the save is in flight does not hand the select back to the old Outcome', async () => {
@@ -1035,8 +1036,8 @@ describe('Sales history review round 1', () => {
           : json(200, { ...deal, outcome: 'open' })
       }),
     ])
-    const select = (await screen.findByLabelText('Outcome')) as HTMLSelectElement
-    await portal.user.selectOptions(select, 'won')
+    const select = await screen.findByLabelText('Outcome')
+    await choose(portal.user, select, 'won')
     await portal.user.click(screen.getByRole('button', { name: 'Save Outcome' }))
     await waitFor(() => {
       if (!putStarted) {
@@ -1054,7 +1055,7 @@ describe('Sales history review round 1', () => {
     await waitFor(() =>
       expect(screen.getByRole('status', { name: 'Notice' }).textContent).toContain('Outcome saved')
     )
-    expect(select.value).toBe('won')
+    expect(chosenValue(select)).toBe('won')
   })
 
   test('the Outcome select follows a change made elsewhere until the person touches it', async () => {
@@ -1063,16 +1064,16 @@ describe('Sales history review round 1', () => {
     const portal = visit(`/sales-history/deals/${deal.id}`, 'owner', [
       route('GET', `${DEALS}/${deal.id}`, () => json(200, { ...deal, outcome })),
     ])
-    const select = (await screen.findByLabelText('Outcome')) as HTMLSelectElement
-    expect(select.value).toBe('open')
+    const select = await screen.findByLabelText('Outcome')
+    expect(chosenValue(select)).toBe('open')
     outcome = 'lost'
     await act(() => portal.app.queryClient.invalidateQueries())
-    await waitFor(() => expect(select.value).toBe('lost'))
-    await portal.user.selectOptions(select, 'won')
+    await waitFor(() => expect(chosenValue(select)).toBe('lost'))
+    await choose(portal.user, select, 'won')
     outcome = 'open'
     await act(() => portal.app.queryClient.invalidateQueries())
     await waitFor(() => expect(screen.getAllByText('Open').length).toBeGreaterThan(0))
-    expect(select.value).toBe('won')
+    expect(chosenValue(select)).toBe('won')
   })
 
   test('the screen-reader text of an import link has the date as it is shown, not the raw time', async () => {

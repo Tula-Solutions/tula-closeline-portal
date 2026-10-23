@@ -1,26 +1,24 @@
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
-import { type FormEvent, useState } from 'react'
+import { SlidersHorizontal } from 'lucide-react'
+import { type FormEvent, useId, useState } from 'react'
 import {
-  MAX_MEMBER_QUERY_LENGTH,
   MAX_PROSPECT_SEARCH_LENGTH,
   membershipIdSchema,
   type Prospect,
 } from 'tula-closeline-contract'
 import { PageHeader } from '~/components/app/page-header'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
 import { can } from '~/data/permissions'
 import { fieldValue, prospectName, SOURCE_CHOICES, sourceLabel } from '~/data/prospects'
-import { useMemberSearch, useProspectCompanyNames, useProspects } from '~/data/queries'
+import { useProspectCompanyNames, useProspects } from '~/data/queries'
 import { useRole } from '~/data/session-role'
+import { cn } from '~/lib/utils'
 import { Field } from '~/ui/Field'
+import { OwnerCombobox } from '~/ui/OwnerCombobox'
 import { Paged } from '~/ui/Paged'
-import { plain } from '~/ui/plain'
 import { ScrollRegion } from '~/ui/ScrollRegion'
 import { SelectField } from '~/ui/SelectField'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
-import { useSettled } from '~/ui/useSettled'
 import { When } from '~/ui/When'
 
 const route = getRouteApi('/_app/prospects/')
@@ -46,9 +44,9 @@ export function ProspectsScreen() {
     companyId: search.company,
   })
   const showOwner = role !== null && can.viewMembers(role)
-  const [ownerTerm, setOwnerTerm] = useState('')
   const [ownerName, setOwnerName] = useState('')
-  const members = useMemberSearch(useSettled(ownerTerm), showOwner)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const filtersId = useId()
   const companyNames = useProspectCompanyNames([
     ...prospects.items.flatMap((prospect) => (prospect.companyId ? [prospect.companyId] : [])),
     ...(search.company ? [search.company] : []),
@@ -62,6 +60,9 @@ export function ProspectsScreen() {
     search.source !== undefined ||
     search.owner !== undefined ||
     search.company !== undefined
+  const filterCount = [search.status, search.source, search.owner, search.company].filter(
+    (value) => value !== undefined
+  ).length
   const change = (next: Partial<typeof search>) =>
     void navigate({ search: (now) => ({ ...now, ...next }), replace: true })
   const submit = (event: FormEvent) => {
@@ -124,7 +125,23 @@ export function ProspectsScreen() {
             </div>
           </form>
         </search>
-        <div className='flex flex-wrap items-center gap-x-6 gap-y-2'>
+        <button
+          type='button'
+          className='button button-quiet inline-flex w-fit items-center gap-2 md:hidden'
+          aria-expanded={filtersOpen}
+          aria-controls={filtersId}
+          onClick={() => setFiltersOpen((now) => !now)}
+        >
+          <SlidersHorizontal aria-hidden='true' className='size-4' />
+          {filterCount === 0 ? 'Filters' : `Filters (${filterCount} on)`}
+        </button>
+        <div
+          id={filtersId}
+          className={cn(
+            'flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center md:gap-x-6 md:gap-y-2',
+            filtersOpen ? 'flex' : 'hidden'
+          )}
+        >
           <SelectField
             inline
             label='Status'
@@ -149,50 +166,19 @@ export function ProspectsScreen() {
             }
           />
           {showOwner ? (
-            <>
-              <div className='field flex flex-row items-center gap-2'>
-                <Label
-                  htmlFor='owner-search'
-                  className='text-[0.8125rem] font-medium text-muted-foreground'
-                >
-                  Search owners
-                </Label>
-                <Input
-                  id='owner-search'
-                  type='search'
-                  autoComplete='off'
-                  className='w-48'
-                  maxLength={MAX_MEMBER_QUERY_LENGTH}
-                  value={ownerTerm}
-                  onChange={(event) => setOwnerTerm(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                    }
-                  }}
-                />
-              </div>
-              <SelectField
-                inline
-                label='Owner'
-                value={search.owner ?? ''}
-                options={[
-                  { value: '', text: 'Any owner' },
-                  ...(search.owner && !members.items.some((member) => member.id === search.owner)
-                    ? [{ value: search.owner, text: ownerName || 'Selected owner' }]
-                    : []),
-                  ...members.items.map((member) => ({
-                    value: member.id,
-                    text: plain(member.name ?? member.email, 'Unnamed member'),
-                  })),
-                ]}
-                onChange={(event) => {
-                  const owner = membershipIdSchema.safeParse(event.target.value)
-                  setOwnerName(owner.success ? (event.target.selectedOptions[0]?.text ?? '') : '')
-                  change({ owner: owner.success ? owner.data : undefined })
-                }}
-              />
-            </>
+            <OwnerCombobox
+              inline
+              label='Owner'
+              anyText='Any owner'
+              enabled={showOwner}
+              value={search.owner ?? ''}
+              valueName={ownerName}
+              onChange={(id, name) => {
+                const owner = membershipIdSchema.safeParse(id)
+                setOwnerName(owner.success ? name : '')
+                change({ owner: owner.success ? owner.data : undefined })
+              }}
+            />
           ) : null}
           {search.company !== undefined ? (
             <p className='m-0 text-sm'>
@@ -236,11 +222,17 @@ export function ProspectsScreen() {
                 <thead>
                   <tr>
                     <th scope='col'>Prospect</th>
-                    <th scope='col'>Email address</th>
+                    <th scope='col' className='ledger-detail'>
+                      Email address
+                    </th>
                     <th scope='col'>Prospect Company</th>
-                    <th scope='col'>Source</th>
+                    <th scope='col' className='ledger-detail'>
+                      Source
+                    </th>
                     <th scope='col'>Status</th>
-                    <th scope='col'>Added</th>
+                    <th scope='col' className='ledger-detail'>
+                      Added
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -273,17 +265,17 @@ function ProspectRow(props: { readonly prospect: Prospect; readonly company: str
           <Untrusted value={prospectName(prospect)} />
         </Link>
       </th>
-      <td>{email === '' ? '—' : <Untrusted value={email} />}</td>
-      <td>
+      <td className='ledger-detail'>{email === '' ? '—' : <Untrusted value={email} />}</td>
+      <td className='ledger-pair'>
         {prospect.companyId === null ? (
           '—'
         ) : (
           <Untrusted value={props.company ?? 'Prospect Company'} />
         )}
       </td>
-      <td>{sourceLabel(prospect.source)}</td>
-      <td>{prospect.status === 'active' ? 'Active' : 'Archived'}</td>
-      <td className='num'>
+      <td className='ledger-detail'>{sourceLabel(prospect.source)}</td>
+      <td className='ledger-pair'>{prospect.status === 'active' ? 'Active' : 'Archived'}</td>
+      <td className='num ledger-detail'>
         <When iso={prospect.createdAt} />
       </td>
     </tr>

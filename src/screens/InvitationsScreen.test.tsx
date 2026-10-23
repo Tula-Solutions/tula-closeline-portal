@@ -4,6 +4,7 @@ import { CORE_ERRORS, ERRORS } from 'tula-closeline-contract'
 import { hexId, invitationBody, page } from '~/testing/core-bodies'
 import { failure, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal, waitUntilGone } from '~/testing/render'
+import { choose, optionsOf } from '~/testing/select'
 
 const INVITATIONS = '/v1/invitations'
 
@@ -31,7 +32,7 @@ async function invite(
 ) {
   await portal.user.type(await screen.findByLabelText('Email address'), email)
   if (role) {
-    await portal.user.selectOptions(screen.getByLabelText('Role offered'), role)
+    await choose(portal.user, screen.getByLabelText('Role offered'), role)
   }
   await portal.user.click(screen.getByRole('button', { name: 'Send Invitation' }))
 }
@@ -133,9 +134,9 @@ describe('Invitations: sending', () => {
   })
 
   test('an Admin can offer only Manager and Rep', async () => {
-    visit('admin', empty)
+    const portal = visit('admin', empty)
     const select = await screen.findByLabelText('Role offered')
-    expect([...select.querySelectorAll('option')].map((option) => option.textContent)).toEqual([
+    expect((await optionsOf(portal.user, select)).map((option) => option.text)).toEqual([
       'Manager',
       'Rep',
     ])

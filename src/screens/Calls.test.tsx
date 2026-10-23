@@ -10,6 +10,7 @@ import { recordingRepProblem } from '~/screens/sales/RecordingUpload'
 import { callBody, dealBody, hexId, page, rightsBody } from '~/testing/core-bodies'
 import { failure, json, route, tokens } from '~/testing/fixtures'
 import { gatedSleep, param, visit } from '~/testing/sales'
+import { choose, chosenValue, optionsOf } from '~/testing/select'
 
 const PB = '/v1/playbook'
 const CALLS = `${PB}/calls`
@@ -64,7 +65,7 @@ describe('Calls: the list', () => {
       ),
     ])
     await screen.findByText('any.txt')
-    await portal.user.selectOptions(screen.getByLabelText('Show'), 'failed')
+    await choose(portal.user, screen.getByLabelText('Show'), 'failed')
     expect(await screen.findByText('failed.txt')).toBeTruthy()
   })
 
@@ -245,12 +246,12 @@ describe('Calls: changing the Rep', () => {
     ])
     await portal.user.click(await screen.findByRole('button', { name: 'Change Rep of call-1.txt' }))
     const select = screen.getByLabelText('Rep for call-1.txt')
-    expect(
-      within(select)
-        .getAllByRole('option')
-        .map((option) => option.textContent)
-    ).toEqual(['Choose a speaker', 'Sam', 'Pat'])
-    await portal.user.selectOptions(select, 'Pat')
+    expect((await optionsOf(portal.user, select)).map((option) => option.text)).toEqual([
+      'Choose a speaker',
+      'Sam',
+      'Pat',
+    ])
+    await choose(portal.user, select, 'Pat')
     await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
     await waitFor(() =>
       expect(screen.getByRole('status', { name: 'Notice' }).textContent).toMatch(/out of search/)
@@ -328,7 +329,7 @@ describe('Calls: changing the Rep', () => {
       listOf(call),
     ])
     await portal.user.click(await screen.findByRole('button', { name: 'Change Rep of call-1.txt' }))
-    expect((screen.getByLabelText('Rep for call-1.txt') as HTMLSelectElement).value).toBe('Pat')
+    expect(chosenValue(screen.getByLabelText('Rep for call-1.txt'))).toBe('Pat')
     await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(/already the Rep/)
     expect(portal.calls.filter((made) => made.method === 'PUT')).toHaveLength(0)
@@ -340,9 +341,9 @@ describe('Calls: changing the Rep', () => {
       listOf(recording({ state: 'awaiting_rep', rep: null, inSearch: false })),
     ])
     await portal.user.click(await screen.findByRole('button', { name: 'Change Rep of call-1.txt' }))
-    const select = screen.getByLabelText('Rep for call-1.txt') as HTMLSelectElement
-    expect(select.value).toBe('')
-    expect(within(select).getAllByRole('option')[0]?.textContent).toBe('Choose a speaker')
+    const select = screen.getByLabelText('Rep for call-1.txt')
+    expect(chosenValue(select)).toBe('')
+    expect((await optionsOf(portal.user, select))[0]?.text).toBe('Choose a speaker')
     await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(/Choose a speaker/)
     expect(portal.calls.filter((made) => made.method === 'PUT')).toHaveLength(0)
@@ -360,13 +361,13 @@ describe('Calls: changing the Rep', () => {
       ),
     ])
     await portal.user.click(await screen.findByRole('button', { name: 'Change Rep of call-1.txt' }))
-    await portal.user.selectOptions(screen.getByLabelText('Rep for call-1.txt'), 'Lee')
+    await choose(portal.user, screen.getByLabelText('Rep for call-1.txt'), 'Lee')
     labels = ['Sam', 'Pat']
     void portal.app.queryClient.invalidateQueries()
-    await waitFor(() => {
-      const options = within(screen.getByLabelText('Rep for call-1.txt'))
-        .getAllByRole('option')
-        .map((option) => option.textContent)
+    await waitFor(async () => {
+      const options = (
+        await optionsOf(portal.user, screen.getByLabelText('Rep for call-1.txt'))
+      ).map((option) => option.text)
       if (options.includes('Lee')) {
         throw new Error('the list still has the old speakers')
       }
@@ -386,7 +387,7 @@ describe('Calls: changing the Rep', () => {
       listOf(call),
     ])
     await portal.user.click(await screen.findByRole('button', { name: 'Change Rep of call-1.txt' }))
-    await portal.user.selectOptions(screen.getByLabelText('Rep for call-1.txt'), 'Pat')
+    await choose(portal.user, screen.getByLabelText('Rep for call-1.txt'), 'Pat')
     await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(/cannot be changed now/)
   })
@@ -432,7 +433,7 @@ describe('Calls: delete and restore', () => {
       ),
       listOf(call),
     ])
-    await portal.user.selectOptions(await screen.findByLabelText('Show'), 'deleted')
+    await choose(portal.user, await screen.findByLabelText('Show'), 'deleted')
     await portal.user.click(await screen.findByRole('button', { name: 'Restore call-1.txt' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(/purged/)
   })
@@ -666,7 +667,7 @@ describe('Calls: uploading a Recording', () => {
       confirmed,
     ])
     await ready(portal)
-    await portal.user.selectOptions(screen.getByLabelText('Which channel is the Rep?'), 'left')
+    await choose(portal.user, screen.getByLabelText('Which channel is the Rep?'), 'left')
     await send(portal)
     await waitFor(() => expect(status().textContent).toMatch(/Uploaded call\.mp3/))
     const form = posts(portal)[0]?.init.body as FormData
@@ -842,7 +843,7 @@ describe('Calls: uploading a Recording', () => {
       expect(portal.app.queryClient.getQueryData(['org_1', 'rights'])).toBeDefined()
     )
     await ready(portal)
-    await portal.user.selectOptions(screen.getByLabelText('Which channel is the Rep?'), 'right')
+    await choose(portal.user, screen.getByLabelText('Which channel is the Rep?'), 'right')
     await send(portal)
     await screen.findByRole('heading', { name: 'Rights confirmation' })
     expect(posts(portal)).toHaveLength(0)
@@ -877,12 +878,12 @@ describe('Calls: picking the Rep of a transcribed Recording', () => {
     expect(row.textContent).toMatch(/Choose which speaker is the Rep/)
     await portal.user.click(screen.getByRole('button', { name: 'Change Rep of call-1.txt' }))
     const select = screen.getByLabelText('Rep for call-1.txt')
-    expect(
-      within(select)
-        .getAllByRole('option')
-        .map((option) => option.textContent)
-    ).toEqual(['Choose a speaker', 'A', 'B'])
-    await portal.user.selectOptions(select, 'B')
+    expect((await optionsOf(portal.user, select)).map((option) => option.text)).toEqual([
+      'Choose a speaker',
+      'A',
+      'B',
+    ])
+    await choose(portal.user, select, 'B')
     await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
     await waitFor(() => expect(portal.calls.some((made) => made.method === 'PUT')).toBe(true))
     expect(portal.calls.find((made) => made.method === 'PUT')?.body).toEqual({
@@ -903,7 +904,7 @@ describe('Calls: picking the Rep of a transcribed Recording', () => {
       listOf(call),
     ])
     await portal.user.click(await screen.findByRole('button', { name: 'Change Rep of call-1.txt' }))
-    await portal.user.selectOptions(screen.getByLabelText('Rep for call-1.txt'), 'A')
+    await choose(portal.user, screen.getByLabelText('Rep for call-1.txt'), 'A')
     await portal.user.click(screen.getByRole('button', { name: 'Save Rep' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(/does not match the Call/)
   })

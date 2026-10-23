@@ -1,11 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { EmptyState } from '~/components/app/empty-state'
 import { RoleBadge } from '~/components/app/role-badge'
 import { Section } from '~/components/app/section'
 import { StatusBadge } from '~/components/app/status-badge'
 import { initials, Monogram } from '~/components/ui/avatar'
-import { NativeSelect } from '~/components/ui/native-select'
+import { Select } from '~/components/ui/select'
 
 describe('avatar', () => {
   test('initials come from the first and last words, or from the part of an address before @', () => {
@@ -78,22 +80,68 @@ describe('empty state', () => {
   })
 })
 
-describe('native select', () => {
-  test('stays the browser select, with its label, options and a hidden chevron', () => {
-    render(
+describe('select', () => {
+  function Harness(props: { readonly onChange: (value: string) => void }) {
+    const [value, setValue] = useState('rep')
+    return (
       <>
         <label htmlFor='role'>Role</label>
-        <NativeSelect id='role' controlSize='sm' defaultValue='rep'>
-          <option value='manager'>Manager</option>
-          <option value='rep'>Rep</option>
-        </NativeSelect>
+        <Select
+          id='role'
+          controlSize='sm'
+          value={value}
+          options={[
+            { value: '', text: 'Anyone' },
+            { value: 'manager', text: 'Manager' },
+            { value: 'rep', text: 'Rep' },
+          ]}
+          onValueChange={(next) => {
+            setValue(next)
+            props.onChange(next)
+          }}
+        />
       </>
     )
-    const select = screen.getByLabelText('Role') as HTMLSelectElement
-    expect(select.tagName).toBe('SELECT')
-    expect(select.value).toBe('rep')
-    expect(select.className).toContain('h-9')
-    const icon = document.querySelector('[data-slot="native-select-icon"]')
-    expect(icon?.getAttribute('aria-hidden')).toBe('true')
+  }
+
+  test('is labelled, shows the chosen words, and lists options with a check on the chosen one', async () => {
+    const user = userEvent.setup()
+    render(<Harness onChange={() => {}} />)
+    const trigger = screen.getByLabelText('Role')
+    expect(trigger.getAttribute('role')).toBe('combobox')
+    expect(trigger.textContent).toContain('Rep')
+    expect(trigger.className).toContain('h-9')
+    await user.click(trigger)
+    const options = await screen.findAllByRole('option')
+    expect(options.map((o) => o.textContent)).toEqual(['Anyone', 'Manager', 'Rep'])
+    expect(screen.getByRole('option', { name: 'Rep' }).getAttribute('aria-selected')).toBe('true')
+  })
+
+  test('chooses with the pointer, and an empty-valued option is choosable', async () => {
+    const user = userEvent.setup()
+    const seen: string[] = []
+    render(<Harness onChange={(value) => seen.push(value)} />)
+    await user.click(screen.getByLabelText('Role'))
+    await user.click(await screen.findByRole('option', { name: 'Manager' }))
+    await user.click(screen.getByLabelText('Role'))
+    await user.click(await screen.findByRole('option', { name: 'Anyone' }))
+    expect(seen).toEqual(['manager', ''])
+    expect(screen.getByLabelText('Role').textContent).toContain('Anyone')
+  })
+
+  test('chooses with the keyboard: arrows move, Enter chooses, Esc closes without choosing', async () => {
+    const user = userEvent.setup()
+    const seen: string[] = []
+    render(<Harness onChange={(value) => seen.push(value)} />)
+    screen.getByLabelText('Role').focus()
+    await user.keyboard('{ArrowDown}')
+    await screen.findByRole('listbox')
+    await user.keyboard('{ArrowUp}{Enter}')
+    expect(seen).toEqual(['manager'])
+    await user.keyboard('{ArrowDown}')
+    await screen.findByRole('listbox')
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('listbox')).toBeNull()
+    expect(seen).toEqual(['manager'])
   })
 })

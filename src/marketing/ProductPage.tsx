@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { DEMO_PAGE } from '~/marketing/copy/demo'
+import { EARLY_ACCESS } from '~/marketing/copy/home'
 import { PRODUCT_COMMON, type ProductPageCopy } from '~/marketing/copy/products'
 import { SITE_COPY } from '~/marketing/copy/site'
 import { Part } from '~/marketing/Part'
@@ -8,7 +9,7 @@ import { usePageMeta } from '~/marketing/usePageMeta'
 
 const WIDTH = 'mx-auto max-w-[88rem] px-4 sm:px-8'
 
-/** One ruled list of what is built or planned, headed by its label. */
+/** One ruled list of what a buyer can use, or can ask for, headed by its label. */
 function LedgerGroup(props: { readonly label: string; readonly items: readonly string[] }) {
   return (
     <div>
@@ -26,8 +27,8 @@ function LedgerGroup(props: { readonly label: string; readonly items: readonly s
 
 /**
  * A product page on one typeset template: the statement, how it works in numbered parts, one
- * captioned specimen, and a ledger of what is built today and what is planned, by phase. A part
- * that is not built says so in words, and the ledger never lists it as working.
+ * captioned specimen, and a ledger of what is open now and what is in early access. A part in early
+ * access says so in words, offers a request for a place, and the ledger never lists it as open.
  */
 export function ProductPage(props: { readonly copy: ProductPageCopy }) {
   const { copy } = props
@@ -54,9 +55,16 @@ export function ProductPage(props: { readonly copy: ProductPageCopy }) {
               <span className='label-mono mr-2'>{PRODUCT_COMMON.todayLabel}</span>
               {copy.today}
             </p>
-            {copy.rule === undefined ? null : (
-              <p className='label-mono m-0 mt-3 text-foreground'>{copy.rule}</p>
-            )}
+            {copy.availability.kind === 'early' ? (
+              <p className='m-0 mt-6'>
+                <Link
+                  to='/book-a-demo'
+                  className='inline-flex h-11 items-center rounded-[4px] bg-foreground px-5 font-semibold text-background outline-hidden hover:bg-foreground/85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+                >
+                  {EARLY_ACCESS.cta}
+                </Link>
+              </p>
+            ) : null}
           </div>
         </section>
       </div>
@@ -101,21 +109,21 @@ export function ProductPage(props: { readonly copy: ProductPageCopy }) {
         </Part>
 
         <Part
-          id='built-and-planned'
+          id='what-you-can-use'
           numeral={PRODUCT_COMMON.ledger.numeral}
           label={PRODUCT_COMMON.ledger.label}
           heading={copy.ledger.heading}
         >
           <div className='grid gap-10 lg:grid-cols-2'>
             <LedgerGroup
-              label={PRODUCT_COMMON.builtLabel}
-              items={copy.ledger.built.length > 0 ? copy.ledger.built : [PRODUCT_COMMON.builtNone]}
+              label={PRODUCT_COMMON.availableLabel}
+              items={
+                copy.ledger.available.length > 0
+                  ? copy.ledger.available
+                  : [PRODUCT_COMMON.availableNone]
+              }
             />
-            <div className='space-y-8'>
-              {copy.ledger.planned.map((group) => (
-                <LedgerGroup key={group.label} label={group.label} items={group.items} />
-              ))}
-            </div>
+            <LedgerGroup label={PRODUCT_COMMON.earlyLabel} items={copy.ledger.early} />
           </div>
         </Part>
       </div>
@@ -143,14 +151,14 @@ export function ProductPage(props: { readonly copy: ProductPageCopy }) {
               </Link>
               <Link
                 to='/book-a-demo'
-                className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+                className='rounded-sm max-md:inline-flex max-md:min-h-11 max-md:items-center underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
               >
                 {DEMO_PAGE.navLabel}
               </Link>
               {copy.path === '/the-playbook' ? null : (
                 <Link
                   to='/the-playbook'
-                  className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+                  className='rounded-sm max-md:inline-flex max-md:min-h-11 max-md:items-center underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
                 >
                   {PRODUCT_COMMON.closing.link}
                 </Link>

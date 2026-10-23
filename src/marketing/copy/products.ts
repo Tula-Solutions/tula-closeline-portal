@@ -1,4 +1,9 @@
-import type { Availability, SpecimenRow } from '~/marketing/copy/home'
+import {
+  AVAILABLE_LABEL,
+  type Availability,
+  EARLY_ACCESS,
+  type SpecimenRow,
+} from '~/marketing/copy/home'
 
 /** The caption under every specimen, as on the home page. */
 export const SPECIMEN_CAPTION = 'Illustration, invented for this page'
@@ -25,10 +30,8 @@ export interface ProductPageCopy {
     readonly after: string
   }
   readonly lede: string
-  /** The plain statement of what exists, with the same labels as the ledger. */
+  /** The plain statement of what a buyer can do now, in the same words as the ledger. */
   readonly today: string
-  /** A rule the page leans on, named so a reader can look it up. */
-  readonly rule?: string
   readonly how: {
     readonly heading: string
     readonly steps: readonly { readonly title: string; readonly text: string }[]
@@ -41,11 +44,10 @@ export interface ProductPageCopy {
   }
   readonly ledger: {
     readonly heading: string
-    readonly built: readonly string[]
-    readonly planned: readonly {
-      readonly label: string
-      readonly items: readonly string[]
-    }[]
+    /** What is open to every Organization now. */
+    readonly available: readonly string[]
+    /** What is offered by request, in early access. */
+    readonly early: readonly string[]
   }
 }
 
@@ -55,13 +57,14 @@ const IMAGE = '/brand/share.png'
 export const PRODUCT_COMMON = {
   how: { numeral: '01', label: 'How it works' },
   specimen: { numeral: '02', label: 'In practice' },
-  ledger: { numeral: '03', label: 'Built and planned' },
-  todayLabel: 'Today',
-  builtLabel: 'Built today',
-  builtNone: 'Nothing yet.',
+  ledger: { numeral: '03', label: 'What you can use' },
+  todayLabel: 'Open now',
+  availableLabel: AVAILABLE_LABEL,
+  earlyLabel: EARLY_ACCESS.label,
+  availableNone: 'Nothing yet.',
   closing: {
-    heading: 'Only the Playbook is built today.',
-    text: 'Create an Organization, invite your Reps and upload your first Documents. The other parts are planned and are not for sale.',
+    heading: 'Start with the Playbook.',
+    text: 'Create an Organization, invite your Reps and upload your first Documents. The Playbook is open to every Organization, and early access to the rest is by request.',
     link: 'Read about the Playbook',
   },
 } as const
@@ -71,11 +74,11 @@ const COPILOT: ProductPageCopy = {
   meta: {
     title: 'Copilot: evidence for the Rep during a Call | Closeline',
     description:
-      'The Copilot is planned for phase 2. During a Call it will search your Playbook for similar Moments from won Deals and show the Rep what was said next.',
+      'The Copilot is in early access. During a Call it will search your Playbook for similar Moments from won Deals and show the Rep what was said next.',
     image: IMAGE,
   },
   label: 'Copilot',
-  availability: { kind: 'planned', label: 'Planned, phase 2' },
+  availability: { kind: 'early', label: EARLY_ACCESS.label },
   headline: {
     before: 'The Rep decides. The Copilot brings the ',
     emphasis: 'evidence',
@@ -83,8 +86,7 @@ const COPILOT: ProductPageCopy = {
   },
   lede: 'A Rep on a Call has to remember what has worked. The Copilot listens to the Call, looks in the Playbook for similar Moments from your won Deals, and puts what the Organization said next in front of the Rep.',
   today:
-    'The Copilot is planned for phase 2 and nothing on this page runs yet. The Playbook search it will draw on is built.',
-  rule: 'Rule: ADR 0003',
+    'The Copilot is in early access. Request a place and the Tula team will write back. The Playbook search it draws on is open to every Organization now.',
   how: {
     heading: 'From a Prospect’s sentence to a card.',
     steps: [
@@ -128,18 +130,13 @@ const COPILOT: ProductPageCopy = {
     ],
   },
   ledger: {
-    heading: 'What exists, and what does not.',
-    built: ['Moment search in the Playbook, which the Copilot will draw on'],
-    planned: [
-      {
-        label: 'Planned (phase 2)',
-        items: [
-          'A live Transcript beside the Rep’s call controls',
-          'Moment cards during a Call',
-          'The recording and AI notice at the start of a Call with the Copilot',
-          'Turning the Copilot off for one Call',
-        ],
-      },
+    heading: 'What is open now, and what is in early access.',
+    available: ['Moment search in the Playbook, which the Copilot draws on'],
+    early: [
+      'A live Transcript beside the Rep’s call controls',
+      'Moment cards during a Call',
+      'The recording and AI notice at the start of a Call with the Copilot',
+      'Turning the Copilot off for one Call',
     ],
   },
 }
@@ -149,11 +146,11 @@ const INBOUND: ProductPageCopy = {
   meta: {
     title: 'Inbound Agent: answers Prospects who reach out first | Closeline',
     description:
-      'The Inbound Agent is planned for phase 3. It will answer a Prospect who gets in touch, ask your qualification questions, then book them or hand them to a Rep.',
+      'The Inbound Agent is in early access. It will answer a Prospect who gets in touch, ask your qualification questions, then book them or hand them to a Rep.',
     image: IMAGE,
   },
   label: 'Inbound Agent',
-  availability: { kind: 'planned', label: 'Planned, phase 3' },
+  availability: { kind: 'early', label: EARLY_ACCESS.label },
   headline: {
     before: 'Answers the Prospect who reaches out, then books or hands over to a ',
     emphasis: 'Rep',
@@ -161,8 +158,7 @@ const INBOUND: ProductPageCopy = {
   },
   lede: 'A Prospect who fills in a form or starts a chat wants an answer now, and a Rep cannot sit by every phone. The Inbound Agent answers from the Organization’s own Documents and won Deals, finds out whether there is a fit, and passes the Prospect on.',
   today:
-    'The Inbound Agent is planned for phase 3 and nothing on this page runs yet. The Playbook it will answer from is built.',
-  rule: 'Rule: ADR 0003',
+    'The Inbound Agent is in early access. Request a place and the Tula team will write back. The Playbook it answers from is open to every Organization now.',
   how: {
     heading: 'From a first message to a booking.',
     steps: [
@@ -219,22 +215,14 @@ const INBOUND: ProductPageCopy = {
     ],
   },
   ledger: {
-    heading: 'What exists, and what does not.',
-    built: ['The Playbook it will answer from: Documents, Calls and Moment search'],
-    planned: [
-      {
-        label: 'Planned (phase 3)',
-        items: [
-          'Answering a form, a chat or a phone Call from a Prospect',
-          'The opening disclosure on every Call',
-          'The Organization’s qualification questions, with the answers recorded',
-          'Booking a Prospect with a Rep, or handing the Call to one',
-        ],
-      },
-      {
-        label: 'Planned (phase 5)',
-        items: ['Texts and WhatsApp messages'],
-      },
+    heading: 'What is open now, and what is in early access.',
+    available: ['The Playbook it answers from: Documents, Calls and Moment search'],
+    early: [
+      'Answering a form, a chat or a phone Call from a Prospect',
+      'The opening disclosure on every Call',
+      'The Organization’s qualification questions, with the answers recorded',
+      'Booking a Prospect with a Rep, or handing the Call to one',
+      'Texts and WhatsApp messages',
     ],
   },
 }
@@ -244,11 +232,11 @@ const OUTBOUND: ProductPageCopy = {
   meta: {
     title: 'Outbound Agent: campaigns with cited drafts | Closeline',
     description:
-      'The Outbound Agent is planned for phase 4. It will run campaigns whose drafts cite the won-Deal Moments behind them and pass a Contact Check before anything is sent.',
+      'The Outbound Agent is in early access. It will run campaigns whose drafts cite the won-Deal Moments behind them and pass a Contact Check before anything is sent.',
     image: IMAGE,
   },
   label: 'Outbound Agent',
-  availability: { kind: 'planned', label: 'Planned, phase 4' },
+  availability: { kind: 'early', label: EARLY_ACCESS.label },
   headline: {
     before: 'Starts the conversation, and shows its ',
     emphasis: 'evidence',
@@ -256,8 +244,7 @@ const OUTBOUND: ProductPageCopy = {
   },
   lede: 'The Outbound Agent runs campaigns for an Organization. Each draft is written from Moments in your won Deals and passages in your Documents, lists what it used, and must pass a Contact Check before it can be sent.',
   today:
-    'The Outbound Agent is planned for phase 4 and nothing on this page runs yet. The Playbook it will write from is built. The Contact Check is proposed in ADR 0021 and is not built.',
-  rule: 'Rule: ADR 0003',
+    'The Outbound Agent is in early access. Request a place and the Tula team will write back. The Playbook it writes from is open to every Organization now.',
   how: {
     heading: 'From a Prospect to a cited draft.',
     steps: [
@@ -323,22 +310,14 @@ const OUTBOUND: ProductPageCopy = {
     ],
   },
   ledger: {
-    heading: 'What exists, and what does not.',
-    built: ['The Playbook it will write from: Documents, Calls and Moment search'],
-    planned: [
-      {
-        label: 'Planned (phase 4)',
-        items: [
-          'Campaigns of email steps, waits, branches on a reply and tasks for a Rep',
-          'A research brief for each Prospect, with a source for every statement',
-          'Drafts that cite the Moments and Documents behind them',
-          'A Contact Check before every send',
-        ],
-      },
-      {
-        label: 'Planned (phase 5)',
-        items: ['LinkedIn and further channels'],
-      },
+    heading: 'What is open now, and what is in early access.',
+    available: ['The Playbook it writes from: Documents, Calls and Moment search'],
+    early: [
+      'Campaigns of email steps, waits, branches on a reply and tasks for a Rep',
+      'A research brief for each Prospect, with a source for every statement',
+      'Drafts that cite the Moments and Documents behind them',
+      'A Contact Check before every send',
+      'LinkedIn and further channels',
     ],
   },
 }
@@ -348,19 +327,19 @@ const PLAYBOOK: ProductPageCopy = {
   meta: {
     title: 'Playbook: learned from your won Deals | Closeline',
     description:
-      'The Playbook is built today. Upload Documents, add Calls with Transcripts and Recordings, import Deals with their Outcomes, and search for similar Moments.',
+      'The Playbook is open to every Organization. Upload Documents, add Calls with Transcripts and Recordings, import Deals with their Outcomes, and search for similar Moments.',
     image: IMAGE,
   },
   label: 'Playbook',
-  availability: { kind: 'built', label: 'Built today' },
+  availability: { kind: 'available', label: AVAILABLE_LABEL },
   headline: {
     before: 'Your own won Deals, made ',
     emphasis: 'searchable',
     after: '.',
   },
-  lede: 'The Playbook is an Organization’s sales knowledge: the Documents it uploaded and what its past Calls and Deals teach. It sits under the Copilot and under both Agents. Today you can fill it and search it.',
+  lede: 'The Playbook is an Organization’s sales knowledge: the Documents it uploaded and what its past Calls and Deals teach. It sits under the Copilot and under both Agents. You can fill it and search it now.',
   today:
-    'The Playbook is built and you can use it after you sign up. The Copilot and the Agents that will draw on it are planned.',
+    'The Playbook is open to every Organization: sign up and fill it. The Copilot and the Agents that draw on it are in early access.',
   how: {
     heading: 'From your files to an answer.',
     steps: [
@@ -402,26 +381,17 @@ const PLAYBOOK: ProductPageCopy = {
     ],
   },
   ledger: {
-    heading: 'What exists, and what does not.',
-    built: [
+    heading: 'What is open now, and what is in early access.',
+    available: [
       'Documents: upload, reading and search',
       'Calls with Transcripts and Recordings',
       'Deal import with Outcomes',
       'Moment search in won Deals',
     ],
-    planned: [
-      {
-        label: 'Planned (phase 2)',
-        items: ['Drawn on live by the Copilot during a Call'],
-      },
-      {
-        label: 'Planned (phase 3)',
-        items: ['Drawn on by the Inbound Agent to answer a Prospect'],
-      },
-      {
-        label: 'Planned (phase 4)',
-        items: ['Drawn on by the Outbound Agent to write and cite drafts'],
-      },
+    early: [
+      'Drawn on live by the Copilot during a Call',
+      'Drawn on by the Inbound Agent to answer a Prospect',
+      'Drawn on by the Outbound Agent to write and cite drafts',
     ],
   },
 }

@@ -22,6 +22,7 @@ import {
 } from '~/testing/core-bodies'
 import { failure, type Handler, json, route } from '~/testing/fixtures'
 import { gatedSleep, param, type Role, visit } from '~/testing/sales'
+import { choose } from '~/testing/select'
 
 const IMPORTS = '/v1/prospect-imports'
 
@@ -438,7 +439,7 @@ describe('Prospect import: step 3, read the report', () => {
     const rejected = within(table).getByText('Rejected').closest('tr') as HTMLElement
     expect(rejected.textContent).toContain(ROW_REASON_WORDS.invalid_email)
     expect(within(rejected).queryByRole('link')).toBeNull()
-    await portal.user.selectOptions(screen.getByLabelText('Show'), 'rejected')
+    await choose(portal.user, screen.getByLabelText('Show'), 'rejected')
     await waitFor(() =>
       expect(
         portal.calls.some(
@@ -479,7 +480,7 @@ describe('Prospect import: step 3, read the report', () => {
     ])
     const table = await screen.findByRole('region', { name: 'Report rows' })
     await within(table).findByText('Created')
-    await portal.user.selectOptions(screen.getByLabelText('Show'), 'rejected')
+    await choose(portal.user, screen.getByLabelText('Show'), 'rejected')
     expect(await screen.findByText('No row has this result.')).toBeTruthy()
   })
 

@@ -6,6 +6,14 @@ export type ThemeChoice = 'light' | 'dark' | 'system'
 const KEY = 'closeline.theme'
 const listeners = new Set<() => void>()
 
+/** Whose preference rules: the stored Appearance choice, or the system (a signed-out visitor). */
+let rule: 'stored' | 'system' = 'stored'
+
+/** The choice that applies now: a signed-out visitor has no Appearance setting, so follows the system. */
+function effectiveChoice(): ThemeChoice {
+  return rule === 'system' ? 'system' : readThemeChoice()
+}
+
 /** Reads the stored choice, `system` when there is none or storage is blocked. */
 export function readThemeChoice(): ThemeChoice {
   try {
@@ -41,11 +49,23 @@ export function setThemeChoice(choice: ThemeChoice): void {
   }
 }
 
+/**
+ * Makes the theme follow who is here: a signed-out visitor sees the system setting, a signed-in
+ * person the Appearance choice they stored. While that is not yet known nothing changes.
+ */
+export function followSignIn(state: 'signed_out' | 'signed_in' | 'unknown'): void {
+  if (state === 'unknown') {
+    return
+  }
+  rule = state === 'signed_out' ? 'system' : 'stored'
+  applyTheme(effectiveChoice())
+}
+
 /** Applies the stored choice now, and again when the system setting changes while it is `system`. */
 export function startTheme(): void {
-  applyTheme(readThemeChoice())
+  applyTheme(effectiveChoice())
   window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (readThemeChoice() === 'system') {
+    if (effectiveChoice() === 'system') {
       applyTheme('system')
     }
   })

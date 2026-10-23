@@ -4,6 +4,7 @@ import axe from 'axe-core'
 import { companyBody, hexId, memberBody, page, prospectBody } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
+import { choose, pickFrom } from '~/testing/select'
 
 const PROSPECTS = '/v1/prospects'
 
@@ -82,7 +83,26 @@ describe('Add a Prospect', () => {
     cleanup()
     const portal = visit('admin', route('POST', PROSPECTS, json(201, prospectBody(5))))
     await portal.user.type(await screen.findByLabelText('First name'), 'Bo')
-    await portal.user.selectOptions(await screen.findByLabelText('Owner'), hexId('mem', 1))
+    await pickFrom(portal.user, await screen.findByLabelText('Owner'), 'Maya Chen')
+    await portal.user.click(screen.getByRole('button', { name: 'Add Prospect' }))
+    await waitFor(() => expect(posts(portal).length).toBe(1))
+    expect(posts(portal)[0]?.body).toEqual({ firstName: 'Bo', ownerMembershipId: hexId('mem', 1) })
+  })
+
+  test('the Owner field is a combobox: arrows and Enter choose without sending the form, Esc closes', async () => {
+    const portal = visit('admin', route('POST', PROSPECTS, json(201, prospectBody(5))))
+    await portal.user.type(await screen.findByLabelText('First name'), 'Bo')
+    const owner = (await screen.findByLabelText('Owner')) as HTMLInputElement
+    expect(owner.getAttribute('role')).toBe('combobox')
+    await portal.user.click(owner)
+    await screen.findByRole('option', { name: 'Maya Chen' })
+    expect(owner.getAttribute('aria-expanded')).toBe('true')
+    await portal.user.keyboard('{Escape}')
+    expect(screen.queryByRole('listbox')).toBeNull()
+    expect(owner.getAttribute('aria-expanded')).toBe('false')
+    await portal.user.keyboard('{ArrowDown}{ArrowDown}{Enter}')
+    expect(owner.value).toBe('Maya Chen')
+    expect(posts(portal).length).toBe(0)
     await portal.user.click(screen.getByRole('button', { name: 'Add Prospect' }))
     await waitFor(() => expect(posts(portal).length).toBe(1))
     expect(posts(portal)[0]?.body).toEqual({ firstName: 'Bo', ownerMembershipId: hexId('mem', 1) })
@@ -113,8 +133,7 @@ describe('Add a Prospect: pickers that reach past the first page', () => {
       route('POST', PROSPECTS, json(201, prospectBody(6)))
     )
     await portal.user.type(await screen.findByLabelText('Search Prospect Companies'), 'zen')
-    const option = await screen.findByRole('option', { name: 'Zenith Works' }, { timeout: 3000 })
-    await portal.user.selectOptions(screen.getByLabelText('Prospect Company'), option)
+    await choose(portal.user, screen.getByLabelText('Prospect Company'), 'Zenith Works')
     await portal.user.type(screen.getByLabelText('First name'), 'Bo')
     await portal.user.click(screen.getByRole('button', { name: 'Add Prospect' }))
     await waitFor(() => expect(posts(portal).length).toBe(1))
@@ -131,7 +150,7 @@ describe('Add a Prospect: pickers that reach past the first page', () => {
       )
     )
     await screen.findByLabelText('Owner')
-    await portal.user.type(await screen.findByLabelText('Search owners'), ' zed ')
+    await portal.user.type(await screen.findByLabelText('Owner'), ' zed ')
     await screen.findByRole('option', { name: 'Zed Late' }, { timeout: 3000 })
     const members = portal.calls.filter((c) => c.path === '/v1/members')
     expect(members.some((c) => new URL(c.url, 'http://x').searchParams.get('cursor'))).toBe(false)

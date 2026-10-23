@@ -15,6 +15,7 @@ import {
 import { failure, json, route, tokens } from '~/testing/fixtures'
 import { completeBody, renderPortal, startedBody } from '~/testing/render'
 import { visit } from '~/testing/sales'
+import { choose, chosenValue } from '~/testing/select'
 import { formatWhen } from '~/ui/When'
 
 const PB = '/v1/playbook'
@@ -228,13 +229,13 @@ describe('run check 4: a failed removal on Members', () => {
       ],
     })
     await screen.findByText('Rita Rep')
-    const select = screen.getByLabelText('Role for Rita Rep') as HTMLSelectElement
-    await portal.user.selectOptions(select, 'manager')
-    expect(select.value).toBe('manager')
+    const select = screen.getByLabelText('Role for Rita Rep')
+    await choose(portal.user, select, 'manager')
+    expect(chosenValue(select)).toBe('manager')
     await portal.user.click(screen.getByRole('button', { name: 'Remove Rita Rep' }))
     await portal.user.click(screen.getByRole('button', { name: 'Remove member' }))
     const alert = await screen.findByRole('alert')
-    expect((screen.getByLabelText('Role for Rita Rep') as HTMLSelectElement).value).toBe('rep')
+    expect(chosenValue(screen.getByLabelText('Role for Rita Rep'))).toBe('rep')
     expect(alert.closest('td')?.getAttribute('colspan')).not.toBeNull()
     expect(select.getAttribute('aria-describedby')).toBe(alert.id)
   })

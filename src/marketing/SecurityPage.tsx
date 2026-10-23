@@ -10,8 +10,8 @@ const WIDTH = 'mx-auto max-w-[88rem] px-4 sm:px-8'
 
 /**
  * The security and trust page: each rule as a numbered entry, with the plain-text status ("Enforced
- * by: ..." or "Planned, phase N") and its decision record, one captioned specimen of a planned
- * refusal, and a plain statement that no certification is claimed.
+ * by: ..." or "Our promise: ..."), one captioned specimen of a refusal, and a plain statement that
+ * no certification is claimed.
  */
 export function SecurityPage() {
   const copy = SECURITY_PAGE
@@ -64,9 +64,6 @@ export function SecurityPage() {
                   <p data-status className='m-0 text-sm leading-relaxed'>
                     {rule.status.line}
                   </p>
-                  <p className='label-mono m-0 mt-3 text-foreground'>
-                    {`${copy.rules.referenceLabel}: ${rule.adr}`}
-                  </p>
                 </div>
               </li>
             ))}
@@ -113,7 +110,7 @@ export function SecurityPage() {
               </Link>
               <Link
                 to='/book-a-demo'
-                className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+                className='rounded-sm max-md:inline-flex max-md:min-h-11 max-md:items-center underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
               >
                 {DEMO_PAGE.navLabel}
               </Link>
