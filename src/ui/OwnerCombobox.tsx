@@ -127,7 +127,7 @@ export function OwnerCombobox(props: {
           autoComplete='off'
           aria-autocomplete='list'
           aria-expanded={open}
-          aria-controls={listId}
+          aria-controls={open ? listId : undefined}
           aria-activedescendant={open ? `${id}-option-${active}` : undefined}
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={described || undefined}
