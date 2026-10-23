@@ -7,14 +7,8 @@ import {
 } from 'tula-closeline-contract'
 import { PageHeader } from '~/components/app/page-header'
 import { can } from '~/data/permissions'
-import {
-  companyName,
-  fieldValue,
-  prospectName,
-  SOURCE_CHOICES,
-  sourceLabel,
-} from '~/data/prospects'
-import { useMembersFirstPage, useProspectCompanies, useProspects } from '~/data/queries'
+import { fieldValue, prospectName, SOURCE_CHOICES, sourceLabel } from '~/data/prospects'
+import { useMemberOptions, useProspectCompanyNames, useProspects } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { Field } from '~/ui/Field'
 import { Paged } from '~/ui/Paged'
@@ -47,9 +41,12 @@ export function ProspectsScreen() {
     ownerMembershipId: search.owner,
     companyId: search.company,
   })
-  const companies = useProspectCompanies()
   const showOwner = role !== null && can.viewMembers(role)
-  const members = useMembersFirstPage(showOwner)
+  const members = useMemberOptions(showOwner)
+  const companyNames = useProspectCompanyNames([
+    ...prospects.items.flatMap((prospect) => (prospect.companyId ? [prospect.companyId] : [])),
+    ...(search.company ? [search.company] : []),
+  ])
   if (role === null) {
     return null
   }
@@ -59,9 +56,6 @@ export function ProspectsScreen() {
     search.source !== undefined ||
     search.owner !== undefined ||
     search.company !== undefined
-  const companyNames = new Map(
-    (companies.data?.items ?? []).map((company) => [company.id, companyName(company)])
-  )
   const change = (next: Partial<typeof search>) =>
     void navigate({ search: (now) => ({ ...now, ...next }), replace: true })
   const submit = (event: FormEvent) => {
@@ -143,6 +137,9 @@ export function ProspectsScreen() {
               value={search.owner ?? ''}
               options={[
                 { value: '', text: 'Any owner' },
+                ...(search.owner && !members.items.some((member) => member.id === search.owner)
+                  ? [{ value: search.owner, text: 'Selected owner' }]
+                  : []),
                 ...members.items.map((member) => ({
                   value: member.id,
                   text: plain(member.name ?? member.email, 'Unnamed member'),

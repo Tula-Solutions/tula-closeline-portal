@@ -23,7 +23,7 @@ import {
   sourceLabel,
   sourcePhrase,
 } from '~/data/prospects'
-import { refresh, useProspect, useProspectCompanies } from '~/data/queries'
+import { refresh, useProspect, useProspectCompany } from '~/data/queries'
 import {
   CompanyChoice,
   type IdentityErrors,
@@ -117,8 +117,7 @@ export function ProspectScreen() {
 
 function Details(props: { readonly prospect: Prospect }) {
   const { prospect } = props
-  const companies = useProspectCompanies()
-  const company = companies.data?.items.find((item) => item.id === prospect.companyId)
+  const company = useProspectCompany(prospect.companyId).data
   const [open, setOpen] = useState<ReadonlySet<ProspectFieldName>>(new Set())
   const toggle = (name: ProspectFieldName) =>
     setOpen((now) => {
@@ -224,7 +223,6 @@ function EditForm(props: {
 }) {
   const { prospect } = props
   const app = useApp()
-  const companies = useProspectCompanies()
   const initial = valuesOf(prospect)
   const [values, setValues] = useState<IdentityValues>(initial)
   const [companyId, setCompanyId] = useState(prospect.companyId ?? '')
@@ -306,12 +304,7 @@ function EditForm(props: {
         errors={errors}
         onChange={(name, value) => setValues((now) => ({ ...now, [name]: value }))}
       />
-      <CompanyChoice
-        companies={companies.data?.items ?? []}
-        value={companyId}
-        error={errors.company}
-        onChange={setCompanyId}
-      />
+      <CompanyChoice value={companyId} error={errors.company} onChange={setCompanyId} />
       <SelectField
         label='Status'
         name='status'

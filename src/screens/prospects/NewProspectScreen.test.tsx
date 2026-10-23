@@ -12,13 +12,13 @@ function visit(role: 'owner' | 'admin' | 'manager' | 'rep', ...handlers: Handler
     url: '/prospects/new',
     signedIn: tokens({ organization: { id: 'org_1', role } }),
     handlers: [
+      ...handlers,
       route('GET', '/v1/prospect-companies', json(200, page([companyBody(1, 'Acme')]))),
       route(
         'GET',
         '/v1/members',
         json(200, page([memberBody(1, { name: 'Maya Chen', role: 'rep' })]))
       ),
-      ...handlers,
     ],
   })
 }
@@ -98,5 +98,39 @@ describe('Add a Prospect', () => {
     expect(await run()).toEqual([])
     document.documentElement.classList.add('dark')
     expect(await run()).toEqual([])
+  })
+})
+
+describe('Add a Prospect: pickers that reach past the first page', () => {
+  test('the Prospect Company picker searches Companies by name on the server', async () => {
+    const portal = visit(
+      'rep',
+      route('GET', '/v1/prospect-companies', (call) =>
+        new URL(call.url, 'http://x').searchParams.get('q') === 'zen'
+          ? json(200, page([companyBody(250, 'Zenith Works')]))
+          : json(200, page([companyBody(1, 'Acme')]))
+      ),
+      route('POST', PROSPECTS, json(201, prospectBody(6)))
+    )
+    await portal.user.type(await screen.findByLabelText('Search Prospect Companies'), 'zen')
+    const option = await screen.findByRole('option', { name: 'Zenith Works' }, { timeout: 3000 })
+    await portal.user.selectOptions(screen.getByLabelText('Prospect Company'), option)
+    await portal.user.type(screen.getByLabelText('First name'), 'Bo')
+    await portal.user.click(screen.getByRole('button', { name: 'Add Prospect' }))
+    await waitFor(() => expect(posts(portal).length).toBe(1))
+    expect(posts(portal)[0]?.body).toEqual({ firstName: 'Bo', companyId: hexId('pco', 250) })
+  })
+
+  test('the Owner choice lists members from every page', async () => {
+    visit(
+      'admin',
+      route('GET', '/v1/members', (call) =>
+        new URL(call.url, 'http://x').searchParams.get('cursor') === 'm2'
+          ? json(200, page([memberBody(150, { name: 'Zed Late', role: 'rep' })]))
+          : json(200, page([memberBody(1, { name: 'Maya Chen', role: 'rep' })], 'm2'))
+      )
+    )
+    await screen.findByLabelText('Owner')
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Zed Late' })).toBeTruthy())
   })
 })

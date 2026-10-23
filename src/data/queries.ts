@@ -1,4 +1,4 @@
-import { type InfiniteData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { type InfiniteData, useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import {
   type CallState,
@@ -19,6 +19,7 @@ import type { ProspectFilter } from '~/api/core'
 import type { CallsPage } from '~/api/sales-history'
 import type { App } from '~/app'
 import { useApp, useSessionState } from '~/app-context'
+import { companyName } from '~/data/prospects'
 import type { PagedState } from '~/ui/Paged'
 
 /** Query keys, one place so a mutation can refresh exactly what it changed. */
@@ -495,13 +496,95 @@ export function useProspect(prospectId: string) {
   })
 }
 
-/** The first page (up to 100) of Prospect Companies, for a choice in a form or a name beside a Prospect. */
-export function useProspectCompanies() {
+/** How many Prospect Companies the picker shows for one search; a longer list asks for more of the name. */
+export const COMPANY_PICKER_SIZE = 25
+
+/** The most pages of members the Owner choices read (at the largest page size), so a huge Organization stays bounded. */
+export const MEMBER_OPTION_PAGES = 10
+
+/** Prospect Companies whose name matches `term` (core's `q`), the first page only; an empty term lists the first ones. */
+export function useProspectCompanySearch(term: string) {
   const app = useApp()
   const organizationId = useOrganizationId()
   return useQuery<ListProspectCompaniesResponse>({
-    queryKey: [...KEYS.prospectCompanies(organizationId), 'first-page'],
-    queryFn: ({ signal }) => app.core.listProspectCompanies({ limit: MAX_PAGE_SIZE, signal }),
+    queryKey: [...KEYS.prospectCompanies(organizationId), 'search', term],
+    queryFn: ({ signal }) =>
+      app.core.listProspectCompanies({
+        limit: COMPANY_PICKER_SIZE,
+        q: term === '' ? undefined : term,
+        signal,
+      }),
     enabled: organizationId !== '',
+    placeholderData: (previous) => previous,
   })
+}
+
+/** One Prospect Company by id; nothing is asked for while `companyId` is empty. */
+export function useProspectCompany(companyId: string | null) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.prospectCompanies(organizationId), 'one', companyId ?? ''],
+    queryFn: ({ signal }) => app.core.getProspectCompany(companyId ?? '', signal),
+    enabled: organizationId !== '' && companyId !== null && companyId !== '',
+    retry: false,
+  })
+}
+
+/** The names of exactly the Prospect Companies a screen shows, each read once by id and cached. */
+export function useProspectCompanyNames(
+  companyIds: readonly string[]
+): ReadonlyMap<string, string> {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const unique = [...new Set(companyIds)]
+  const results = useQueries({
+    queries: unique.map((companyId) => ({
+      queryKey: [...KEYS.prospectCompanies(organizationId), 'one', companyId],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        app.core.getProspectCompany(companyId, signal),
+      enabled: organizationId !== '',
+      retry: false,
+    })),
+  })
+  const names = new Map<string, string>()
+  unique.forEach((companyId, index) => {
+    const company = results[index]?.data
+    if (company) {
+      names.set(companyId, companyName(company))
+    }
+  })
+  return names
+}
+
+/**
+ * Members for an Owner choice: pages are read one after another up to `MEMBER_OPTION_PAGES`
+ * (core has no name search for members). No request is made unless `enabled`.
+ */
+export function useMemberOptions(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListMembersResponse,
+    Error,
+    InfiniteData<ListMembersResponse, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.members(organizationId), 'options'],
+    queryFn: ({ pageParam, signal }) =>
+      app.core.listMembers({ cursor: pageParam, limit: MAX_PAGE_SIZE, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, isError } = query
+  const pageCount = query.data?.pages.length ?? 0
+  // pageCount is a dependency so each arrived page asks for the next one.
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage && !isError && pageCount < MEMBER_OPTION_PAGES) {
+      void fetchNextPage()
+    }
+  }, [hasNextPage, isFetchingNextPage, isError, fetchNextPage, pageCount])
+  return { items: (query.data?.pages ?? []).flatMap((page) => page.items) }
 }
