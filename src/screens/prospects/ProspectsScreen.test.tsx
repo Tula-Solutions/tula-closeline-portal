@@ -466,4 +466,71 @@ describe('Prospects: the owner cell', () => {
     const row = (await screen.findByRole('link', { name: 'First1 Last1' })).closest('tr')
     await waitFor(() => expect(row?.textContent).toContain('Unknown member'))
   })
+
+  test('a background refetch keeps a resolved cell instead of going back to the skeleton', async () => {
+    let lookups = 0
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const portal = visit(
+      'admin',
+      '/prospects',
+      byIds(async () => {
+        lookups += 1
+        if (lookups > 1) {
+          await gate
+        }
+        return json(200, page([]))
+      }),
+      route('GET', PROSPECTS, json(200, page([owned()])))
+    )
+    const row = (await screen.findByRole('link', { name: 'First1 Last1' })).closest('tr')
+    await waitFor(() => expect(row?.textContent).toContain('Unknown member'))
+    void portal.app.queryClient.invalidateQueries({
+      predicate: (query) => query.queryKey.includes('ids'),
+    })
+    await waitFor(() => expect(lookups).toBe(2))
+    expect(row?.textContent).toContain('Unknown member')
+    expect(row?.textContent).not.toContain('Loading owner')
+    release()
+  })
+
+  test('the table is busy while names load, then one polite status says they are loaded', async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    visit(
+      'admin',
+      '/prospects',
+      byIds(async () => {
+        await gate
+        return json(200, page([memberBody(1, { name: 'Maya Chen' })]))
+      }),
+      route('GET', PROSPECTS, json(200, page([owned(1), owned(2)])))
+    )
+    const table = await screen.findByRole('table', { name: 'Prospects' })
+    await waitFor(() => expect(table.getAttribute('aria-busy')).toBe('true'))
+    const status = document.querySelector('[data-owner-status]') as HTMLElement
+    expect(status.textContent).toBe('')
+    release()
+    await waitFor(() => expect(status.textContent).toBe('Owner names loaded'))
+    expect(table.getAttribute('aria-busy')).toBe('false')
+    expect(status.getAttribute('aria-live')).toBe('polite')
+    expect(document.querySelectorAll('tbody [role="status"], tbody [aria-live]')).toHaveLength(0)
+  })
+
+  test('when the lookup fails the status says the names are unavailable, not loaded', async () => {
+    visit(
+      'admin',
+      '/prospects',
+      byIds(() => failure(500, 'internal.error')),
+      route('GET', PROSPECTS, json(200, page([owned()])))
+    )
+    const row = (await screen.findByRole('link', { name: 'First1 Last1' })).closest('tr')
+    await waitFor(() => expect(row?.textContent).toContain('Unknown member'))
+    const status = document.querySelector('[data-owner-status]') as HTMLElement
+    await waitFor(() => expect(status.textContent).toBe('Owner names unavailable'))
+  })
 })
