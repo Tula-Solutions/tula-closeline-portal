@@ -8,6 +8,7 @@ import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
 import { createMarketingApi, type MarketingApi } from '~/api/marketing'
 import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
 import { createSalesHistoryApi, type SalesHistoryApi } from '~/api/sales-history'
+import { createUnsubscribeApi, type UnsubscribeApi } from '~/api/unsubscribe'
 import { createVoiceApi, type VoiceApi } from '~/api/voice'
 import { createPendingCall, type PendingCallHolder } from '~/data/pending-call'
 import type { Env } from '~/env'
@@ -26,6 +27,8 @@ export type App = {
   readonly consent: ConsentApi
   /** The public marketing route (the Demo Request form); sends no token. */
   readonly marketing: MarketingApi
+  /** The public unsubscribe routes (a link from a message); send no token. */
+  readonly unsubscribe: UnsubscribeApi
   readonly salesHistory: SalesHistoryApi
   /** The Transcript chosen but not yet sent, held in memory across the rights confirmation. */
   readonly pendingCall: PendingCallHolder
@@ -139,6 +142,7 @@ export function createApp(init: AppInit): App {
     voice: createVoiceApi(coreHttp),
     consent: createConsentApi(coreHttp),
     marketing: createMarketingApi(coreHttp),
+    unsubscribe: createUnsubscribeApi(coreHttp),
     salesHistory: createSalesHistoryApi(coreHttp, init.reporter.report),
     sleep,
     assign: init.assign ?? ((url) => window.location.assign(url)),

@@ -38,6 +38,7 @@ import { Route as AppSalesHistoryIndexRouteImport } from './routes/_app/sales-hi
 import { Route as AppSalesHistoryRightsRouteImport } from './routes/_app/sales-history/rights'
 import { Route as AppSalesHistorySearchRouteImport } from './routes/_app/sales-history/search'
 import { Route as PublicSignUpGoogleRouteImport } from './routes/_public/sign-up_.google'
+import { Route as SiteUnsubscribeTokenRouteImport } from './routes/_site/unsubscribe.$token'
 import { Route as AppProspectsImportsIndexRouteImport } from './routes/_app/prospects/imports/index'
 import { Route as AppProspectsImportsImportIdRouteImport } from './routes/_app/prospects/imports/$importId'
 import { Route as AppSalesHistoryCallsIndexRouteImport } from './routes/_app/sales-history/calls/index'
@@ -188,6 +189,11 @@ const PublicSignUpGoogleRoute = PublicSignUpGoogleRouteImport.update({
   path: '/sign-up/google',
   getParentRoute: () => PublicRoute,
 } as any)
+const SiteUnsubscribeTokenRoute = SiteUnsubscribeTokenRouteImport.update({
+  id: '/unsubscribe/$token',
+  path: '/unsubscribe/$token',
+  getParentRoute: () => SiteRoute,
+} as any)
 const AppProspectsImportsIndexRoute =
   AppProspectsImportsIndexRouteImport.update({
     id: '/',
@@ -255,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sign-up/google': typeof PublicSignUpGoogleRoute
+  '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
   '/playbook/': typeof AppPlaybookIndexRoute
   '/prospects/': typeof AppProspectsIndexRoute
   '/sales-history/': typeof AppSalesHistoryIndexRoute
@@ -287,6 +294,7 @@ export interface FileRoutesByTo {
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sign-up/google': typeof PublicSignUpGoogleRoute
+  '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
   '/playbook': typeof AppPlaybookIndexRoute
   '/prospects': typeof AppProspectsIndexRoute
   '/sales-history': typeof AppSalesHistoryIndexRoute
@@ -326,6 +334,7 @@ export interface FileRoutesById {
   '/_app/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/_app/sales-history/search': typeof AppSalesHistorySearchRoute
   '/_public/sign-up_/google': typeof PublicSignUpGoogleRoute
+  '/_site/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
   '/_app/playbook/': typeof AppPlaybookIndexRoute
   '/_app/prospects/': typeof AppProspectsIndexRoute
   '/_app/sales-history/': typeof AppSalesHistoryIndexRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/sales-history/rights'
     | '/sales-history/search'
     | '/sign-up/google'
+    | '/unsubscribe/$token'
     | '/playbook/'
     | '/prospects/'
     | '/sales-history/'
@@ -395,6 +405,7 @@ export interface FileRouteTypes {
     | '/sales-history/rights'
     | '/sales-history/search'
     | '/sign-up/google'
+    | '/unsubscribe/$token'
     | '/playbook'
     | '/prospects'
     | '/sales-history'
@@ -433,6 +444,7 @@ export interface FileRouteTypes {
     | '/_app/sales-history/rights'
     | '/_app/sales-history/search'
     | '/_public/sign-up_/google'
+    | '/_site/unsubscribe/$token'
     | '/_app/playbook/'
     | '/_app/prospects/'
     | '/_app/sales-history/'
@@ -656,6 +668,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicSignUpGoogleRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_site/unsubscribe/$token': {
+      id: '/_site/unsubscribe/$token'
+      path: '/unsubscribe/$token'
+      fullPath: '/unsubscribe/$token'
+      preLoaderRoute: typeof SiteUnsubscribeTokenRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_app/prospects/imports/': {
       id: '/_app/prospects/imports/'
       path: '/'
@@ -815,6 +834,7 @@ interface SiteRouteChildren {
   SiteOutboundAgentRoute: typeof SiteOutboundAgentRoute
   SiteSecurityRoute: typeof SiteSecurityRoute
   SiteThePlaybookRoute: typeof SiteThePlaybookRoute
+  SiteUnsubscribeTokenRoute: typeof SiteUnsubscribeTokenRoute
 }
 
 const SiteRouteChildren: SiteRouteChildren = {
@@ -824,6 +844,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteOutboundAgentRoute: SiteOutboundAgentRoute,
   SiteSecurityRoute: SiteSecurityRoute,
   SiteThePlaybookRoute: SiteThePlaybookRoute,
+  SiteUnsubscribeTokenRoute: SiteUnsubscribeTokenRoute,
 }
 
 const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
