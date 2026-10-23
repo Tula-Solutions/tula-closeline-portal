@@ -33,6 +33,14 @@ describe('who can see what', () => {
 })
 
 describe('the signed-in shell', () => {
+  test('the compact top bar is a banner landmark, so no text sits outside a landmark', async () => {
+    renderPortal({ url: '/', signedIn: true })
+    await screen.findByRole('heading', { name: 'Home' })
+    const banner = document.querySelector('header')
+    expect(banner?.textContent).toContain('Closeline')
+    expect(banner?.querySelector('button[aria-label="Navigation menu"]')).not.toBeNull()
+  })
+
   test('shows the logo, the Organization name, the role, a sign-out control and the home page', async () => {
     renderPortal({ url: '/', signedIn: tokens({ organization: { id: 'org_1', role: 'manager' } }) })
     expect(await screen.findByText('Northline')).toBeTruthy()

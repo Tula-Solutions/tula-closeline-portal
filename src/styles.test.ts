@@ -19,4 +19,9 @@ describe('styles', () => {
     expect(phone).toMatch(/\.ledger-stack \.ledger-detail\s*\{[^}]*display:\s*none/)
     expect(css.replace(phone, '')).not.toMatch(/\.ledger-stack tr/)
   })
+
+  test('the rules Radix Select would inject as <style> (blocked by the CSP) ship in the stylesheet', () => {
+    expect(css).toMatch(/\[data-radix-select-viewport\]\s*\{[^}]*scrollbar-width:\s*none/)
+    expect(css).toMatch(/\.with-scroll-bars-hidden\s*\{[^}]*overflow:\s*hidden/)
+  })
 })

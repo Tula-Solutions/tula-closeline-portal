@@ -151,14 +151,14 @@ export function ProductPage(props: { readonly copy: ProductPageCopy }) {
               </Link>
               <Link
                 to='/book-a-demo'
-                className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+                className='rounded-sm max-md:inline-flex max-md:min-h-11 max-md:items-center underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
               >
                 {DEMO_PAGE.navLabel}
               </Link>
               {copy.path === '/the-playbook' ? null : (
                 <Link
                   to='/the-playbook'
-                  className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+                  className='rounded-sm max-md:inline-flex max-md:min-h-11 max-md:items-center underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
                 >
                   {PRODUCT_COMMON.closing.link}
                 </Link>

@@ -4,7 +4,7 @@ import { type ReactNode, useId, useState } from 'react'
 import { SITE_COPY } from '~/marketing/copy/site'
 
 const LINK =
-  'rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+  'rounded-sm max-md:inline-flex max-md:min-h-11 max-md:items-center underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
 
 const NAV_LINK =
   'inline-flex min-h-11 items-center rounded-sm py-1.5 outline-hidden md:min-h-0 hover:underline focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:underline aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-4'
@@ -99,7 +99,7 @@ export function MarketingLayout(props: { readonly children: ReactNode }) {
               </Link>
               <Link
                 to='/sign-up'
-                className='inline-flex h-10 items-center rounded-[4px] bg-foreground px-4 font-semibold text-background outline-hidden hover:bg-foreground/85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background pointer-coarse:h-11'
+                className='inline-flex h-11 items-center rounded-[4px] md:h-10 bg-foreground px-4 font-semibold text-background outline-hidden hover:bg-foreground/85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
               >
                 {SITE_COPY.signUp}
               </Link>

@@ -13,12 +13,12 @@ const triggerVariants = cva(
     variants: {
       size: {
         default:
-          'h-10 rounded-[4px] border border-input bg-popover py-2 pr-3 pl-3 text-base hover:border-foreground md:text-sm pointer-coarse:h-11',
+          'h-10 rounded-[4px] border border-input bg-popover py-2 pr-3 pl-3 text-base hover:border-foreground md:text-sm pointer-coarse:h-11 max-md:h-11',
         /** The height of a small button, for a select that sits in a row of them (a toolbar). */
-        sm: 'h-9 rounded-[4px] border border-input bg-popover py-1.5 pr-2.5 pl-2.5 text-sm hover:border-foreground pointer-coarse:h-11',
+        sm: 'h-9 rounded-[4px] border border-input bg-popover py-1.5 pr-2.5 pl-2.5 text-sm hover:border-foreground pointer-coarse:h-11 max-md:h-11',
         /** Set into a line of text, as in a ledger row: no box, an underline that darkens on hover. */
         inline:
-          'h-8 rounded-none border-0 border-b border-input bg-transparent py-1 pr-0 pl-0 text-sm hover:border-foreground pointer-coarse:h-11',
+          'h-8 rounded-none border-0 border-b border-input bg-transparent py-1 pr-0 pl-0 text-sm hover:border-foreground pointer-coarse:h-11 max-md:h-11',
       },
     },
     defaultVariants: { size: 'default' },
@@ -126,7 +126,7 @@ function SelectItem({ className, children, ...props }: ComponentProps<typeof Sel
     <SelectPrimitive.Item
       data-slot='select-item'
       className={cn(
-        'relative flex min-h-9 cursor-pointer items-center rounded-[3px] py-1.5 pr-3 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[highlighted]:ring-2 data-[highlighted]:ring-ring data-[highlighted]:ring-inset pointer-coarse:min-h-11',
+        'relative flex min-h-9 cursor-pointer items-center rounded-[3px] py-1.5 pr-3 pl-8 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[highlighted]:ring-2 data-[highlighted]:ring-ring data-[highlighted]:ring-inset pointer-coarse:min-h-11 max-md:min-h-11',
         className
       )}
       {...props}

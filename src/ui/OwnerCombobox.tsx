@@ -133,7 +133,7 @@ export function OwnerCombobox(props: {
           aria-describedby={described || undefined}
           maxLength={MAX_MEMBER_QUERY_LENGTH}
           data-slot='combobox-input'
-          className='h-10 w-full min-w-0 rounded-[4px] border border-input bg-popover py-2 pr-9 pl-3 text-base text-foreground transition-[border-color] duration-150 ease-snappy outline-hidden hover:border-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-invalid:border-destructive aria-invalid:border-dashed md:text-sm pointer-coarse:h-11'
+          className='h-10 w-full min-w-0 rounded-[4px] border border-input bg-popover py-2 pr-9 pl-3 text-base text-foreground transition-[border-color] duration-150 ease-snappy outline-hidden hover:border-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-invalid:border-destructive aria-invalid:border-dashed md:text-sm pointer-coarse:h-11 max-md:h-11'
           value={typing ?? chosenText}
           onFocus={(event) => event.currentTarget.select()}
           onClick={() => setOpen(true)}
@@ -173,7 +173,7 @@ export function OwnerCombobox(props: {
                 role='option'
                 aria-selected={choice.id === value}
                 data-highlighted={index === active ? '' : undefined}
-                className='relative flex min-h-9 cursor-pointer items-center rounded-[3px] py-1.5 pr-3 pl-8 text-sm select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[highlighted]:ring-2 data-[highlighted]:ring-ring data-[highlighted]:ring-inset pointer-coarse:min-h-11'
+                className='relative flex min-h-9 cursor-pointer items-center rounded-[3px] py-1.5 pr-3 pl-8 text-sm select-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[highlighted]:ring-2 data-[highlighted]:ring-ring data-[highlighted]:ring-inset pointer-coarse:min-h-11 max-md:min-h-11'
                 // Keep the focus in the field while the pointer chooses.
                 onMouseDown={(event) => event.preventDefault()}
                 onMouseMove={() => setActive(index)}
