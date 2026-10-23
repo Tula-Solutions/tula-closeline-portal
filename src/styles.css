@@ -726,5 +726,6 @@
   display: none;
 }
 .with-scroll-bars-hidden {
+  /* biome-ignore lint/complexity/noImportantStyles: the injected rule it replaces is !important */
   overflow: hidden !important;
 }
