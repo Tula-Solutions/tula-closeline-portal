@@ -5,16 +5,17 @@ export const SITE_COPY = {
   logoAlt: 'Tula Solution',
   navLabel: 'Main',
   /**
-   * Links to a section of the home page. Pricing and Book a demo are left out until their pages
-   * exist, so no link goes to a page that is not there.
+   * The four product pages. Pricing and Book a demo are left out until their pages exist, so no
+   * link goes to a page that is not there.
    */
   nav: [
-    { label: 'Copilot', hash: 'copilot' },
-    { label: 'Inbound Agent', hash: 'inbound-agent' },
-    { label: 'Outbound Agent', hash: 'outbound-agent' },
-    { label: 'Playbook', hash: 'playbook' },
-    { label: 'Security', hash: 'trust' },
+    { label: 'Copilot', to: '/copilot' },
+    { label: 'Inbound Agent', to: '/inbound-agent' },
+    { label: 'Outbound Agent', to: '/outbound-agent' },
+    { label: 'Playbook', to: '/the-playbook' },
   ],
+  /** Security stays a section of the home page until it has a page of its own. */
+  navSecurity: { label: 'Security', hash: 'trust' },
   signIn: 'Sign in',
   signUp: 'Sign up',
   footer: {

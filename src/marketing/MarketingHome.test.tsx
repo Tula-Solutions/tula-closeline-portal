@@ -79,7 +79,7 @@ describe('the public home at /', () => {
     expect(captions.length).toBe(2)
   })
 
-  test('only links to pages that exist: sections of this page, sign-in and sign-up', async () => {
+  test('only links to pages that exist: the four product pages, a section of this page, sign-in and sign-up', async () => {
     renderPortal({ url: '/' })
     await screen.findAllByRole('heading', { level: 1 })
     const hrefs = screen
@@ -87,7 +87,9 @@ describe('the public home at /', () => {
       .map((link) => link.getAttribute('href') ?? '')
       .filter((href) => href !== '#main')
     for (const href of hrefs) {
-      expect(href).toMatch(/^(\/#[a-z-]+|\/sign-in|\/sign-up|\/)$/)
+      expect(href).toMatch(
+        /^(\/#trust|\/copilot|\/inbound-agent|\/outbound-agent|\/the-playbook|\/sign-in|\/sign-up|\/)$/
+      )
     }
   })
 

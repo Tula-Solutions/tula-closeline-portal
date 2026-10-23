@@ -43,6 +43,7 @@ export const HOME_COPY = {
   },
   copilot: {
     id: 'copilot',
+    page: { to: '/copilot', label: 'How the Copilot works' } as const,
     numeral: '02',
     label: 'Copilot',
     availability: { kind: 'planned', label: 'Planned, phase 2' } satisfies Availability,
@@ -54,6 +55,7 @@ export const HOME_COPY = {
   },
   inbound: {
     id: 'inbound-agent',
+    page: { to: '/inbound-agent', label: 'How the Inbound Agent works' } as const,
     numeral: '03',
     label: 'Inbound Agent',
     availability: { kind: 'planned', label: 'Planned, phase 3' } satisfies Availability,
@@ -64,6 +66,7 @@ export const HOME_COPY = {
   },
   outbound: {
     id: 'outbound-agent',
+    page: { to: '/outbound-agent', label: 'How the Outbound Agent works' } as const,
     numeral: '04',
     label: 'Outbound Agent',
     availability: { kind: 'planned', label: 'Planned, phase 4' } satisfies Availability,
@@ -74,6 +77,7 @@ export const HOME_COPY = {
   },
   playbook: {
     id: 'playbook',
+    page: { to: '/the-playbook', label: 'How the Playbook works' } as const,
     numeral: '05',
     label: 'Playbook',
     availability: { kind: 'built', label: 'Built today' } satisfies Availability,

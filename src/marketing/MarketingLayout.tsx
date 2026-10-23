@@ -5,6 +5,9 @@ import { SITE_COPY } from '~/marketing/copy/site'
 const LINK =
   'rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
 
+const NAV_LINK =
+  'inline-block rounded-sm py-1.5 outline-hidden hover:underline focus-visible:ring-2 focus-visible:ring-ring aria-[current=page]:underline aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-4'
+
 /** The Tula lockup from the brand files: ink on paper by day, paper on ink in the dark theme. */
 function Wordmark(props: { readonly className: string }) {
   return (
@@ -68,16 +71,17 @@ export function MarketingLayout(props: { readonly children: ReactNode }) {
           >
             <ul className='m-0 flex list-none flex-wrap gap-x-6 gap-y-1 p-0'>
               {SITE_COPY.nav.map((item) => (
-                <li key={item.hash}>
-                  <Link
-                    to='/'
-                    hash={item.hash}
-                    className='inline-block rounded-sm py-1.5 outline-hidden hover:underline focus-visible:ring-2 focus-visible:ring-ring'
-                  >
+                <li key={item.to}>
+                  <Link to={item.to} className={NAV_LINK}>
                     {item.label}
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link to='/' hash={SITE_COPY.navSecurity.hash} className={NAV_LINK}>
+                  {SITE_COPY.navSecurity.label}
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>

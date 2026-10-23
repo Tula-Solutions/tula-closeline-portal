@@ -105,3 +105,11 @@ describe('the marketing copy itself', () => {
     }
   })
 })
+
+describe('terms a decision record proposes', () => {
+  test('Contact Check is allowed as written, but a lower-case contact is not', () => {
+    const run = (text: string) => checkCopy([text], glossary, FIGURE_ALLOWLIST)
+    expect(run('A Contact Check runs first.')).toEqual([])
+    expect(run('We contact the buyer.').map((v) => v.rule)).toEqual(['avoided-term'])
+  })
+})

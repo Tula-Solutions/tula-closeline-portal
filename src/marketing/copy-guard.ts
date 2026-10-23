@@ -18,6 +18,12 @@ export interface GlossaryTerms {
   readonly avoid: readonly { readonly word: string; readonly instead: string }[]
 }
 
+/**
+ * Terms a decision record proposes and the glossary does not yet define. The copy may use them
+ * exactly as written; remove an entry once the glossary has it.
+ */
+export const PENDING_TERMS: readonly string[] = ['Contact Check'] // ADR 0021 (proposed)
+
 /** Reads the canonical terms and the `_Avoid_` lists out of GLOSSARY.md. */
 export function parseGlossary(markdown: string): GlossaryTerms {
   const canonical: string[] = []
@@ -76,7 +82,7 @@ export function checkCopy(
 ): CopyViolation[] {
   const violations: CopyViolation[] = []
   // Longest first, so "Inbound Agent" is removed before "Agent".
-  const canonical = [...glossary.canonical].sort((a, b) => b.length - a.length)
+  const canonical = [...glossary.canonical, ...PENDING_TERMS].sort((a, b) => b.length - a.length)
   const strip = new RegExp(`(?<![\\p{L}\\p{N}])(?:${canonical.map(escapeWord).join('|')})`, 'gu')
   const allowed = new Set(
     allowedFigures.map((entry) => entry.figure.toLowerCase().replace(/\s/g, ''))
