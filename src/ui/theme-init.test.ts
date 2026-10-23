@@ -1,45 +1,59 @@
-import { describe, expect, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
+import { readdirSync, readFileSync } from 'node:fs'
 
-const script = await Bun.file(new URL('../../public/theme-init.js', import.meta.url)).text()
+const source = readFileSync(new URL('../../public/theme-init.js', import.meta.url), 'utf8')
+const isDark = () => document.documentElement.classList.contains('dark')
 
-function run(stored: string | null, systemDark: boolean): boolean {
-  const classes = new Set<string>()
-  const root = {
-    classList: {
-      toggle: (name: string, on: boolean) => (on ? classes.add(name) : classes.delete(name)),
-    },
-  }
-  new Function('localStorage', 'matchMedia', 'document', script)(
-    { getItem: () => stored },
-    () => ({ matches: systemDark }),
-    { documentElement: root }
-  )
-  return classes.has('dark')
+/** Runs the pre-paint script as the browser would, at `path` with the system setting given. */
+function run(path: string, systemDark: boolean) {
+  window.matchMedia = (() => ({ matches: systemDark })) as unknown as typeof window.matchMedia
+  window.history.pushState({}, '', path)
+  new Function(source)()
 }
 
-describe('the theme script that runs before the first paint', () => {
-  test('follows the system when nothing is stored, and obeys a stored choice', () => {
-    expect(run(null, true)).toBe(true)
-    expect(run(null, false)).toBe(false)
-    expect(run('dark', false)).toBe(true)
-    expect(run('light', true)).toBe(false)
+describe('public/theme-init.js', () => {
+  const original = window.matchMedia
+  beforeEach(() => {
+    localStorage.clear()
+    document.documentElement.classList.remove('dark')
+  })
+  afterEach(() => {
+    window.matchMedia = original
+    localStorage.clear()
+    window.history.pushState({}, '', '/')
   })
 
-  test('does not throw when storage is blocked', () => {
-    const classes = new Set<string>()
-    const root = {
-      classList: { toggle: (n: string, on: boolean) => (on ? classes.add(n) : classes.delete(n)) },
+  test('a stored dark choice applies on a signed-in page', () => {
+    localStorage.setItem('closeline.theme', 'dark')
+    run('/members', false)
+    expect(isDark()).toBe(true)
+  })
+
+  test('a stale stored dark choice does not flash on a visitor page', () => {
+    localStorage.setItem('closeline.theme', 'dark')
+    run('/unsubscribe/abc', false)
+    expect(isDark()).toBe(false)
+  })
+
+  test('a visitor page follows the system setting', () => {
+    localStorage.setItem('closeline.theme', 'light')
+    run('/sign-in', true)
+    expect(isDark()).toBe(true)
+  })
+
+  test('every route of the public site and sign-in is a visitor page in the script', () => {
+    const root = new URL('../routes/', import.meta.url)
+    const names = [
+      ...readdirSync(new URL('_site/', root)),
+      ...readdirSync(new URL('_public/', root)),
+    ]
+      .map((file) => file.replace(/\.tsx$/, '').replace(/_\./, '.'))
+      .map((name) => `/${name.split('.')[0]}`.replace(/_$/, ''))
+    for (const path of new Set(names)) {
+      localStorage.setItem('closeline.theme', 'dark')
+      document.documentElement.classList.remove('dark')
+      run(path, false)
+      expect(isDark()).toBe(false)
     }
-    const blocked = {
-      get getItem(): never {
-        throw new Error('blocked')
-      },
-    }
-    new Function('localStorage', 'matchMedia', 'document', script)(
-      blocked,
-      () => ({ matches: true }),
-      { documentElement: root }
-    )
-    expect(classes.has('dark')).toBe(true)
   })
 })
