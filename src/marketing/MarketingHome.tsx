@@ -21,6 +21,22 @@ function Paragraphs(props: { readonly items: readonly string[] }) {
   )
 }
 
+function PageLink(props: {
+  readonly to: '/copilot' | '/inbound-agent' | '/outbound-agent' | '/the-playbook'
+  readonly label: string
+}) {
+  return (
+    <p className='m-0 mt-6'>
+      <Link
+        to={props.to}
+        className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+      >
+        {props.label}
+      </Link>
+    </p>
+  )
+}
+
 function Frame(props: { readonly children: ReactNode }) {
   return <div className={WIDTH}>{props.children}</div>
 }
@@ -107,6 +123,7 @@ export function MarketingHome() {
             heading={part.heading}
           >
             <Paragraphs items={part.paragraphs} />
+            <PageLink to={part.page.to} label={part.page.label} />
           </Part>
         ))}
 
@@ -120,6 +137,7 @@ export function MarketingHome() {
           <div className='grid gap-10 lg:grid-cols-2'>
             <div>
               <Paragraphs items={copy.playbook.paragraphs} />
+              <PageLink to={copy.playbook.page.to} label={copy.playbook.page.label} />
               <p className='label-mono m-0 mt-8 mb-2'>{copy.playbook.built.label}</p>
               <ul className='m-0 list-none p-0'>
                 {copy.playbook.built.items.map((item) => (

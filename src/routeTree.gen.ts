@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicRouteImport } from './routes/_public'
+import { Route as SiteRouteImport } from './routes/_site'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppInvitationsRouteImport } from './routes/_app/invitations'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
@@ -19,6 +20,10 @@ import { Route as AppSalesHistoryRouteImport } from './routes/_app/sales-history
 import { Route as AppTeamsRouteImport } from './routes/_app/teams'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
+import { Route as SiteCopilotRouteImport } from './routes/_site/copilot'
+import { Route as SiteInboundAgentRouteImport } from './routes/_site/inbound-agent'
+import { Route as SiteOutboundAgentRouteImport } from './routes/_site/outbound-agent'
+import { Route as SiteThePlaybookRouteImport } from './routes/_site/the-playbook'
 import { Route as AppPlaybookIndexRouteImport } from './routes/_app/playbook/index'
 import { Route as AppPlaybookSearchRouteImport } from './routes/_app/playbook/search'
 import { Route as AppSalesHistoryIndexRouteImport } from './routes/_app/sales-history/index'
@@ -37,6 +42,10 @@ const AppRoute = AppRouteImport.update({
 } as any)
 const PublicRoute = PublicRouteImport.update({
   id: '/_public',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SiteRoute = SiteRouteImport.update({
+  id: '/_site',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -78,6 +87,26 @@ const PublicSignUpRoute = PublicSignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
   getParentRoute: () => PublicRoute,
+} as any)
+const SiteCopilotRoute = SiteCopilotRouteImport.update({
+  id: '/copilot',
+  path: '/copilot',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteInboundAgentRoute = SiteInboundAgentRouteImport.update({
+  id: '/inbound-agent',
+  path: '/inbound-agent',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteOutboundAgentRoute = SiteOutboundAgentRouteImport.update({
+  id: '/outbound-agent',
+  path: '/outbound-agent',
+  getParentRoute: () => SiteRoute,
+} as any)
+const SiteThePlaybookRoute = SiteThePlaybookRouteImport.update({
+  id: '/the-playbook',
+  path: '/the-playbook',
+  getParentRoute: () => SiteRoute,
 } as any)
 const AppPlaybookIndexRoute = AppPlaybookIndexRouteImport.update({
   id: '/',
@@ -149,6 +178,10 @@ export interface FileRoutesByFullPath {
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
+  '/copilot': typeof SiteCopilotRoute
+  '/inbound-agent': typeof SiteInboundAgentRoute
+  '/outbound-agent': typeof SiteOutboundAgentRoute
+  '/the-playbook': typeof SiteThePlaybookRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/sales-history/search': typeof AppSalesHistorySearchRoute
@@ -168,6 +201,10 @@ export interface FileRoutesByTo {
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
+  '/copilot': typeof SiteCopilotRoute
+  '/inbound-agent': typeof SiteInboundAgentRoute
+  '/outbound-agent': typeof SiteOutboundAgentRoute
+  '/the-playbook': typeof SiteThePlaybookRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/sales-history/search': typeof AppSalesHistorySearchRoute
@@ -184,6 +221,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
+  '/_site': typeof SiteRouteWithChildren
   '/_app/invitations': typeof AppInvitationsRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/playbook': typeof AppPlaybookRouteWithChildren
@@ -191,6 +229,10 @@ export interface FileRoutesById {
   '/_app/teams': typeof AppTeamsRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
+  '/_site/copilot': typeof SiteCopilotRoute
+  '/_site/inbound-agent': typeof SiteInboundAgentRoute
+  '/_site/outbound-agent': typeof SiteOutboundAgentRoute
+  '/_site/the-playbook': typeof SiteThePlaybookRoute
   '/_app/': typeof AppIndexRoute
   '/_app/playbook/search': typeof AppPlaybookSearchRoute
   '/_app/sales-history/rights': typeof AppSalesHistoryRightsRoute
@@ -215,6 +257,10 @@ export interface FileRouteTypes {
     | '/teams'
     | '/sign-in'
     | '/sign-up'
+    | '/copilot'
+    | '/inbound-agent'
+    | '/outbound-agent'
+    | '/the-playbook'
     | '/playbook/search'
     | '/sales-history/rights'
     | '/sales-history/search'
@@ -234,6 +280,10 @@ export interface FileRouteTypes {
     | '/teams'
     | '/sign-in'
     | '/sign-up'
+    | '/copilot'
+    | '/inbound-agent'
+    | '/outbound-agent'
+    | '/the-playbook'
     | '/playbook/search'
     | '/sales-history/rights'
     | '/sales-history/search'
@@ -249,6 +299,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_public'
+    | '/_site'
     | '/_app/invitations'
     | '/_app/members'
     | '/_app/playbook'
@@ -256,6 +307,10 @@ export interface FileRouteTypes {
     | '/_app/teams'
     | '/_public/sign-in'
     | '/_public/sign-up'
+    | '/_site/copilot'
+    | '/_site/inbound-agent'
+    | '/_site/outbound-agent'
+    | '/_site/the-playbook'
     | '/_app/'
     | '/_app/playbook/search'
     | '/_app/sales-history/rights'
@@ -273,6 +328,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   PublicRoute: typeof PublicRouteWithChildren
+  SiteRoute: typeof SiteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -289,6 +345,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof PublicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_site': {
+      id: '/_site'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof SiteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -346,6 +409,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/sign-up'
       preLoaderRoute: typeof PublicSignUpRouteImport
       parentRoute: typeof PublicRoute
+    }
+    '/_site/copilot': {
+      id: '/_site/copilot'
+      path: '/copilot'
+      fullPath: '/copilot'
+      preLoaderRoute: typeof SiteCopilotRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/inbound-agent': {
+      id: '/_site/inbound-agent'
+      path: '/inbound-agent'
+      fullPath: '/inbound-agent'
+      preLoaderRoute: typeof SiteInboundAgentRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/outbound-agent': {
+      id: '/_site/outbound-agent'
+      path: '/outbound-agent'
+      fullPath: '/outbound-agent'
+      preLoaderRoute: typeof SiteOutboundAgentRouteImport
+      parentRoute: typeof SiteRoute
+    }
+    '/_site/the-playbook': {
+      id: '/_site/the-playbook'
+      path: '/the-playbook'
+      fullPath: '/the-playbook'
+      preLoaderRoute: typeof SiteThePlaybookRouteImport
+      parentRoute: typeof SiteRoute
     }
     '/_app/playbook/': {
       id: '/_app/playbook/'
@@ -502,9 +593,26 @@ const PublicRouteChildren: PublicRouteChildren = {
 const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
+interface SiteRouteChildren {
+  SiteCopilotRoute: typeof SiteCopilotRoute
+  SiteInboundAgentRoute: typeof SiteInboundAgentRoute
+  SiteOutboundAgentRoute: typeof SiteOutboundAgentRoute
+  SiteThePlaybookRoute: typeof SiteThePlaybookRoute
+}
+
+const SiteRouteChildren: SiteRouteChildren = {
+  SiteCopilotRoute: SiteCopilotRoute,
+  SiteInboundAgentRoute: SiteInboundAgentRoute,
+  SiteOutboundAgentRoute: SiteOutboundAgentRoute,
+  SiteThePlaybookRoute: SiteThePlaybookRoute,
+}
+
+const SiteRouteWithChildren = SiteRoute._addFileChildren(SiteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   PublicRoute: PublicRouteWithChildren,
+  SiteRoute: SiteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
