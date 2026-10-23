@@ -223,7 +223,7 @@ export function NewProspectScreen() {
             maxLength={MAX_MEMBER_QUERY_LENGTH}
             hint={
               members.hasMore
-                ? `The first ${members.items.length} matches are listed. Type more of the name to narrow them.`
+                ? 'Only the first matches are listed. Type more of the name to narrow them.'
                 : 'Type part of a name to find it.'
             }
             value={ownerTerm}

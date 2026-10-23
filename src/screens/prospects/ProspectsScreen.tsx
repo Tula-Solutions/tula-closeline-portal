@@ -47,6 +47,7 @@ export function ProspectsScreen() {
   })
   const showOwner = role !== null && can.viewMembers(role)
   const [ownerTerm, setOwnerTerm] = useState('')
+  const [ownerName, setOwnerName] = useState('')
   const members = useMemberSearch(useSettled(ownerTerm), showOwner)
   const companyNames = useProspectCompanyNames([
     ...prospects.items.flatMap((prospect) => (prospect.companyId ? [prospect.companyId] : [])),
@@ -178,7 +179,7 @@ export function ProspectsScreen() {
                 options={[
                   { value: '', text: 'Any owner' },
                   ...(search.owner && !members.items.some((member) => member.id === search.owner)
-                    ? [{ value: search.owner, text: 'Selected owner' }]
+                    ? [{ value: search.owner, text: ownerName || 'Selected owner' }]
                     : []),
                   ...members.items.map((member) => ({
                     value: member.id,
@@ -187,6 +188,7 @@ export function ProspectsScreen() {
                 ]}
                 onChange={(event) => {
                   const owner = membershipIdSchema.safeParse(event.target.value)
+                  setOwnerName(owner.success ? (event.target.selectedOptions[0]?.text ?? '') : '')
                   change({ owner: owner.success ? owner.data : undefined })
                 }}
               />

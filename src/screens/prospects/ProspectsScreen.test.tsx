@@ -293,6 +293,27 @@ describe('Prospects: company names and the Owner search', () => {
     expect(params(members[0]?.url ?? '').has('cursor')).toBe(false)
   })
 
+  test('a chosen Owner keeps its name when a later search does not list it', async () => {
+    const portal = visit(
+      'admin',
+      '/prospects',
+      route('GET', '/v1/members', (call) =>
+        params(call.url).get('q') === 'zzz'
+          ? json(200, page([]))
+          : json(200, page([memberBody(1, { name: 'Maya Chen' })]))
+      ),
+      route('GET', PROSPECTS, json(200, page([prospectBody(1)])))
+    )
+    await screen.findByText('First1 Last1')
+    const select = screen.getByLabelText('Owner') as HTMLSelectElement
+    await portal.user.selectOptions(select, 'Maya Chen')
+    await portal.user.type(screen.getByLabelText('Search owners'), 'zzz')
+    await waitFor(() =>
+      expect(portal.calls.some((c) => params(c.url).get('q') === 'zzz')).toBe(true)
+    )
+    await waitFor(() => expect(select.selectedOptions[0]?.text).toBe('Maya Chen'))
+  })
+
   test('an Owner filter from the address stays selectable when that member is not listed', async () => {
     const unseen = hexId('mem', 900)
     visit(
