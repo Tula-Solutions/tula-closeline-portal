@@ -773,7 +773,8 @@ export function useMembersByIdsState(ids: readonly string[], enabled = true) {
   })
   return {
     members: query.data ?? new Map<string, ListMembersResponse['items'][number]>(),
-    loading: query.isFetching,
+    // Only while there is no answer for these ids yet: a refetch keeps what was resolved.
+    loading: query.isLoading || (query.isFetching && query.isPlaceholderData),
   }
 }
 
