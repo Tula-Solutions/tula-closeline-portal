@@ -1,0 +1,40 @@
+/** The words around every marketing page: header, footer, skip link. Glossary words only. */
+export const SITE_COPY = {
+  name: 'Closeline',
+  skipToContent: 'Skip to content',
+  logoAlt: 'Tula Solution',
+  navLabel: 'Main',
+  /**
+   * Links to a section of the home page. Pricing and Book a demo are left out until their pages
+   * exist, so no link goes to a page that is not there.
+   */
+  nav: [
+    { label: 'Copilot', hash: 'copilot' },
+    { label: 'Inbound Agent', hash: 'inbound-agent' },
+    { label: 'Outbound Agent', hash: 'outbound-agent' },
+    { label: 'Playbook', hash: 'playbook' },
+    { label: 'Security', hash: 'trust' },
+  ],
+  signIn: 'Sign in',
+  signUp: 'Sign up',
+  footer: {
+    label: 'About this site',
+    regionLabel: 'Region',
+    regionNote: 'An Organization is created in one Region. Its data stays inside that Region.',
+    legalLabel: 'Legal',
+    /** `null` until the lawyer's text is published: the label then says so in plain words. */
+    legal: [
+      { label: 'Privacy notice', href: null },
+      { label: 'Terms', href: null },
+    ],
+    notPublished: 'not yet published',
+  },
+} as const
+
+/** The title, description and share image of a page, set by `usePageMeta`. */
+export const HOME_META = {
+  title: 'Closeline: sales held in balance between a Rep and an AI',
+  description:
+    'Closeline is a sales platform. A Copilot advises a Rep live, Agents sell on their own, and a Playbook learned from your won Deals sits under both.',
+  image: '/brand/share.png',
+} as const

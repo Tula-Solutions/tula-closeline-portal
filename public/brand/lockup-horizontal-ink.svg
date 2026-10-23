@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="240" viewBox="0 0 720 240">
+  <g transform="translate(108 112) scale(0.92)">
+  <line x1="0" y1="-52" x2="0" y2="56" stroke="#1A1A18" stroke-width="6.5" stroke-linecap="round"/>
+  <line x1="-60" y1="-34" x2="60" y2="-34" stroke="#1A1A18" stroke-width="6.5" stroke-linecap="round"/>
+  <line x1="-26" y1="56" x2="26" y2="56" stroke="#1A1A18" stroke-width="6.5" stroke-linecap="round"/>
+  <line x1="-60" y1="-34" x2="-60" y2="-10" stroke="#1A1A18" stroke-width="6.5" stroke-linecap="round"/>
+  <line x1="60" y1="-34" x2="60" y2="-10" stroke="#1A1A18" stroke-width="6.5" stroke-linecap="round"/>
+  <circle cx="-60" cy="4" r="15.0" fill="#1A1A18"/>
+  <circle cx="60" cy="4" r="15.0" fill="none" stroke="#1A1A18" stroke-width="6.5"/>
+  </g>
+  <text x="222" y="112" font-family="Helvetica, Arial, sans-serif" font-size="76" font-weight="700" fill="#1A1A18" letter-spacing="-2">tula</text>
+  <text x="226" y="156" font-family="Helvetica, Arial, sans-serif" font-size="24" font-weight="500" fill="#5F5E5A" letter-spacing="11">SOLUTION</text>
+</svg>
