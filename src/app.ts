@@ -1,6 +1,7 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { type RightsWording, rightsWordingFor } from 'tula-closeline-contract'
 import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
+import { type ConsentApi, createConsentApi } from '~/api/consent'
 import { type CoreApi, createCoreApi } from '~/api/core'
 import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
@@ -21,6 +22,8 @@ export type App = {
   readonly core: CoreApi
   readonly playbook: PlaybookApi
   readonly voice: VoiceApi
+  /** Contact Consent on a Prospect, and the Suppression list. */
+  readonly consent: ConsentApi
   /** The public marketing route (the Demo Request form); sends no token. */
   readonly marketing: MarketingApi
   readonly salesHistory: SalesHistoryApi
@@ -134,6 +137,7 @@ export function createApp(init: AppInit): App {
     core: createCoreApi(coreHttp),
     playbook: createPlaybookApi(coreHttp),
     voice: createVoiceApi(coreHttp),
+    consent: createConsentApi(coreHttp),
     marketing: createMarketingApi(coreHttp),
     salesHistory: createSalesHistoryApi(coreHttp, init.reporter.report),
     sleep,

@@ -1,4 +1,5 @@
 import {
+  CONSENT_ADMIN_ROLES,
   INVITABLE_ROLES,
   type InvitableRole,
   type Role,
@@ -32,6 +33,8 @@ export const can = {
   manageTeams: (role: Role) => roleAtLeast(role, 'admin'),
   /** The roles the contract gives the Line routes (Owner and Admin) add, assign and release Lines. */
   manageLines: (role: Role) => VOICE_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** The roles the contract gives the Suppression routes (Owner and Admin) list, add and remove entries. */
+  manageSuppression: (role: Role) => CONSENT_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner and Admin upload, delete and restore Playbook documents; every role reads them. */
   managePlaybook: (role: Role) => roleAtLeast(role, 'admin'),
   /** Owner and Admin see and manage sales history (Deals, imports, Calls, the rights confirmation); Manager and Rep never reach it. */

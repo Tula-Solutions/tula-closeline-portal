@@ -24,6 +24,7 @@ import {
   sourcePhrase,
 } from '~/data/prospects'
 import { refresh, useProspect, useProspectCompany } from '~/data/queries'
+import { ConsentPanel } from '~/screens/prospects/ConsentPanel'
 import {
   CompanyChoice,
   type IdentityErrors,
@@ -102,6 +103,7 @@ export function ProspectScreen() {
             onFail={feedback.failed}
           />
         </Section>
+        <ConsentPanel prospectId={record.id} onDone={feedback.done} onFail={feedback.failed} />
         <Section id='notes-tags' title='Notes and tags' description='Private to your Organization.'>
           <NotesForm
             key={JSON.stringify([record.tags, record.notes])}

@@ -18,6 +18,7 @@ import { Route as AppLinesRouteImport } from './routes/_app/lines'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppPlaybookRouteImport } from './routes/_app/playbook'
 import { Route as AppSalesHistoryRouteImport } from './routes/_app/sales-history'
+import { Route as AppSuppressionRouteImport } from './routes/_app/suppression'
 import { Route as AppTeamsRouteImport } from './routes/_app/teams'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
@@ -85,6 +86,11 @@ const AppPlaybookRoute = AppPlaybookRouteImport.update({
 const AppSalesHistoryRoute = AppSalesHistoryRouteImport.update({
   id: '/sales-history',
   path: '/sales-history',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSuppressionRoute = AppSuppressionRouteImport.update({
+  id: '/suppression',
+  path: '/suppression',
   getParentRoute: () => AppRoute,
 } as any)
 const AppTeamsRoute = AppTeamsRouteImport.update({
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/members': typeof AppMembersRoute
   '/playbook': typeof AppPlaybookRouteWithChildren
   '/sales-history': typeof AppSalesHistoryRouteWithChildren
+  '/suppression': typeof AppSuppressionRoute
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
@@ -264,6 +271,7 @@ export interface FileRoutesByTo {
   '/invitations': typeof AppInvitationsRoute
   '/lines': typeof AppLinesRoute
   '/members': typeof AppMembersRoute
+  '/suppression': typeof AppSuppressionRoute
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
@@ -300,6 +308,7 @@ export interface FileRoutesById {
   '/_app/members': typeof AppMembersRoute
   '/_app/playbook': typeof AppPlaybookRouteWithChildren
   '/_app/sales-history': typeof AppSalesHistoryRouteWithChildren
+  '/_app/suppression': typeof AppSuppressionRoute
   '/_app/teams': typeof AppTeamsRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
@@ -337,6 +346,7 @@ export interface FileRouteTypes {
     | '/members'
     | '/playbook'
     | '/sales-history'
+    | '/suppression'
     | '/teams'
     | '/sign-in'
     | '/sign-up'
@@ -369,6 +379,7 @@ export interface FileRouteTypes {
     | '/invitations'
     | '/lines'
     | '/members'
+    | '/suppression'
     | '/teams'
     | '/sign-in'
     | '/sign-up'
@@ -404,6 +415,7 @@ export interface FileRouteTypes {
     | '/_app/members'
     | '/_app/playbook'
     | '/_app/sales-history'
+    | '/_app/suppression'
     | '/_app/teams'
     | '/_public/sign-in'
     | '/_public/sign-up'
@@ -502,6 +514,13 @@ declare module '@tanstack/react-router' {
       path: '/sales-history'
       fullPath: '/sales-history'
       preLoaderRoute: typeof AppSalesHistoryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/suppression': {
+      id: '/_app/suppression'
+      path: '/suppression'
+      fullPath: '/suppression'
+      preLoaderRoute: typeof AppSuppressionRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/teams': {
@@ -748,6 +767,7 @@ interface AppRouteChildren {
   AppMembersRoute: typeof AppMembersRoute
   AppPlaybookRoute: typeof AppPlaybookRouteWithChildren
   AppSalesHistoryRoute: typeof AppSalesHistoryRouteWithChildren
+  AppSuppressionRoute: typeof AppSuppressionRoute
   AppTeamsRoute: typeof AppTeamsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppProspectsProspectIdRoute: typeof AppProspectsProspectIdRoute
@@ -762,6 +782,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMembersRoute: AppMembersRoute,
   AppPlaybookRoute: AppPlaybookRouteWithChildren,
   AppSalesHistoryRoute: AppSalesHistoryRouteWithChildren,
+  AppSuppressionRoute: AppSuppressionRoute,
   AppTeamsRoute: AppTeamsRoute,
   AppIndexRoute: AppIndexRoute,
   AppProspectsProspectIdRoute: AppProspectsProspectIdRoute,
