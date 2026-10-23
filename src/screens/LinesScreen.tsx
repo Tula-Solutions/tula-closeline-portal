@@ -12,7 +12,7 @@ import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
 import { Section } from '~/components/app/section'
 import { can } from '~/data/permissions'
-import { refresh, useLines, useMemberSearch, useTeamOptions } from '~/data/queries'
+import { refresh, useLines, useMembersByIds, useTeamOptions } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { Banner } from '~/ui/Banner'
 import { Confirm } from '~/ui/Confirm'
@@ -57,8 +57,11 @@ export function LinesScreen() {
 function LinesAdmin() {
   const lines = useLines(true)
   const teams = useTeamOptions(true)
-  // Names for the "who answers" lines only; choosing a Rep searches the server (OwnerCombobox).
-  const members = useMemberSearch('', true)
+  // Names of the Reps the Lines on screen ring, by id; choosing a Rep searches the server (OwnerCombobox).
+  const repIds = lines.items.flatMap((line) =>
+    line.assignment.kind === 'rep' ? [line.assignment.membershipId] : []
+  )
+  const reps = useMembersByIds(repIds)
   const feedback = useFeedback()
   const headingRef = useRef<HTMLHeadingElement>(null)
   return (
@@ -100,7 +103,7 @@ function LinesAdmin() {
                   key={line.id}
                   line={line}
                   teams={teams.items}
-                  reps={members.items.filter((member) => member.role === 'rep')}
+                  reps={reps}
                   onDone={feedback.done}
                   onFail={feedback.failed}
                   serial={feedback.serial}
@@ -307,7 +310,7 @@ function toRequest(value: string): AssignLineRequest {
 function LineItem(props: {
   readonly line: Line
   readonly teams: readonly Named[]
-  readonly reps: readonly Named[]
+  readonly reps: ReadonlyMap<string, { readonly name: string | null; readonly email: string }>
   readonly onDone: (notice: string) => void
   readonly onFail: () => void
   readonly serial: number
@@ -357,7 +360,7 @@ function LineItem(props: {
       )
     }
     if (assignment.kind === 'rep') {
-      const rep = props.reps.find((candidate) => candidate.id === assignment.membershipId)
+      const rep = props.reps.get(assignment.membershipId)
       return rep ? (
         <>
           Rings the Rep <Untrusted value={rep.name ?? rep.email ?? ''} />
@@ -449,7 +452,7 @@ function AssignForm(props: {
   const [value, setValue] = useState(assignmentValue(props.line).replace(/^rep:.*/, 'rep'))
   const [rep, setRep] = useState({
     id: props.line.assignment.kind === 'rep' ? props.line.assignment.membershipId : '',
-    name: props.line.assignment.kind === 'rep' ? 'Current Rep' : '',
+    name: '',
   })
   const [error, setError] = useState<string | null>(null)
   const [repError, setRepError] = useState<string | undefined>(undefined)
@@ -528,7 +531,7 @@ function AssignForm(props: {
           value={rep.id}
           valueName={rep.name}
           error={repError}
-          accept={(member) => member.role === 'rep'}
+          memberRole='rep'
           onChange={(id, name) => setRep({ id, name })}
         />
       ) : null}

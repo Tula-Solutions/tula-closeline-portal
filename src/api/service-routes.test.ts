@@ -38,6 +38,9 @@ describe('the routing table', () => {
       '/v1/consent-forms -> core',
       '/v1/public -> core',
       '/v1/crm -> core',
+      '/v1/audit-events -> core',
+      '/v1/audit-csv -> core',
+      '/v1/audit-verification -> core',
       '/v1/playbook -> playbook',
       '/v1/lines -> voice',
     ])

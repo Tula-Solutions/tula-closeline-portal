@@ -69,8 +69,14 @@ export type ProspectFilter = {
 export type CoreApi = {
   /** Reads the caller's Organization (a read, so it is retried). */
   getOrganization(signal?: AbortSignal): Promise<Organization>
-  /** One page of members (Owner, Admin, Manager), optionally narrowed by a case-insensitive name search. */
-  listMembers(page: PageRequest & { readonly q?: string | undefined }): Promise<ListMembersResponse>
+  /** One page of members, optionally narrowed by a case-insensitive name search, a role, or up to 100 ids. */
+  listMembers(
+    page: PageRequest & {
+      readonly q?: string | undefined
+      readonly role?: Role | undefined
+      readonly ids?: readonly string[] | undefined
+    }
+  ): Promise<ListMembersResponse>
   /** Changes a member's role (Owner: any; Admin: Manager and Rep only). */
   changeMemberRole(membershipId: string, role: Role): Promise<Member>
   /** Removes a member from the Organization. */
@@ -153,7 +159,12 @@ export function createCoreApi(http: HttpClient): CoreApi {
     listMembers: (page) =>
       http.request({
         path: '/v1/members',
-        query: { ...query(page), q: page.q },
+        query: {
+          ...query(page),
+          q: page.q,
+          role: page.role,
+          ids: page.ids === undefined ? undefined : page.ids.join(','),
+        },
         auth: true,
         ...(page.signal ? { signal: page.signal } : {}),
         parse: (json) => listMembersResponseSchema.parse(json),
