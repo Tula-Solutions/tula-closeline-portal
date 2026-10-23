@@ -26,6 +26,7 @@ describe('the routing table', () => {
       '/v1/members -> core',
       '/v1/invitations -> core',
       '/v1/teams -> core',
+      '/v1/marketing -> core',
       '/v1/playbook -> playbook',
     ])
     expect(new Set(SERVICE_ROUTES.map((route) => route.prefix)).size).toBe(SERVICE_ROUTES.length)
@@ -98,6 +99,7 @@ describe('the routing table', () => {
     ['/v1/client/sessions/refresh', 'auth'],
     ['/v1/teams/t1/members', 'core'],
     ['/v1/playbook/documents', 'playbook'],
+    ['/v1/marketing/demo-requests', 'core'],
     ['/v1/playbooks', null],
     ['/', null],
     ['/sign-in', null],

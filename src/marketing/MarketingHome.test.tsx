@@ -79,6 +79,16 @@ describe('the public home at /', () => {
     expect(captions.length).toBe(2)
   })
 
+  test('links its calls to action to the book-a-demo page', async () => {
+    renderPortal({ url: '/' })
+    await screen.findAllByRole('heading', { level: 1 })
+    const links = screen.getAllByRole('link', { name: 'Book a demo' })
+    expect(links.length).toBeGreaterThanOrEqual(2)
+    for (const link of links) {
+      expect(link.getAttribute('href')).toBe('/book-a-demo')
+    }
+  })
+
   test('only links to pages that exist: the four product pages, a section of this page, sign-in and sign-up', async () => {
     renderPortal({ url: '/' })
     await screen.findAllByRole('heading', { level: 1 })
@@ -88,7 +98,7 @@ describe('the public home at /', () => {
       .filter((href) => href !== '#main')
     for (const href of hrefs) {
       expect(href).toMatch(
-        /^(\/security|\/copilot|\/inbound-agent|\/outbound-agent|\/the-playbook|\/sign-in|\/sign-up|\/)$/
+        /^(\/security|\/copilot|\/inbound-agent|\/outbound-agent|\/the-playbook|\/sign-in|\/sign-up|\/book-a-demo|\/)$/
       )
     }
   })

@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { DEMO_PAGE } from '~/marketing/copy/demo'
 import { SECURITY_PAGE } from '~/marketing/copy/security'
 import { SITE_COPY } from '~/marketing/copy/site'
 import { Part } from '~/marketing/Part'
@@ -109,6 +110,12 @@ export function SecurityPage() {
                 className='inline-flex h-11 items-center rounded-[4px] bg-foreground px-5 font-semibold text-background outline-hidden hover:bg-foreground/85 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background'
               >
                 {SITE_COPY.signUp}
+              </Link>
+              <Link
+                to='/book-a-demo'
+                className='rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
+              >
+                {DEMO_PAGE.navLabel}
               </Link>
             </div>
           </div>

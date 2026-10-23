@@ -20,6 +20,7 @@ import { Route as AppSalesHistoryRouteImport } from './routes/_app/sales-history
 import { Route as AppTeamsRouteImport } from './routes/_app/teams'
 import { Route as PublicSignInRouteImport } from './routes/_public/sign-in'
 import { Route as PublicSignUpRouteImport } from './routes/_public/sign-up'
+import { Route as SiteBookADemoRouteImport } from './routes/_site/book-a-demo'
 import { Route as SiteCopilotRouteImport } from './routes/_site/copilot'
 import { Route as SiteInboundAgentRouteImport } from './routes/_site/inbound-agent'
 import { Route as SiteOutboundAgentRouteImport } from './routes/_site/outbound-agent'
@@ -88,6 +89,11 @@ const PublicSignUpRoute = PublicSignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
   getParentRoute: () => PublicRoute,
+} as any)
+const SiteBookADemoRoute = SiteBookADemoRouteImport.update({
+  id: '/book-a-demo',
+  path: '/book-a-demo',
+  getParentRoute: () => SiteRoute,
 } as any)
 const SiteCopilotRoute = SiteCopilotRouteImport.update({
   id: '/copilot',
@@ -184,6 +190,7 @@ export interface FileRoutesByFullPath {
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
+  '/book-a-demo': typeof SiteBookADemoRoute
   '/copilot': typeof SiteCopilotRoute
   '/inbound-agent': typeof SiteInboundAgentRoute
   '/outbound-agent': typeof SiteOutboundAgentRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
   '/sign-up': typeof PublicSignUpRoute
+  '/book-a-demo': typeof SiteBookADemoRoute
   '/copilot': typeof SiteCopilotRoute
   '/inbound-agent': typeof SiteInboundAgentRoute
   '/outbound-agent': typeof SiteOutboundAgentRoute
@@ -237,6 +245,7 @@ export interface FileRoutesById {
   '/_app/teams': typeof AppTeamsRoute
   '/_public/sign-in': typeof PublicSignInRoute
   '/_public/sign-up': typeof PublicSignUpRoute
+  '/_site/book-a-demo': typeof SiteBookADemoRoute
   '/_site/copilot': typeof SiteCopilotRoute
   '/_site/inbound-agent': typeof SiteInboundAgentRoute
   '/_site/outbound-agent': typeof SiteOutboundAgentRoute
@@ -266,6 +275,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/sign-in'
     | '/sign-up'
+    | '/book-a-demo'
     | '/copilot'
     | '/inbound-agent'
     | '/outbound-agent'
@@ -290,6 +300,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/sign-in'
     | '/sign-up'
+    | '/book-a-demo'
     | '/copilot'
     | '/inbound-agent'
     | '/outbound-agent'
@@ -318,6 +329,7 @@ export interface FileRouteTypes {
     | '/_app/teams'
     | '/_public/sign-in'
     | '/_public/sign-up'
+    | '/_site/book-a-demo'
     | '/_site/copilot'
     | '/_site/inbound-agent'
     | '/_site/outbound-agent'
@@ -421,6 +433,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/sign-up'
       preLoaderRoute: typeof PublicSignUpRouteImport
       parentRoute: typeof PublicRoute
+    }
+    '/_site/book-a-demo': {
+      id: '/_site/book-a-demo'
+      path: '/book-a-demo'
+      fullPath: '/book-a-demo'
+      preLoaderRoute: typeof SiteBookADemoRouteImport
+      parentRoute: typeof SiteRoute
     }
     '/_site/copilot': {
       id: '/_site/copilot'
@@ -613,6 +632,7 @@ const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
 interface SiteRouteChildren {
+  SiteBookADemoRoute: typeof SiteBookADemoRoute
   SiteCopilotRoute: typeof SiteCopilotRoute
   SiteInboundAgentRoute: typeof SiteInboundAgentRoute
   SiteOutboundAgentRoute: typeof SiteOutboundAgentRoute
@@ -621,6 +641,7 @@ interface SiteRouteChildren {
 }
 
 const SiteRouteChildren: SiteRouteChildren = {
+  SiteBookADemoRoute: SiteBookADemoRoute,
   SiteCopilotRoute: SiteCopilotRoute,
   SiteInboundAgentRoute: SiteInboundAgentRoute,
   SiteOutboundAgentRoute: SiteOutboundAgentRoute,
