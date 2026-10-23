@@ -197,6 +197,7 @@ export function Shell() {
             {can.manageInvitations(role) ? <NavLink to='/invitations'>Invitations</NavLink> : null}
             <NavLink to='/teams'>Teams</NavLink>
             {can.manageLines(role) ? <NavLink to='/lines'>Lines</NavLink> : null}
+            <NavLink to='/consent-wordings'>Consent Wording</NavLink>
             {can.manageSuppression(role) ? <NavLink to='/suppression'>Suppression</NavLink> : null}
           </NavGroup>
           <NavGroup id='knowledge' label='Knowledge'>

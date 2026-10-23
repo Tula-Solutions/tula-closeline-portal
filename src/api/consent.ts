@@ -4,8 +4,11 @@ import {
   type ConsentChannel,
   type ConsentEvent,
   type ConsentWording,
+  type CreateConsentWordingRequest,
   consentEventPageSchema,
   consentWordingPageSchema,
+  consentWordingSchema,
+  createConsentWordingRequestSchema,
   IDEMPOTENCY_KEY_HEADER,
   lookupSuppressionRequestSchema,
   type ProspectConsent,
@@ -21,6 +24,8 @@ import {
   type SuppressionReason,
   suppressionEntryPageSchema,
   suppressionEntrySchema,
+  type UpdateConsentWordingRequest,
+  updateConsentWordingRequestSchema,
   type WithdrawConsentRequest,
   withdrawConsentRequestSchema,
 } from 'tula-closeline-contract'
@@ -58,6 +63,22 @@ export type ConsentApi = {
   ): Promise<ConsentEventsPage>
   /** One page of Consent Wordings. */
   listConsentWordings(page: PageRequest): Promise<ConsentWordingsPage>
+  /** Writes a new Consent Wording (version 1); Owner and Admin. The key makes a repeat write one. */
+  createConsentWording(
+    body: CreateConsentWordingRequest,
+    idempotencyKey: string
+  ): Promise<ConsentWording>
+  /** Edits a Consent Wording nothing uses yet; a used one is `consent.wording_locked`. */
+  updateConsentWording(
+    wordingId: string,
+    body: UpdateConsentWordingRequest
+  ): Promise<ConsentWording>
+  /** Writes the next version of a Consent Wording; the old one stays as it was. */
+  createConsentWordingVersion(
+    wordingId: string,
+    body: CreateConsentWordingRequest,
+    idempotencyKey: string
+  ): Promise<ConsentWording>
   /** Records a grant with its evidence; the key makes a repeat of the same request record one grant. */
   recordConsent(
     prospectId: string,
@@ -110,6 +131,32 @@ export function createConsentApi(http: HttpClient): ConsentApi {
         auth: true,
         ...(page.signal ? { signal: page.signal } : {}),
         parse: (json) => consentWordingPageSchema.parse(json),
+      }),
+    createConsentWording: (body, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: '/v1/consent-wordings',
+        body: createConsentWordingRequestSchema.parse(body),
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json) => consentWordingSchema.parse(json),
+      }),
+    updateConsentWording: (wordingId, body) =>
+      http.request({
+        method: 'PATCH',
+        path: `/v1/consent-wordings/${segment(wordingId)}`,
+        body: updateConsentWordingRequestSchema.parse(body),
+        auth: true,
+        parse: (json) => consentWordingSchema.parse(json),
+      }),
+    createConsentWordingVersion: (wordingId, body, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: `/v1/consent-wordings/${segment(wordingId)}/versions`,
+        body: createConsentWordingRequestSchema.parse(body),
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json) => consentWordingSchema.parse(json),
       }),
     recordConsent: (prospectId, body, idempotencyKey) =>
       http.request({

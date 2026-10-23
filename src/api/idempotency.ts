@@ -60,6 +60,9 @@ export const fingerprint = {
   /** Withdrawing consent on a Prospect with this body (as JSON). */
   consentWithdrawal: (prospectId: string, body: string) =>
     JSON.stringify(['consent-withdrawal', prospectId, body]),
+  /** Writing a Consent Wording with this body (as JSON), or its next version when `wordingId` is given. */
+  consentWording: (wordingId: string, body: string) =>
+    JSON.stringify(['consent-wording', wordingId, body]),
   /** Adding an address to Suppression with this body (as JSON). */
   suppression: (body: string) => JSON.stringify(['suppression', body]),
   /** Adding `membershipId` to the Team `teamId`. */

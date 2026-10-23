@@ -16,6 +16,11 @@ export function presentConsent(error: unknown): ShownFailure {
         return {
           message: 'That Consent Wording or Suppression entry no longer exists. Reload the page.',
         }
+      case CONSENT_ERRORS['consent.wording_locked'].code:
+        return {
+          message:
+            'A Prospect has already agreed to this wording, or a form uses it, so it cannot change. Write a new version instead.',
+        }
       case CONSENT_ERRORS['consent.entry_not_removable'].code:
         return {
           message:
