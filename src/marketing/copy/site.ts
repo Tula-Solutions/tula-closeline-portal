@@ -18,7 +18,6 @@ export const SITE_COPY = {
   signIn: 'Sign in',
   signUp: 'Sign up',
   footer: {
-    label: 'About this site',
     regionLabel: 'Region',
     regionNote: 'An Organization is created in one Region. Its data stays inside that Region.',
     legalLabel: 'Legal',

@@ -152,4 +152,27 @@ describe('the scale', () => {
       Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
     }
   })
+
+  test('stops listening once the page is gone, and puts the tab title back', async () => {
+    const restore = stubReducedMotion(false)
+    const removed: string[] = []
+    const original = window.removeEventListener.bind(window)
+    window.removeEventListener = ((type: string, ...rest: unknown[]) => {
+      removed.push(type)
+      return (original as (...args: unknown[]) => void)(type, ...rest)
+    }) as typeof window.removeEventListener
+    try {
+      const before = document.title
+      renderPortal({ url: '/' })
+      await screen.findAllByRole('heading', { level: 1 })
+      expect(document.title).toContain('balance')
+      cleanup()
+      expect(removed).toContain('scroll')
+      expect(document.title).toBe(before)
+      expect(document.querySelector('meta[name="description"][content*="Closeline"]')).toBeNull()
+    } finally {
+      window.removeEventListener = original
+      restore()
+    }
+  })
 })
