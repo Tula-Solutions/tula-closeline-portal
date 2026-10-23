@@ -10,8 +10,8 @@ const WIDTH = 'mx-auto max-w-[88rem] px-4 sm:px-8'
 
 /**
  * The security and trust page: each rule as a numbered entry, with the plain-text status ("Enforced
- * by: ..." or "Planned, phase N") and its decision record, one captioned specimen of a planned
- * refusal, and a plain statement that no certification is claimed.
+ * by: ..." or "Our promise: ..."), one captioned specimen of a refusal, and a plain statement that
+ * no certification is claimed.
  */
 export function SecurityPage() {
   const copy = SECURITY_PAGE
@@ -63,9 +63,6 @@ export function SecurityPage() {
                 <div className='mt-3 md:col-span-5 md:mt-0 md:border-l md:border-border-strong md:pl-6'>
                   <p data-status className='m-0 text-sm leading-relaxed'>
                     {rule.status.line}
-                  </p>
-                  <p className='label-mono m-0 mt-3 text-foreground'>
-                    {`${copy.rules.referenceLabel}: ${rule.adr}`}
                   </p>
                 </div>
               </li>

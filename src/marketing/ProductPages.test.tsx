@@ -5,10 +5,10 @@ import { renderPortal } from '~/testing/render'
 import { PRODUCT_PAGES } from './copy/products'
 
 const PAGES = [
-  { url: '/copilot', copy: PRODUCT_PAGES.copilot, label: 'Planned, phase 2' },
-  { url: '/inbound-agent', copy: PRODUCT_PAGES.inbound, label: 'Planned, phase 3' },
-  { url: '/outbound-agent', copy: PRODUCT_PAGES.outbound, label: 'Planned, phase 4' },
-  { url: '/the-playbook', copy: PRODUCT_PAGES.playbook, label: 'Built today' },
+  { url: '/copilot', copy: PRODUCT_PAGES.copilot, label: 'Early access' },
+  { url: '/inbound-agent', copy: PRODUCT_PAGES.inbound, label: 'Early access' },
+  { url: '/outbound-agent', copy: PRODUCT_PAGES.outbound, label: 'Early access' },
+  { url: '/the-playbook', copy: PRODUCT_PAGES.playbook, label: 'Available now' },
 ] as const
 
 const ALLOWED =

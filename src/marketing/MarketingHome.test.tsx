@@ -62,13 +62,12 @@ describe('the public home at /', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  test('labels what is not built yet, with its phase, and what is', async () => {
+  test('labels what is in early access, and what is available now', async () => {
     renderPortal({ url: '/' })
     await screen.findAllByRole('heading', { level: 1 })
-    expect(screen.getByText('Planned, phase 2')).toBeTruthy()
-    expect(screen.getByText('Planned, phase 3')).toBeTruthy()
-    expect(screen.getByText('Planned, phase 4')).toBeTruthy()
-    expect(screen.getByText('Built today')).toBeTruthy()
+    expect(screen.getAllByText('Early access')).toHaveLength(3)
+    expect(screen.getAllByRole('link', { name: 'Request early access' })).toHaveLength(3)
+    expect(screen.getByText('Available now')).toBeTruthy()
   })
 
   test('every specimen says it is invented', async () => {
