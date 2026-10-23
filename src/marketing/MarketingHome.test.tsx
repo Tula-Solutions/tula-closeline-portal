@@ -88,7 +88,7 @@ describe('the public home at /', () => {
       .filter((href) => href !== '#main')
     for (const href of hrefs) {
       expect(href).toMatch(
-        /^(\/#trust|\/copilot|\/inbound-agent|\/outbound-agent|\/the-playbook|\/sign-in|\/sign-up|\/)$/
+        /^(\/security|\/copilot|\/inbound-agent|\/outbound-agent|\/the-playbook|\/sign-in|\/sign-up|\/)$/
       )
     }
   })

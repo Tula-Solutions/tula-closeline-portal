@@ -77,11 +77,6 @@ export function MarketingLayout(props: { readonly children: ReactNode }) {
                   </Link>
                 </li>
               ))}
-              <li>
-                <Link to='/' hash={SITE_COPY.navSecurity.hash} className={NAV_LINK}>
-                  {SITE_COPY.navSecurity.label}
-                </Link>
-              </li>
             </ul>
           </nav>
         </div>
