@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { companyName, FIELD_LABEL } from '~/data/prospects'
 import { useProspectCompany, useProspectCompanySearch } from '~/data/queries'
 import { Field } from '~/ui/Field'
 import { SelectField } from '~/ui/SelectField'
+import { useSettled } from '~/ui/useSettled'
 
 /** The text of the six identity fields of a Prospect while it is edited. */
 export type IdentityValues = {
@@ -59,18 +60,6 @@ export function IdentityFields(props: {
       ))}
     </>
   )
-}
-
-/** How long typing must pause before the Prospect Companies are searched. */
-const SEARCH_PAUSE_MS = 250
-
-function useSettled(text: string): string {
-  const [settled, setSettled] = useState(text)
-  useEffect(() => {
-    const timer = setTimeout(() => setSettled(text), SEARCH_PAUSE_MS)
-    return () => clearTimeout(timer)
-  }, [text])
-  return settled
 }
 
 /** A choice of Prospect Company: none, or one found by typing part of its name (searched on the server). */

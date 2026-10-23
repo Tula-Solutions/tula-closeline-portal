@@ -69,8 +69,8 @@ export type ProspectFilter = {
 export type CoreApi = {
   /** Reads the caller's Organization (a read, so it is retried). */
   getOrganization(signal?: AbortSignal): Promise<Organization>
-  /** One page of members (Owner, Admin, Manager). */
-  listMembers(page: PageRequest): Promise<ListMembersResponse>
+  /** One page of members (Owner, Admin, Manager), optionally narrowed by a case-insensitive name search. */
+  listMembers(page: PageRequest & { readonly q?: string | undefined }): Promise<ListMembersResponse>
   /** Changes a member's role (Owner: any; Admin: Manager and Rep only). */
   changeMemberRole(membershipId: string, role: Role): Promise<Member>
   /** Removes a member from the Organization. */
@@ -121,9 +121,12 @@ export type CoreApi = {
   createProspect(body: CreateProspectRequest, idempotencyKey: string): Promise<Prospect>
   /** Changes a Prospect; only the fields in the body change, and null clears one. */
   updateProspect(prospectId: string, body: UpdateProspectRequest): Promise<Prospect>
-  /** One page of Prospect Companies, optionally narrowed by a name search. */
+  /** One page of Prospect Companies, optionally narrowed by a name search or by up to `MAX_PROSPECT_COMPANY_IDS` ids. */
   listProspectCompanies(
-    page: PageRequest & { readonly q?: string | undefined }
+    page: PageRequest & {
+      readonly q?: string | undefined
+      readonly ids?: readonly string[] | undefined
+    }
   ): Promise<ListProspectCompaniesResponse>
   /** One Prospect Company. */
   getProspectCompany(companyId: string, signal?: AbortSignal): Promise<ProspectCompany>
@@ -150,7 +153,7 @@ export function createCoreApi(http: HttpClient): CoreApi {
     listMembers: (page) =>
       http.request({
         path: '/v1/members',
-        query: query(page),
+        query: { ...query(page), q: page.q },
         auth: true,
         ...(page.signal ? { signal: page.signal } : {}),
         parse: (json) => listMembersResponseSchema.parse(json),
@@ -338,7 +341,11 @@ export function createCoreApi(http: HttpClient): CoreApi {
     listProspectCompanies: (page) =>
       http.request({
         path: '/v1/prospect-companies',
-        query: { ...query(page), q: page.q },
+        query: {
+          ...query(page),
+          q: page.q,
+          ids: page.ids && page.ids.length > 0 ? page.ids.join(',') : undefined,
+        },
         auth: true,
         ...(page.signal ? { signal: page.signal } : {}),
         parse: (json) => listProspectCompaniesResponseSchema.parse(json),

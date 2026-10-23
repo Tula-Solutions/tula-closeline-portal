@@ -166,47 +166,134 @@ describe('Prospects: the list', () => {
   })
 })
 
-describe('Prospects: companies and owners beyond the first page', () => {
-  const far = hexId('pco', 250)
+describe('Prospects: company names and the Owner search', () => {
+  const companyCalls = (portal: ReturnType<typeof renderPortal>) =>
+    portal.calls.filter((c) => c.path === '/v1/prospect-companies')
+  const idsOf = (url: string) => (params(url).get('ids') ?? '').split(',').filter(Boolean)
 
-  test('a Prospect Company outside the first page is named by reading that Company', async () => {
+  test('one request names every Company on a page, with each id once', async () => {
+    const a = hexId('pco', 250)
+    const b = hexId('pco', 251)
     const portal = visit(
       'rep',
       '/prospects',
-      route('GET', `/v1/prospect-companies/${far}`, json(200, companyBody(250, 'Zenith Works'))),
+      route('GET', '/v1/prospect-companies', (call) =>
+        params(call.url).has('ids')
+          ? json(200, page([companyBody(250, 'Zenith Works'), companyBody(251, 'Yarrow Ltd')]))
+          : json(200, page([]))
+      ),
+      route(
+        'GET',
+        PROSPECTS,
+        json(
+          200,
+          page([
+            prospectBody(1, { companyId: a }),
+            prospectBody(2, { companyId: b }),
+            prospectBody(3, { companyId: a }),
+          ])
+        )
+      )
+    )
+    await waitFor(() => expect(screen.getAllByText('Zenith Works').length).toBe(2))
+    expect(screen.getByText('Yarrow Ltd')).toBeTruthy()
+    const named = companyCalls(portal).filter((c) => params(c.url).has('ids'))
+    expect(named.length).toBe(1)
+    expect(idsOf(named[0]?.url ?? '')).toEqual([a, b])
+    expect(portal.calls.some((c) => c.path.startsWith('/v1/prospect-companies/'))).toBe(false)
+  })
+
+  test('each page read asks once, the ids stay in chunks of at most 100 and settled chunks are not read again', async () => {
+    const withCompany = (from: number, to: number) =>
+      Array.from({ length: to - from + 1 }, (_, n) =>
+        prospectBody(from + n, { companyId: hexId('pco', from + n) })
+      )
+    const portal = visit(
+      'rep',
+      '/prospects',
+      route('GET', '/v1/prospect-companies', json(200, page([]))),
+      route('GET', PROSPECTS, (call) =>
+        params(call.url).get('cursor') === 'c2'
+          ? json(200, page(withCompany(101, 130)))
+          : json(200, page(withCompany(1, 100), 'c2'))
+      )
+    )
+    await screen.findByRole('table', { name: 'Prospects' })
+    const named = () => companyCalls(portal).filter((c) => params(c.url).has('ids'))
+    await waitFor(() => expect(named().length).toBe(1))
+    expect(idsOf(named()[0]?.url ?? '').length).toBe(100)
+    await portal.user.click(screen.getByRole('button', { name: 'Load more Prospects' }))
+    await waitFor(() => expect(named().length).toBe(2))
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    expect(named().map((c) => idsOf(c.url).length)).toEqual([100, 30])
+  })
+
+  test('a Company the answer leaves out keeps its plain fallback name', async () => {
+    const far = hexId('pco', 250)
+    visit(
+      'rep',
+      '/prospects',
+      route('GET', '/v1/prospect-companies', json(200, page([]))),
       route('GET', PROSPECTS, json(200, page([prospectBody(1, { companyId: far })])))
     )
     const row = (await screen.findByRole('link', { name: 'First1 Last1' })).closest('tr')
-    await waitFor(() => expect(row?.textContent).toContain('Zenith Works'))
-    expect(portal.calls.some((c) => c.path === `/v1/prospect-companies/${far}`)).toBe(true)
+    await waitFor(() => expect(row?.textContent).toContain('Prospect Company'))
   })
 
-  test('the Prospect Company filter names the Company by its own read', async () => {
-    visit(
+  test('the Prospect Company filter names the Company from the same kind of read', async () => {
+    const far = hexId('pco', 250)
+    const portal = visit(
       'rep',
       `/prospects?company=${far}`,
-      route('GET', `/v1/prospect-companies/${far}`, json(200, companyBody(250, 'Zenith Works'))),
+      route('GET', '/v1/prospect-companies', json(200, page([companyBody(250, 'Zenith Works')]))),
       route('GET', PROSPECTS, json(200, page([prospectBody(1, { companyId: far })])))
     )
     expect((await screen.findAllByText('Zenith Works')).length).toBeGreaterThan(0)
+    expect(idsOf(companyCalls(portal)[0]?.url ?? '')).toEqual([far])
   })
 
-  test('the Owner filter lists members from every page', async () => {
-    visit(
+  test('the Owner filter searches members by name on the server, trimmed and after a pause', async () => {
+    const portal = visit(
       'admin',
       '/prospects',
       route('GET', '/v1/members', (call) =>
-        params(call.url).get('cursor') === 'm2'
+        params(call.url).get('q') === 'zed'
           ? json(200, page([memberBody(150, { name: 'Zed Late' })]))
-          : json(200, page([memberBody(1, { name: 'Maya Chen' })], 'm2'))
+          : json(200, page([memberBody(1, { name: 'Maya Chen' })]))
       ),
       route('GET', PROSPECTS, json(200, page([prospectBody(1)])))
     )
     await screen.findByText('First1 Last1')
-    await waitFor(() => expect(screen.getByRole('option', { name: 'Zed Late' })).toBeTruthy())
+    const box = screen.getByLabelText('Search owners') as HTMLInputElement
+    expect(box.maxLength).toBe(100)
+    await portal.user.type(box, '  zed ')
+    const option = await screen.findByRole('option', { name: 'Zed Late' }, { timeout: 3000 })
+    expect(option).toBeTruthy()
+    const members = portal.calls.filter((c) => c.path === '/v1/members')
+    expect(members.every((c) => params(c.url).get('cursor') === null)).toBe(true)
+    expect(members.some((c) => params(c.url).get('q') === 'zed')).toBe(true)
+    expect(members.length).toBeLessThanOrEqual(2)
+    expect(members.some((c) => (params(c.url).get('q') ?? 'zed') !== 'zed')).toBe(false)
   })
 
-  test('an Owner filter from the address stays selectable when that member is not loaded', async () => {
+  test('a blank Owner search sends no q and reads no further pages', async () => {
+    const portal = visit(
+      'admin',
+      '/prospects',
+      route('GET', '/v1/members', json(200, page([memberBody(1, { name: 'Maya Chen' })], 'm2'))),
+      route('GET', PROSPECTS, json(200, page([prospectBody(1)])))
+    )
+    await screen.findByText('First1 Last1')
+    await portal.user.type(screen.getByLabelText('Search owners'), '   ')
+    await screen.findByRole('option', { name: 'Maya Chen' })
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    const members = portal.calls.filter((c) => c.path === '/v1/members')
+    expect(members.length).toBe(1)
+    expect(params(members[0]?.url ?? '').has('q')).toBe(false)
+    expect(params(members[0]?.url ?? '').has('cursor')).toBe(false)
+  })
+
+  test('an Owner filter from the address stays selectable when that member is not listed', async () => {
     const unseen = hexId('mem', 900)
     visit(
       'admin',

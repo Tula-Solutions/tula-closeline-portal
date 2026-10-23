@@ -23,7 +23,7 @@
         "react-dom": "^19.3.0",
         "tailwind-merge": "^3.7.0",
         "tailwindcss": "^4.3.3",
-        "tula-closeline-contract": "git+ssh://git@github.com/Tula-Solutions/tula-closeline-contract.git#v0.38.0",
+        "tula-closeline-contract": "git+ssh://git@github.com/Tula-Solutions/tula-closeline-contract.git#v0.41.0",
         "tw-animate-css": "^1.4.0",
         "zod": "^4.6.5",
       },
@@ -578,7 +578,7 @@
 
     "tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
 
-    "tula-closeline-contract": ["tula-closeline-contract@git+ssh://git@github.com/Tula-Solutions/tula-closeline-contract.git#78203b57323e6c45d8b45fd213cff2dfc93079d5", { "peerDependencies": { "zod": "^4.6.5" } }, "78203b57323e6c45d8b45fd213cff2dfc93079d5"],
+    "tula-closeline-contract": ["tula-closeline-contract@git+ssh://git@github.com/Tula-Solutions/tula-closeline-contract.git#2417e4c3c5ec7faad8ecc11e8f610e236aaf3296", { "peerDependencies": { "zod": "^4.6.5" } }, "2417e4c3c5ec7faad8ecc11e8f610e236aaf3296"],
 
     "tw-animate-css": ["tw-animate-css@1.4.0", "", {}, "sha512-7bziOlRqH0hJx80h/3mbicLW7o8qLsH5+RaLR2t+OHM3D0JlWGODQKQ4cxbK7WlvmUxpcj6Kgu6EKqjrGFe3QQ=="],
 

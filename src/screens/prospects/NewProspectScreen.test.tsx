@@ -121,16 +121,22 @@ describe('Add a Prospect: pickers that reach past the first page', () => {
     expect(posts(portal)[0]?.body).toEqual({ firstName: 'Bo', companyId: hexId('pco', 250) })
   })
 
-  test('the Owner choice lists members from every page', async () => {
-    visit(
+  test('the Owner choice searches members by name on the server', async () => {
+    const portal = visit(
       'admin',
       route('GET', '/v1/members', (call) =>
-        new URL(call.url, 'http://x').searchParams.get('cursor') === 'm2'
+        new URL(call.url, 'http://x').searchParams.get('q') === 'zed'
           ? json(200, page([memberBody(150, { name: 'Zed Late', role: 'rep' })]))
           : json(200, page([memberBody(1, { name: 'Maya Chen', role: 'rep' })], 'm2'))
       )
     )
     await screen.findByLabelText('Owner')
-    await waitFor(() => expect(screen.getByRole('option', { name: 'Zed Late' })).toBeTruthy())
+    await portal.user.type(await screen.findByLabelText('Search owners'), ' zed ')
+    await screen.findByRole('option', { name: 'Zed Late' }, { timeout: 3000 })
+    const members = portal.calls.filter((c) => c.path === '/v1/members')
+    expect(members.some((c) => new URL(c.url, 'http://x').searchParams.get('cursor'))).toBe(false)
+    expect(members.some((c) => new URL(c.url, 'http://x').searchParams.get('q') === 'zed')).toBe(
+      true
+    )
   })
 })
