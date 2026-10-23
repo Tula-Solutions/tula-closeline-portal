@@ -53,7 +53,11 @@ export function ProspectsScreen() {
   ])
   const hasOwners = prospects.items.some((prospect) => prospect.ownerMembershipId !== null)
   // One lookup for the whole page of rows, never one per row; only those who may list members.
-  const { members: owners, loading: ownersLoading } = useMembersByIdsState(
+  const {
+    members: owners,
+    loading: ownersLoading,
+    failed: ownersFailed,
+  } = useMembersByIdsState(
     prospects.items.flatMap((prospect) =>
       prospect.ownerMembershipId ? [prospect.ownerMembershipId] : []
     ),
@@ -228,7 +232,11 @@ export function ProspectsScreen() {
             <ScrollRegion label='Prospects'>
               {showOwner ? (
                 <p className='sr-only' role='status' aria-live='polite' data-owner-status>
-                  {hasOwners && !ownersLoading ? 'Owner names loaded' : ''}
+                  {hasOwners && !ownersLoading
+                    ? ownersFailed
+                      ? 'Owner names unavailable'
+                      : 'Owner names loaded'
+                    : ''}
                 </p>
               ) : null}
               <table

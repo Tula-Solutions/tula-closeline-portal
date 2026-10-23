@@ -520,4 +520,17 @@ describe('Prospects: the owner cell', () => {
     expect(status.getAttribute('aria-live')).toBe('polite')
     expect(document.querySelectorAll('tbody [role="status"], tbody [aria-live]')).toHaveLength(0)
   })
+
+  test('when the lookup fails the status says the names are unavailable, not loaded', async () => {
+    visit(
+      'admin',
+      '/prospects',
+      byIds(() => failure(500, 'internal.error')),
+      route('GET', PROSPECTS, json(200, page([owned()])))
+    )
+    const row = (await screen.findByRole('link', { name: 'First1 Last1' })).closest('tr')
+    await waitFor(() => expect(row?.textContent).toContain('Unknown member'))
+    const status = document.querySelector('[data-owner-status]') as HTMLElement
+    await waitFor(() => expect(status.textContent).toBe('Owner names unavailable'))
+  })
 })
