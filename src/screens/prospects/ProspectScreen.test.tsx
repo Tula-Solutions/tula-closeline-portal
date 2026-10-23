@@ -13,8 +13,8 @@ function visit(...handlers: Handler[]) {
     url: `/prospects/${ID}`,
     signedIn: tokens({ organization: { id: 'org_1', role: 'rep' } }),
     handlers: [
-      route('GET', '/v1/prospect-companies', json(200, page([companyBody(1, 'Acme')]))),
       ...handlers,
+      route('GET', '/v1/prospect-companies', json(200, page([companyBody(1, 'Acme')]))),
     ],
   })
 }
@@ -151,5 +151,19 @@ describe('Prospect: the detail', () => {
     expect(await run()).toEqual([])
     document.documentElement.classList.add('dark')
     expect(await run()).toEqual([])
+  })
+})
+
+describe('Prospect: a Company outside the first page', () => {
+  const far = hexId('pco', 250)
+
+  test('the detail names the Company and the edit choice keeps it selected', async () => {
+    visit(
+      route('GET', `/v1/prospect-companies/${far}`, json(200, companyBody(250, 'Zenith Works'))),
+      route('GET', ONE, json(200, prospectBody(1, { companyId: far })))
+    )
+    expect(await screen.findByText('Zenith Works', { selector: 'dd *, dd' })).toBeTruthy()
+    const select = (await screen.findByLabelText('Prospect Company')) as HTMLSelectElement
+    await waitFor(() => expect(select.value).toBe(far))
   })
 })

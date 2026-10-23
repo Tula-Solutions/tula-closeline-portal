@@ -15,7 +15,7 @@ import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
 import { can } from '~/data/permissions'
 import { FIELD_ORDER, parseTags } from '~/data/prospects'
-import { refresh, useMembersFirstPage, useProspectCompanies } from '~/data/queries'
+import { refresh, useMemberOptions } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import {
   CompanyChoice,
@@ -66,9 +66,8 @@ export function NewProspectScreen() {
   const app = useApp()
   const role = useRole()
   const navigate = useNavigate()
-  const companies = useProspectCompanies()
   const chooseOwner = role !== null && can.assignProspectOwner(role)
-  const members = useMembersFirstPage(chooseOwner)
+  const members = useMemberOptions(chooseOwner)
   const [values, setValues] = useState<IdentityValues>(BLANK)
   const [companyId, setCompanyId] = useState('')
   const [newCompany, setNewCompany] = useState('')
@@ -203,11 +202,7 @@ export function NewProspectScreen() {
           errors={errors}
           onChange={(name, value) => setValues((now) => ({ ...now, [name]: value }))}
         />
-        <CompanyChoice
-          companies={companies.data?.items ?? []}
-          value={companyId}
-          onChange={setCompanyId}
-        />
+        <CompanyChoice value={companyId} onChange={setCompanyId} />
         <Field
           label='Or add a new Prospect Company'
           name='newCompany'

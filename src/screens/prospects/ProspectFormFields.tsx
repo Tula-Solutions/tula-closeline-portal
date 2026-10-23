@@ -1,5 +1,6 @@
-import type { ProspectCompany } from 'tula-closeline-contract'
+import { useEffect, useState } from 'react'
 import { companyName, FIELD_LABEL } from '~/data/prospects'
+import { useProspectCompany, useProspectCompanySearch } from '~/data/queries'
 import { Field } from '~/ui/Field'
 import { SelectField } from '~/ui/SelectField'
 
@@ -60,24 +61,63 @@ export function IdentityFields(props: {
   )
 }
 
-/** A choice of Prospect Company: none, or one of the first page of the Organization's. */
+/** How long typing must pause before the Prospect Companies are searched. */
+const SEARCH_PAUSE_MS = 250
+
+function useSettled(text: string): string {
+  const [settled, setSettled] = useState(text)
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(text), SEARCH_PAUSE_MS)
+    return () => clearTimeout(timer)
+  }, [text])
+  return settled
+}
+
+/** A choice of Prospect Company: none, or one found by typing part of its name (searched on the server). */
 export function CompanyChoice(props: {
-  readonly companies: readonly ProspectCompany[]
   readonly value: string
   readonly error?: string | undefined
   readonly onChange: (value: string) => void
 }) {
+  const [term, setTerm] = useState('')
+  const found = useProspectCompanySearch(useSettled(term.trim()))
+  const chosen = useProspectCompany(props.value === '' ? null : props.value)
+  const listed = found.data?.items ?? []
+  const options = [{ value: '', text: 'None' }]
+  if (props.value !== '' && !listed.some((company) => company.id === props.value)) {
+    // The current choice stays selectable whatever the search shows.
+    options.push({
+      value: props.value,
+      text: chosen.data ? companyName(chosen.data) : 'Prospect Company',
+    })
+  }
+  options.push(...listed.map((company) => ({ value: company.id, text: companyName(company) })))
   return (
-    <SelectField
-      label='Prospect Company'
-      name='companyId'
-      value={props.value}
-      error={props.error}
-      onChange={(event) => props.onChange(event.target.value)}
-      options={[
-        { value: '', text: 'None' },
-        ...props.companies.map((company) => ({ value: company.id, text: companyName(company) })),
-      ]}
-    />
+    <>
+      <Field
+        label='Search Prospect Companies'
+        autoComplete='off'
+        hint={
+          found.data?.nextCursor
+            ? `The first ${listed.length} matches are listed. Type more of the name to narrow them.`
+            : 'Type part of a name to find it.'
+        }
+        value={term}
+        onChange={(event) => setTerm(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault()
+          }
+        }}
+      />
+      <SelectField
+        label='Prospect Company'
+        name='companyId'
+        value={props.value}
+        error={props.error}
+        onChange={(event) => props.onChange(event.target.value)}
+        options={options}
+      />
+    </>
   )
 }

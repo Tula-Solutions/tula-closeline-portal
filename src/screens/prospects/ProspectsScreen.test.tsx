@@ -13,9 +13,9 @@ function visit(role: 'owner' | 'admin' | 'manager' | 'rep', url: string, ...hand
     url,
     signedIn: tokens({ organization: { id: 'org_1', role } }),
     handlers: [
+      ...handlers,
       route('GET', '/v1/prospect-companies', json(200, page([companyBody(1, 'Acme')]))),
       route('GET', '/v1/members', json(200, page([memberBody(1, { name: 'Maya Chen' })]))),
-      ...handlers,
     ],
   })
 }
@@ -163,5 +163,46 @@ describe('Prospects: the list', () => {
     expect(await run()).toEqual([])
     document.documentElement.classList.add('dark')
     expect(await run()).toEqual([])
+  })
+})
+
+describe('Prospects: companies and owners beyond the first page', () => {
+  const far = hexId('pco', 250)
+
+  test('a Prospect Company outside the first page is named by reading that Company', async () => {
+    const portal = visit(
+      'rep',
+      '/prospects',
+      route('GET', `/v1/prospect-companies/${far}`, json(200, companyBody(250, 'Zenith Works'))),
+      route('GET', PROSPECTS, json(200, page([prospectBody(1, { companyId: far })])))
+    )
+    const row = (await screen.findByRole('link', { name: 'First1 Last1' })).closest('tr')
+    await waitFor(() => expect(row?.textContent).toContain('Zenith Works'))
+    expect(portal.calls.some((c) => c.path === `/v1/prospect-companies/${far}`)).toBe(true)
+  })
+
+  test('the Prospect Company filter names the Company by its own read', async () => {
+    visit(
+      'rep',
+      `/prospects?company=${far}`,
+      route('GET', `/v1/prospect-companies/${far}`, json(200, companyBody(250, 'Zenith Works'))),
+      route('GET', PROSPECTS, json(200, page([prospectBody(1, { companyId: far })])))
+    )
+    expect((await screen.findAllByText('Zenith Works')).length).toBeGreaterThan(0)
+  })
+
+  test('the Owner filter lists members from every page', async () => {
+    visit(
+      'admin',
+      '/prospects',
+      route('GET', '/v1/members', (call) =>
+        params(call.url).get('cursor') === 'm2'
+          ? json(200, page([memberBody(150, { name: 'Zed Late' })]))
+          : json(200, page([memberBody(1, { name: 'Maya Chen' })], 'm2'))
+      ),
+      route('GET', PROSPECTS, json(200, page([prospectBody(1)])))
+    )
+    await screen.findByText('First1 Last1')
+    await waitFor(() => expect(screen.getByRole('option', { name: 'Zed Late' })).toBeTruthy())
   })
 })
