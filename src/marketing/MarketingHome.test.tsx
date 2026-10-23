@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { act, cleanup, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import axe from 'axe-core'
 import { AUTH_ERRORS } from 'tula-closeline-contract'
 import { failure, route } from '~/testing/fixtures'
@@ -32,6 +33,17 @@ afterEach(() => {
 })
 
 describe('the public home at /', () => {
+  test('on small screens the section nav sits behind a Menu button', async () => {
+    const user = userEvent.setup()
+    renderPortal({ url: '/' })
+    const menu = await screen.findByRole('button', { name: 'Menu' })
+    expect(menu.getAttribute('aria-expanded')).toBe('false')
+    await user.click(menu)
+    expect(menu.getAttribute('aria-expanded')).toBe('true')
+    await user.click(menu)
+    expect(menu.getAttribute('aria-expanded')).toBe('false')
+  })
+
   test('a visitor who is not signed in sees the site, with exactly one h1 and a skip link', async () => {
     renderPortal({ url: '/' })
     const headings = await screen.findAllByRole('heading', { level: 1 })

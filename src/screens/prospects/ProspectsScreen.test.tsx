@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import axe from 'axe-core'
 import { MAX_EMPTY_PAGES } from '~/data/queries'
 import { companyBody, hexId, memberBody, page, prospectBody } from '~/testing/core-bodies'
@@ -35,6 +36,18 @@ afterEach(() => {
 })
 
 describe('Prospects: the list', () => {
+  test('the Filters disclosure opens and closes the filter controls on small screens', async () => {
+    const user = userEvent.setup()
+    visit('rep', '/prospects', route('GET', PROSPECTS, json(200, page([prospectBody(1)]))))
+    await screen.findByRole('table', { name: 'Prospects' })
+    const toggle = screen.getByRole('button', { name: /^Filters/ })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    await user.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    await user.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+  })
+
   test('lists Prospects in a table with a link to each', async () => {
     visit('rep', '/prospects', route('GET', PROSPECTS, json(200, page([prospectBody(1)]))))
     const table = await screen.findByRole('table', { name: 'Prospects' })

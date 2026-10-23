@@ -1,5 +1,6 @@
 import { getRouteApi, Link, useNavigate } from '@tanstack/react-router'
-import { type FormEvent, useState } from 'react'
+import { SlidersHorizontal } from 'lucide-react'
+import { type FormEvent, useId, useState } from 'react'
 import {
   MAX_PROSPECT_SEARCH_LENGTH,
   membershipIdSchema,
@@ -10,6 +11,7 @@ import { can } from '~/data/permissions'
 import { fieldValue, prospectName, SOURCE_CHOICES, sourceLabel } from '~/data/prospects'
 import { useProspectCompanyNames, useProspects } from '~/data/queries'
 import { useRole } from '~/data/session-role'
+import { cn } from '~/lib/utils'
 import { Field } from '~/ui/Field'
 import { OwnerCombobox } from '~/ui/OwnerCombobox'
 import { Paged } from '~/ui/Paged'
@@ -43,6 +45,8 @@ export function ProspectsScreen() {
   })
   const showOwner = role !== null && can.viewMembers(role)
   const [ownerName, setOwnerName] = useState('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const filtersId = useId()
   const companyNames = useProspectCompanyNames([
     ...prospects.items.flatMap((prospect) => (prospect.companyId ? [prospect.companyId] : [])),
     ...(search.company ? [search.company] : []),
@@ -56,6 +60,9 @@ export function ProspectsScreen() {
     search.source !== undefined ||
     search.owner !== undefined ||
     search.company !== undefined
+  const filterCount = [search.status, search.source, search.owner, search.company].filter(
+    (value) => value !== undefined
+  ).length
   const change = (next: Partial<typeof search>) =>
     void navigate({ search: (now) => ({ ...now, ...next }), replace: true })
   const submit = (event: FormEvent) => {
@@ -118,7 +125,23 @@ export function ProspectsScreen() {
             </div>
           </form>
         </search>
-        <div className='flex flex-wrap items-center gap-x-6 gap-y-2'>
+        <button
+          type='button'
+          className='button button-quiet inline-flex w-fit items-center gap-2 md:hidden'
+          aria-expanded={filtersOpen}
+          aria-controls={filtersId}
+          onClick={() => setFiltersOpen((now) => !now)}
+        >
+          <SlidersHorizontal aria-hidden='true' className='size-4' />
+          {filterCount === 0 ? 'Filters' : `Filters (${filterCount} on)`}
+        </button>
+        <div
+          id={filtersId}
+          className={cn(
+            'flex-col gap-3 md:flex md:flex-row md:flex-wrap md:items-center md:gap-x-6 md:gap-y-2',
+            filtersOpen ? 'flex' : 'hidden'
+          )}
+        >
           <SelectField
             inline
             label='Status'
@@ -199,11 +222,17 @@ export function ProspectsScreen() {
                 <thead>
                   <tr>
                     <th scope='col'>Prospect</th>
-                    <th scope='col'>Email address</th>
+                    <th scope='col' className='ledger-detail'>
+                      Email address
+                    </th>
                     <th scope='col'>Prospect Company</th>
-                    <th scope='col'>Source</th>
+                    <th scope='col' className='ledger-detail'>
+                      Source
+                    </th>
                     <th scope='col'>Status</th>
-                    <th scope='col'>Added</th>
+                    <th scope='col' className='ledger-detail'>
+                      Added
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -236,17 +265,17 @@ function ProspectRow(props: { readonly prospect: Prospect; readonly company: str
           <Untrusted value={prospectName(prospect)} />
         </Link>
       </th>
-      <td>{email === '' ? '—' : <Untrusted value={email} />}</td>
-      <td>
+      <td className='ledger-detail'>{email === '' ? '—' : <Untrusted value={email} />}</td>
+      <td className='ledger-pair'>
         {prospect.companyId === null ? (
           '—'
         ) : (
           <Untrusted value={props.company ?? 'Prospect Company'} />
         )}
       </td>
-      <td>{sourceLabel(prospect.source)}</td>
-      <td>{prospect.status === 'active' ? 'Active' : 'Archived'}</td>
-      <td className='num'>
+      <td className='ledger-detail'>{sourceLabel(prospect.source)}</td>
+      <td className='ledger-pair'>{prospect.status === 'active' ? 'Active' : 'Archived'}</td>
+      <td className='num ledger-detail'>
         <When iso={prospect.createdAt} />
       </td>
     </tr>

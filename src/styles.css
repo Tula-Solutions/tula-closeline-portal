@@ -648,8 +648,8 @@
     text-decoration-color: currentColor;
   }
 
-  /* On a phone a stacking ledger reads row by row: each row is a ruled block of its cells, in order. */
-  @media (width < 40rem) {
+  /* Below the md width a stacking ledger reads row by row: each row is a ruled block of its cells, in order. */
+  @media (width < 48rem) {
     .ledger-stack thead {
       display: none;
     }
@@ -676,6 +676,10 @@
     /* Two cells marked as a pair (a control and its row action) share the last line. */
     .ledger-stack td.ledger-pair {
       grid-column: auto;
+    }
+    /* A cell the stacked row leaves out: the name opens the detail, which has it. */
+    .ledger-stack .ledger-detail {
+      display: none;
     }
   }
 
