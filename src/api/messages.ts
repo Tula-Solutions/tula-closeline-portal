@@ -69,6 +69,14 @@ function tryAgain(seconds: number | undefined): string {
   return seconds === undefined ? 'Try again shortly.' : `Try again in ${waitPhrase(seconds)}.`
 }
 
+function waitInMinutes(seconds: number | undefined): string {
+  if (seconds === undefined || !Number.isFinite(seconds) || seconds <= 0) {
+    return 'Try again later.'
+  }
+  const minutes = Math.max(1, Math.ceil(seconds / 60))
+  return `Try again in ${minutes === 1 ? '1 minute' : `${minutes} minutes`}.`
+}
+
 /** The fallback for a code this table does not know. */
 export const GENERIC_MESSAGE = 'Something went wrong. Try again.'
 
@@ -76,6 +84,8 @@ type Context = {
   readonly wait: number | undefined
   readonly flow: FlowKind
   readonly ended: string
+  /** True when the failed call sent a code (start or resend), false when it checked one. */
+  readonly sending: boolean
 }
 
 /**
@@ -126,8 +136,10 @@ const RULES: { readonly [C in HandledCode]: (context: Context) => Presented } = 
   [AUTH_ERRORS['verification.expired'].code]: () => ({
     message: 'That code has expired. Send a new code.',
   }),
-  [AUTH_ERRORS['verification.too_many_attempts'].code]: () => ({
-    message: 'Too many wrong codes. Send a new code.',
+  [AUTH_ERRORS['verification.too_many_attempts'].code]: ({ wait, sending }) => ({
+    message: sending
+      ? `Too many codes sent to this address. ${waitInMinutes(wait)}`
+      : 'Too many wrong codes. Send a new code.',
   }),
   [AUTH_ERRORS['flow.not_found'].code]: ({ ended }) => ({
     restart: true,
@@ -196,13 +208,17 @@ const RULES: { readonly [C in HandledCode]: (context: Context) => Presented } = 
   }),
 }
 
-/** Turns a failure into plain-English words for the screen; branches on the code, never the status. */
-export function present(error: unknown, flow: FlowKind): Presented {
+/**
+ * Turns a failure into plain-English words for the screen; branches on the code, never the status.
+ * `sending` is true for a call that emails a code (start, resend): the same
+ * too-many-attempts code then means the send limit, not wrong codes.
+ */
+export function present(error: unknown, flow: FlowKind, sending = false): Presented {
   if (!(error instanceof ApiError) || !Object.hasOwn(RULES, error.code)) {
     return { message: GENERIC_MESSAGE }
   }
   const ended = flow === 'sign-up' ? 'This sign-up has ended.' : 'This sign-in has ended.'
-  return RULES[error.code as HandledCode]({ wait: error.retryAfterSeconds, flow, ended })
+  return RULES[error.code as HandledCode]({ wait: error.retryAfterSeconds, flow, ended, sending })
 }
 
 /** The general words for a Google sign-in that failed with a code this table has no words for. */

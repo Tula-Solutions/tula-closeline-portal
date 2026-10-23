@@ -299,6 +299,45 @@ describe('sign-up: every error the start step can return has its own words', () 
     expect(alert.textContent).not.toContain('Text the portal never shows')
   })
 
+  test.each([
+    [90, 'Try again in 2 minutes.'],
+    [1, 'Try again in 1 minute.'],
+    [3000, 'Try again in 50 minutes.'],
+  ])(
+    'the send limit on the start step (retryAfter %d) shows the wait, not wrong codes',
+    async (retryAfter, wait) => {
+      const portal = renderPortal({
+        url: '/sign-up',
+        handlers: [
+          route(
+            'POST',
+            START,
+            failure(429, AUTH_ERRORS['verification.too_many_attempts'].code, { retryAfter })
+          ),
+        ],
+      })
+      await fillDetails(portal)
+      await submitDetails(portal)
+      const alert = await screen.findByRole('alert')
+      expect(alert.textContent).toContain(`Too many codes sent to this address. ${wait}`)
+      expect(alert.textContent).not.toContain('wrong codes')
+    }
+  )
+
+  test('the send limit on the start step without a usable wait says to try later', async () => {
+    const portal = renderPortal({
+      url: '/sign-up',
+      handlers: [
+        route('POST', START, failure(429, AUTH_ERRORS['verification.too_many_attempts'].code)),
+      ],
+    })
+    await fillDetails(portal)
+    await submitDetails(portal)
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      'Too many codes sent to this address. Try again later.'
+    )
+  })
+
   test('the table above covers every code the portal knows by name', () => {
     const tested = new Set(cases.map(([code]) => code))
     const elsewhere = new Set([
@@ -359,6 +398,22 @@ describe('sign-up: the emailed code step', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(
       'Too many wrong codes. Send a new code.'
     )
+  })
+
+  test('the send limit on a resend shows the wait, not wrong codes', async () => {
+    const portal = await reachCodeStep([
+      route(
+        'POST',
+        RESEND,
+        failure(429, AUTH_ERRORS['verification.too_many_attempts'].code, { retryAfter: 61 })
+      ),
+    ])
+    await portal.user.click(screen.getByRole('button', { name: 'Send a new code' }))
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain(
+      'Too many codes sent to this address. Try again in 2 minutes.'
+    )
+    expect(alert.textContent).not.toContain('wrong codes')
   })
 
   test.each([AUTH_ERRORS['flow.not_found'].code, AUTH_ERRORS['flow.invalid_step'].code])(

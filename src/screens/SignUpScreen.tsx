@@ -54,8 +54,8 @@ export function SignUpScreen() {
     staleTime: Number.POSITIVE_INFINITY,
   })
 
-  const fail = (error: unknown) => {
-    const shown = present(error, 'sign-up')
+  const fail = (error: unknown, sending: boolean) => {
+    const shown = present(error, 'sign-up', sending)
     // A refusal about the details (or an attempt that is gone) sends the person back to step one.
     if (shown.restart || shown.invitationRefused || (shown.field && shown.field !== 'code')) {
       setAttempt(null)
@@ -98,7 +98,7 @@ export function SignUpScreen() {
       setNotice(null)
       setErrors({ fields: {} })
     },
-    { onError: fail }
+    { onError: (error) => fail(error, true) }
   )
 
   const verify = useSubmit<void>(
@@ -113,7 +113,7 @@ export function SignUpScreen() {
       app.session.start(response.session)
       app.invitation.clear()
     },
-    { onError: fail }
+    { onError: (error) => fail(error, false) }
   )
 
   const onDetails = (event: FormEvent) => {
@@ -174,7 +174,7 @@ export function SignUpScreen() {
       setNotice('We sent a new code. The old one no longer works.')
     } catch (error) {
       app.reporter.report(error)
-      fail(error)
+      fail(error, true)
     } finally {
       setResending(false)
     }
