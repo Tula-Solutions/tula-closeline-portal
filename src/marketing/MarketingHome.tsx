@@ -168,7 +168,7 @@ export function MarketingHome() {
                   <p className='m-0 mt-2 max-w-[48ch] border-t border-background/50 pt-4 text-sm leading-relaxed'>
                     {copy.trust.status}
                   </p>
-                  <p className='label-mono m-0 mt-3'>{copy.trust.reference}</p>
+                  <p className='label-mono m-0 mt-3 text-background'>{copy.trust.reference}</p>
                 </div>
                 <Specimen title={copy.trust.specimen.title} rows={copy.trust.specimen.rows} />
               </div>

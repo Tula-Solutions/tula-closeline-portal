@@ -48,7 +48,7 @@ export function MarketingLayout(props: { readonly children: ReactNode }) {
               to='/'
               className='rounded-sm outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
             >
-              <Wordmark className='h-auto w-[7.5rem]' />
+              <Wordmark className='h-auto w-[10rem]' />
             </Link>
             <div className='flex items-center gap-4 text-sm font-medium'>
               <Link to='/sign-in' className={LINK}>
@@ -88,7 +88,7 @@ export function MarketingLayout(props: { readonly children: ReactNode }) {
       <footer className='border-t border-rule-strong'>
         <div className='mx-auto max-w-[88rem] px-4 py-8 sm:px-8 md:grid md:grid-cols-12'>
           <div className='md:col-span-3 md:pr-6'>
-            <Wordmark className='h-auto w-[7.5rem]' />
+            <Wordmark className='h-auto w-[10rem]' />
           </div>
           <div className='mt-6 md:col-span-6 md:mt-0 md:border-l md:border-border-strong md:px-8'>
             <p className='label-mono m-0 mb-2'>{SITE_COPY.footer.regionLabel}</p>
