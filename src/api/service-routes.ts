@@ -25,6 +25,7 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/prospect-imports', service: 'core' },
   { prefix: '/v1/suppression-entries', service: 'core' },
   { prefix: '/v1/contact-checks', service: 'core' },
+  { prefix: '/v1/crm', service: 'core' },
   { prefix: '/v1/playbook', service: 'playbook' },
   { prefix: '/v1/lines', service: 'voice' },
 ]

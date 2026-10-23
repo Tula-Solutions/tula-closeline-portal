@@ -14,9 +14,12 @@ import {
   type ListProspectImportsResponse,
   type ListProspectsResponse,
   type ListTeamsResponse,
+  MAX_MEMBER_QUERY_LENGTH,
   MAX_PAGE_SIZE,
+  MAX_PROSPECT_COMPANY_IDS,
   type Outcome,
   type ProspectImportRowResult,
+  prospectCompanyIdSchema,
 } from 'tula-closeline-contract'
 import type { ProspectFilter } from '~/api/core'
 import type { CallsPage } from '~/api/sales-history'
@@ -651,30 +654,71 @@ export function useProspectCompany(companyId: string | null) {
   })
 }
 
-/** The names of exactly the Prospect Companies a screen shows, each read once by id and cached. */
+/**
+ * The names of exactly the Prospect Companies a screen shows. The ids (each once, malformed ones
+ * dropped) are read in chunks of at most `MAX_PROSPECT_COMPANY_IDS`, one `ids` request per chunk;
+ * a Company the answer leaves out has no name here.
+ */
 export function useProspectCompanyNames(
   companyIds: readonly string[]
 ): ReadonlyMap<string, string> {
   const app = useApp()
   const organizationId = useOrganizationId()
-  const unique = [...new Set(companyIds)]
+  const unique = [
+    ...new Set(companyIds.filter((id) => prospectCompanyIdSchema.safeParse(id).success)),
+  ]
+  const chunks: string[][] = []
+  for (let start = 0; start < unique.length; start += MAX_PROSPECT_COMPANY_IDS) {
+    chunks.push(unique.slice(start, start + MAX_PROSPECT_COMPANY_IDS))
+  }
   const results = useQueries({
-    queries: unique.map((companyId) => ({
-      queryKey: [...KEYS.prospectCompanies(organizationId), 'one', companyId],
+    queries: chunks.map((chunk) => ({
+      queryKey: [...KEYS.prospectCompanies(organizationId), 'ids', chunk.join(',')],
       queryFn: ({ signal }: { signal: AbortSignal }) =>
-        app.core.getProspectCompany(companyId, signal),
+        app.core.listProspectCompanies({ ids: chunk, limit: chunk.length, signal }),
       enabled: organizationId !== '',
       retry: false,
+      // A page loaded later grows the last chunk: keep the names already known meanwhile.
+      placeholderData: (previous: ListProspectCompaniesResponse | undefined) => previous,
     })),
   })
   const names = new Map<string, string>()
-  unique.forEach((companyId, index) => {
-    const company = results[index]?.data
-    if (company) {
-      names.set(companyId, companyName(company))
+  for (const result of results) {
+    for (const company of result.data?.items ?? []) {
+      names.set(company.id, companyName(company))
     }
-  })
+  }
   return names
+}
+
+/** How many members the Owner choice shows for one search; a longer list asks for more of the name. */
+export const MEMBER_PICKER_SIZE = 25
+
+/** A member search as typed, made ready to send: trimmed and cut to core's longest `q` (none if blank). */
+export function memberSearchTerm(text: string): string {
+  return text.trim().slice(0, MAX_MEMBER_QUERY_LENGTH).trim()
+}
+
+/**
+ * Members whose name matches `term` (core's `q`), the first page only; an empty term lists the
+ * first ones. No request is made unless `enabled`.
+ */
+export function useMemberSearch(term: string, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const q = memberSearchTerm(term)
+  const query = useQuery<ListMembersResponse>({
+    queryKey: [...KEYS.members(organizationId), 'search', q],
+    queryFn: ({ signal }) =>
+      app.core.listMembers({
+        limit: MEMBER_PICKER_SIZE,
+        q: q === '' ? undefined : q,
+        signal,
+      }),
+    enabled: enabled && organizationId !== '',
+    placeholderData: (previous) => previous,
+  })
+  return { items: query.data?.items ?? [], hasMore: Boolean(query.data?.nextCursor) }
 }
 
 /**
