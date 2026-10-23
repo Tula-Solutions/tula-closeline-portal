@@ -341,4 +341,22 @@ describe('Prospects: company names and the Owner search', () => {
     const owner = screen.getByLabelText('Owner') as HTMLInputElement
     await waitFor(() => expect(owner.value).toBe('Selected owner'))
   })
+
+  test('an Owner filter from the address shows that member by name, found with one ids lookup', async () => {
+    const late = hexId('mem', 31)
+    const portal = visit(
+      'admin',
+      `/prospects?owner=${late}`,
+      route('GET', PROSPECTS, json(200, page([prospectBody(1)]))),
+      route('GET', '/v1/members', (call) =>
+        params(call.url).get('ids') === late
+          ? json(200, page([memberBody(31, { name: 'Late Rep' })]))
+          : json(200, page([memberBody(1, { name: 'Maya Chen' })]))
+      )
+    )
+    await screen.findByText('First1 Last1')
+    const owner = screen.getByLabelText('Owner') as HTMLInputElement
+    await waitFor(() => expect(owner.value).toBe('Late Rep'))
+    expect(portal.calls.filter((call) => params(call.url).has('ids'))).toHaveLength(1)
+  })
 })

@@ -1,8 +1,8 @@
 import { Check, ChevronDown, CircleAlert } from 'lucide-react'
 import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { MAX_MEMBER_QUERY_LENGTH } from 'tula-closeline-contract'
+import { MAX_MEMBER_QUERY_LENGTH, type Role } from 'tula-closeline-contract'
 import { Label } from '~/components/ui/label'
-import { useMemberSearch } from '~/data/queries'
+import { useMemberSearch, useMembersByIds } from '~/data/queries'
 import { cn } from '~/lib/utils'
 import { plain } from '~/ui/plain'
 import { useSettled } from '~/ui/useSettled'
@@ -26,9 +26,24 @@ export function OwnerCombobox(props: {
   readonly inline?: boolean
   readonly error?: string | undefined
   readonly hint?: (hasMore: boolean) => string
+  /** Lists only members holding this role; the server does the filtering. */
+  readonly memberRole?: Role
+  /** A further client-side filter for choices no single role covers (several roles). */
   readonly accept?: (member: { readonly role: string }) => boolean
 }) {
-  const { label, anyText, value, valueName, onChange, enabled, inline, error, hint, accept } = props
+  const {
+    label,
+    anyText,
+    value,
+    valueName,
+    onChange,
+    enabled,
+    inline,
+    error,
+    hint,
+    memberRole,
+    accept,
+  } = props
   const id = useId()
   const listId = `${id}-list`
   const hintId = `${id}-hint`
@@ -36,7 +51,9 @@ export function OwnerCombobox(props: {
   const [typing, setTyping] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
-  const members = useMemberSearch(useSettled(typing ?? ''), enabled)
+  const members = useMemberSearch(useSettled(typing ?? ''), enabled, memberRole)
+  // A chosen member whose name the caller does not have (from the address, or a stored assignment).
+  const resolved = useMembersByIds([value], enabled && value !== '' && valueName === '')
   const root = useRef<HTMLDivElement>(null)
 
   const choices = useMemo<readonly Choice[]>(() => {
@@ -46,12 +63,17 @@ export function OwnerCombobox(props: {
         id: member.id,
         text: plain(member.name ?? member.email, 'Unnamed member'),
       }))
+    const found = resolved.get(value)
+    const keptText =
+      valueName ||
+      (found === undefined ? '' : plain(found.name ?? found.email, 'Unnamed member')) ||
+      'Selected owner'
     const kept =
       value !== '' && !listed.some((choice) => choice.id === value)
-        ? [{ id: value, text: valueName || 'Selected owner' }]
+        ? [{ id: value, text: keptText }]
         : []
     return [{ id: '', text: anyText }, ...kept, ...listed]
-  }, [members.items, accept, value, valueName, anyText])
+  }, [members.items, accept, resolved, value, valueName, anyText])
 
   const chosenText = choices.find((choice) => choice.id === value)?.text ?? anyText
 

@@ -289,10 +289,14 @@ describe('Lines: assign', () => {
             )
           : json(
               200,
-              page([
-                memberBody(2, { name: 'Omar Admin', role: 'admin' }),
-                memberBody(3, { name: 'Zed Rep', role: 'rep' }),
-              ])
+              page(
+                param(call.url, 'role') === 'rep'
+                  ? [memberBody(3, { name: 'Zed Rep', role: 'rep' })]
+                  : [
+                      memberBody(2, { name: 'Omar Admin', role: 'admin' }),
+                      memberBody(3, { name: 'Zed Rep', role: 'rep' }),
+                    ]
+              )
             )
       )
     )
@@ -407,6 +411,60 @@ describe('Lines: assign', () => {
     expect((await screen.findByRole('alert')).textContent).toContain(
       'That Team or Rep is not in your Organization'
     )
+  })
+})
+
+describe('Lines: Rep names and the role filter', () => {
+  // A directory of 40 members where the Reps assigned to Lines are not on the first page.
+  const directory = route('GET', MEMBERS, (call) => {
+    const ids = param(call.url, 'ids')
+    const role = param(call.url, 'role')
+    if (ids !== null) {
+      return json(
+        200,
+        page(
+          ids
+            .split(',')
+            .filter((id) => id === hexId('mem', 31))
+            .map(() => memberBody(31, { name: 'Late Rep', role: 'rep' }))
+        )
+      )
+    }
+    return json(
+      200,
+      page(
+        role === 'rep'
+          ? [memberBody(3, { name: 'Zed Rep', role: 'rep' })]
+          : [memberBody(2, { name: 'Omar Admin', role: 'admin' })]
+      )
+    )
+  })
+  const lateLine = route(
+    'GET',
+    LINES,
+    json(200, page([lineBody(3, { assignment: { kind: 'rep', membershipId: hexId('mem', 31) } })]))
+  )
+
+  test('names the Rep a Line rings with one ids lookup, not the first page of members', async () => {
+    const portal = visit('admin', '/lines', lateLine, teams, directory)
+    await screen.findByText(/Rings the Rep/)
+    await screen.findByText(/Late Rep/)
+    const lookups = portal.calls.filter((call) => param(call.url, 'ids') !== null)
+    expect(lookups).toHaveLength(1)
+    expect(param(lookups[0]?.url ?? '', 'ids')).toBe(hexId('mem', 31))
+  })
+
+  test('the Rep picker asks the server for Reps and shows the current Rep by name', async () => {
+    const portal = visit('admin', '/lines', lateLine, teams, directory)
+    await screen.findByText(/Late Rep/)
+    await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550003' }))
+    const rep = (await screen.findByLabelText('Rep')) as HTMLInputElement
+    await waitFor(() => expect(rep.value).toBe('Late Rep'))
+    await portal.user.click(rep)
+    await screen.findByRole('option', { name: 'Zed Rep' })
+    expect(
+      portal.calls.some((call) => call.path === MEMBERS && param(call.url, 'role') === 'rep')
+    ).toBe(true)
   })
 })
 

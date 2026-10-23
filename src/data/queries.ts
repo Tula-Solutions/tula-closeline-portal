@@ -14,12 +14,14 @@ import {
   type ListProspectImportsResponse,
   type ListProspectsResponse,
   type ListTeamsResponse,
+  MAX_MEMBER_IDS,
   MAX_MEMBER_QUERY_LENGTH,
   MAX_PAGE_SIZE,
   MAX_PROSPECT_COMPANY_IDS,
   type Outcome,
   type ProspectImportRowResult,
   prospectCompanyIdSchema,
+  type Role,
 } from 'tula-closeline-contract'
 import type {
   ConsentEventsPage,
@@ -713,22 +715,58 @@ export function memberSearchTerm(text: string): string {
  * Members whose name matches `term` (core's `q`), the first page only; an empty term lists the
  * first ones. No request is made unless `enabled`.
  */
-export function useMemberSearch(term: string, enabled: boolean) {
+export function useMemberSearch(term: string, enabled: boolean, role?: Role) {
   const app = useApp()
   const organizationId = useOrganizationId()
   const q = memberSearchTerm(term)
   const query = useQuery<ListMembersResponse>({
-    queryKey: [...KEYS.members(organizationId), 'search', q],
+    queryKey: [...KEYS.members(organizationId), 'search', q, role ?? ''],
     queryFn: ({ signal }) =>
       app.core.listMembers({
         limit: MEMBER_PICKER_SIZE,
         q: q === '' ? undefined : q,
+        role,
         signal,
       }),
     enabled: enabled && organizationId !== '',
     placeholderData: (previous) => previous,
   })
   return { items: query.data?.items ?? [], hasMore: Boolean(query.data?.nextCursor) }
+}
+
+/** The most member ids core resolves in one call. */
+const MEMBER_IDS_PER_CALL = MAX_MEMBER_IDS
+
+/**
+ * The names of specific members by id, resolved with `ids=` calls of at most 100 each (core's
+ * limit), so a name shows even when the member is not on the first page of a list. Returns a map
+ * from id to the member; an id core does not list is absent.
+ */
+export function useMembersByIds(ids: readonly string[], enabled = true) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const wanted = [...new Set(ids)].sort()
+  const query = useQuery<ReadonlyMap<string, ListMembersResponse['items'][number]>>({
+    queryKey: [...KEYS.members(organizationId), 'ids', wanted],
+    queryFn: async ({ signal }) => {
+      const found = new Map<string, ListMembersResponse['items'][number]>()
+      for (let at = 0; at < wanted.length; at += MEMBER_IDS_PER_CALL) {
+        const chunk = wanted.slice(at, at + MEMBER_IDS_PER_CALL)
+        const result = await app.core.listMembers({
+          limit: MEMBER_IDS_PER_CALL,
+          ids: chunk,
+          signal,
+        })
+        for (const member of result.items) {
+          found.set(member.id, member)
+        }
+      }
+      return found
+    },
+    enabled: enabled && organizationId !== '' && wanted.length > 0,
+    placeholderData: (previous) => previous,
+  })
+  return query.data ?? new Map<string, ListMembersResponse['items'][number]>()
 }
 
 /** The Contact Consent state of one Prospect, every channel. */
