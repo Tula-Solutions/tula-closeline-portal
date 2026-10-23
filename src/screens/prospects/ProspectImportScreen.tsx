@@ -217,8 +217,11 @@ function DownloadReport(props: { readonly importId: string }) {
       const link = document.createElement('a')
       link.href = url
       link.download = 'prospect-import-report.csv'
+      document.body.append(link)
       link.click()
-      URL.revokeObjectURL(url)
+      link.remove()
+      // Some browsers start the save only after click() returns, so the URL outlives the click.
+      setTimeout(() => URL.revokeObjectURL(url), 1_000)
     } catch (error) {
       setProblem(presentProspect(error).message)
     } finally {

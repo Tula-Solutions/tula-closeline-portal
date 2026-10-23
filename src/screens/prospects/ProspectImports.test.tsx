@@ -491,7 +491,10 @@ describe('Prospect import: step 3, read the report', () => {
       blob = made as Blob
       return 'blob:report'
     }
-    URL.revokeObjectURL = () => {}
+    let revoked = false
+    URL.revokeObjectURL = () => {
+      revoked = true
+    }
     const done = prospectImportBody(1)
     const portal = open(`/prospects/imports/${done.id}`, 'owner', [
       route('GET', `${IMPORTS}/${done.id}`, json(200, done)),
@@ -506,6 +509,9 @@ describe('Prospect import: step 3, read the report', () => {
       await screen.findByRole('button', { name: 'Download the report (CSV)' })
     )
     await waitFor(() => expect(blob).toBeDefined())
+    // The browser may start the save after click() returns, so the URL must outlive the click.
+    expect(revoked).toBe(false)
+    await waitFor(() => expect(revoked).toBe(true), { timeout: 3_000 })
     expect(await (blob as Blob).text()).toBe(text)
     const call = portal.calls.find((c) => c.path.endsWith('/report.csv'))
     expect(call?.headers.get('accept')).toContain('text/csv')
