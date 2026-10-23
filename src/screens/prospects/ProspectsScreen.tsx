@@ -68,6 +68,7 @@ export function ProspectsScreen() {
     void navigate({ search: {}, replace: true })
   }
   const bareEmpty = prospects.state.isEmpty && !narrowed
+  const canImport = role !== null && can.importProspects(role)
   const add = (
     <Link to='/prospects/new' className='button'>
       Add a Prospect
@@ -79,7 +80,18 @@ export function ProspectsScreen() {
         eyebrow='Sales'
         title='Prospects'
         description='The people you sell to. Every detail keeps its source, so you can see where it came from.'
-        actions={bareEmpty ? undefined : add}
+        actions={
+          canImport || !bareEmpty ? (
+            <>
+              {canImport ? (
+                <Link to='/prospects/imports' className='button button-quiet'>
+                  Import Prospects
+                </Link>
+              ) : null}
+              {bareEmpty ? null : add}
+            </>
+          ) : undefined
+        }
       />
       <div className='flex flex-col gap-4'>
         <search aria-label='Prospect search'>

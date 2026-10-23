@@ -9,6 +9,15 @@ import {
 } from '~/data/permissions'
 
 describe('role gates, as core serves them', () => {
+  test.each<[Role, boolean]>([
+    ['owner', true],
+    ['admin', true],
+    ['manager', false],
+    ['rep', false],
+  ])('%s: importing Prospects %p', (role, allowed) => {
+    expect(can.importProspects(role)).toBe(allowed)
+  })
+
   test.each<[Role, boolean, boolean, boolean]>([
     ['owner', true, true, true],
     ['admin', true, true, true],

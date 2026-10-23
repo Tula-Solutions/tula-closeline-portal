@@ -1,6 +1,7 @@
 import { PROSPECT_ERRORS } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import { presentManage } from '~/api/manage-messages'
+import { importRefusal } from '~/data/prospect-imports'
 
 /** A failure of a Prospect call in plain words, with the form field it belongs to when there is one. */
 export type ProspectFailure = {
@@ -49,6 +50,8 @@ export function presentProspect(error: unknown): ProspectFailure {
           message: 'Another Prospect Company already has this domain.',
           field: 'company',
         }
+      case PROSPECT_ERRORS['prospect.import_invalid'].code:
+        return { message: importRefusal(error.importReason) }
       default:
         break
     }

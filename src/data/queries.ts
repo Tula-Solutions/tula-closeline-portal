@@ -10,10 +10,13 @@ import {
   type ListInvitationsResponse,
   type ListMembersResponse,
   type ListProspectCompaniesResponse,
+  type ListProspectImportRowsResponse,
+  type ListProspectImportsResponse,
   type ListProspectsResponse,
   type ListTeamsResponse,
   MAX_PAGE_SIZE,
   type Outcome,
+  type ProspectImportRowResult,
 } from 'tula-closeline-contract'
 import type { ProspectFilter } from '~/api/core'
 import type { CallsPage } from '~/api/sales-history'
@@ -33,6 +36,8 @@ export const KEYS = {
   deals: (organizationId: string) => [organizationId, 'deals'] as const,
   /** Every cached read about Deal imports (lists, single imports and reports). */
   dealImports: (organizationId: string) => [organizationId, 'deal-imports'] as const,
+  /** Every cached read about Prospect imports (lists, single imports and reports). */
+  prospectImports: (organizationId: string) => [organizationId, 'prospect-imports'] as const,
   /** Every cached list of Calls, whatever its filters. */
   calls: (organizationId: string) => [organizationId, 'calls'] as const,
   /** Every cached read about Prospects (lists and single Prospects): invalidate this after one changes. */
@@ -306,6 +311,66 @@ export function useImportRows(importId: string, rejectedOnly: boolean, enabled: 
       app.salesHistory.listDealImportRows(importId, {
         cursor: pageParam,
         result: rejectedOnly ? 'rejected' : undefined,
+        signal,
+      }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedStateBy(query, (row) => String(row.rowNumber))
+}
+
+/** Prospect imports, a page at a time, newest first. */
+export function useProspectImports() {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListProspectImportsResponse,
+    Error,
+    InfiniteData<ListProspectImportsResponse, string | undefined>,
+    readonly [string, string, string],
+    string | undefined
+  >({
+    queryKey: [...KEYS.prospectImports(organizationId), 'list'],
+    queryFn: ({ pageParam, signal }) => app.core.listProspectImports({ cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  return { ...pagedState(query), refetch: () => query.refetch() }
+}
+
+/** One Prospect import with its state and counts. */
+export function useProspectImport(importId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.prospectImports(organizationId), 'one', importId],
+    queryFn: ({ signal }) => app.core.getProspectImport(importId, signal),
+    enabled: organizationId !== '',
+  })
+}
+
+/** A Prospect import's report, a page at a time; `result` lists only the rows that ended so. */
+export function useProspectImportRows(
+  importId: string,
+  result: 'all' | ProspectImportRowResult,
+  enabled: boolean
+) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListProspectImportRowsResponse,
+    Error,
+    InfiniteData<ListProspectImportRowsResponse, string | undefined>,
+    readonly [string, string, string, string, string],
+    string | undefined
+  >({
+    queryKey: [...KEYS.prospectImports(organizationId), 'rows', importId, result],
+    queryFn: ({ pageParam, signal }) =>
+      app.core.listProspectImportRows(importId, {
+        cursor: pageParam,
+        result: result === 'all' ? undefined : result,
         signal,
       }),
     initialPageParam: undefined,

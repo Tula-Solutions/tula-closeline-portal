@@ -33,6 +33,8 @@ export const can = {
   managePlaybook: (role: Role) => roleAtLeast(role, 'admin'),
   /** Owner and Admin see and manage sales history (Deals, imports, Calls, the rights confirmation); Manager and Rep never reach it. */
   manageSalesHistory: (role: Role) => roleAtLeast(role, 'admin'),
+  /** Owner and Admin import Prospects from a CSV and read the reports; core refuses Manager and Rep. */
+  importProspects: (role: Role) => roleAtLeast(role, 'admin'),
   /** The roles the contract gives the search route (Owner and Admin) search the Moments of won Deals. */
   searchWonDeals: (role: Role) => SEARCH_ROUTES.searchMoments.roles.includes(role),
   /** The roles the contract gives the Document search route (every role) search the Playbook's Documents. */
