@@ -5,7 +5,7 @@ import { renderPortal } from '~/testing/render'
 import { SECURITY_PAGE } from './copy/security'
 
 const ALLOWED =
-  /^(\/copilot|\/inbound-agent|\/outbound-agent|\/the-playbook|\/security|#main|\/sign-in|\/sign-up|\/)$/
+  /^(\/copilot|\/inbound-agent|\/outbound-agent|\/the-playbook|\/security|#main|\/sign-in|\/sign-up|\/book-a-demo|\/)$/
 const STATUS = /^(Enforced by: .{20,}|Planned, phase \d)/
 const CERTIFICATIONS = /SOC ?2|ISO ?27001|HIPAA|GDPR|CASA|PCI|certified|compliant/i
 

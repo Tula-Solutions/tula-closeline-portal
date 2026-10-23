@@ -4,6 +4,7 @@ import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
 import { type CoreApi, createCoreApi } from '~/api/core'
 import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
+import { createMarketingApi, type MarketingApi } from '~/api/marketing'
 import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
 import { createSalesHistoryApi, type SalesHistoryApi } from '~/api/sales-history'
 import { createPendingCall, type PendingCallHolder } from '~/data/pending-call'
@@ -18,6 +19,8 @@ export type App = {
   readonly auth: AuthApi
   readonly core: CoreApi
   readonly playbook: PlaybookApi
+  /** The public marketing route (the Demo Request form); sends no token. */
+  readonly marketing: MarketingApi
   readonly salesHistory: SalesHistoryApi
   /** The Transcript chosen but not yet sent, held in memory across the rights confirmation. */
   readonly pendingCall: PendingCallHolder
@@ -128,6 +131,7 @@ export function createApp(init: AppInit): App {
     auth,
     core: createCoreApi(coreHttp),
     playbook: createPlaybookApi(coreHttp),
+    marketing: createMarketingApi(coreHttp),
     salesHistory: createSalesHistoryApi(coreHttp, init.reporter.report),
     sleep,
     assign: init.assign ?? ((url) => window.location.assign(url)),
