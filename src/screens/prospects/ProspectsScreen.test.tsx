@@ -283,7 +283,9 @@ describe('Prospects: company names and the Owner search', () => {
     await portal.user.type(box, '  zed ')
     const option = await screen.findByRole('option', { name: 'Zed Late' }, { timeout: 3000 })
     expect(option).toBeTruthy()
-    const members = portal.calls.filter((c) => c.path === '/v1/members')
+    const members = portal.calls.filter(
+      (c) => c.path === '/v1/members' && !params(c.url).has('ids')
+    )
     expect(members.every((c) => params(c.url).get('cursor') === null)).toBe(true)
     expect(members.some((c) => params(c.url).get('q') === 'zed')).toBe(true)
     expect(members.length).toBeLessThanOrEqual(2)
@@ -301,7 +303,9 @@ describe('Prospects: company names and the Owner search', () => {
     await portal.user.type(screen.getByLabelText('Owner'), '   ')
     await screen.findByRole('option', { name: 'Maya Chen' })
     await new Promise((resolve) => setTimeout(resolve, 500))
-    const members = portal.calls.filter((c) => c.path === '/v1/members')
+    const members = portal.calls.filter(
+      (c) => c.path === '/v1/members' && !params(c.url).has('ids')
+    )
     expect(members.length).toBe(1)
     expect(params(members[0]?.url ?? '').has('q')).toBe(false)
     expect(params(members[0]?.url ?? '').has('cursor')).toBe(false)
@@ -347,7 +351,7 @@ describe('Prospects: company names and the Owner search', () => {
     const portal = visit(
       'admin',
       `/prospects?owner=${late}`,
-      route('GET', PROSPECTS, json(200, page([prospectBody(1)]))),
+      route('GET', PROSPECTS, json(200, page([prospectBody(1, { ownerMembershipId: late })]))),
       route('GET', '/v1/members', (call) =>
         params(call.url).get('ids') === late
           ? json(200, page([memberBody(31, { name: 'Late Rep' })]))
@@ -358,5 +362,53 @@ describe('Prospects: company names and the Owner search', () => {
     const owner = screen.getByLabelText('Owner') as HTMLInputElement
     await waitFor(() => expect(owner.value).toBe('Late Rep'))
     expect(portal.calls.filter((call) => params(call.url).has('ids'))).toHaveLength(1)
+  })
+})
+
+describe('Prospects: the Owner on each row', () => {
+  test('an Admin sees each row’s Owner by name, found with one ids lookup for the page', async () => {
+    const a = hexId('mem', 41)
+    const b = hexId('mem', 42)
+    const portal = visit(
+      'admin',
+      '/prospects',
+      route(
+        'GET',
+        PROSPECTS,
+        json(
+          200,
+          page([
+            prospectBody(1, { ownerMembershipId: a }),
+            prospectBody(2, { ownerMembershipId: b }),
+            prospectBody(3, { ownerMembershipId: a }),
+            prospectBody(4, { ownerMembershipId: null }),
+          ])
+        )
+      ),
+      route('GET', '/v1/members', (call) =>
+        params(call.url).has('ids')
+          ? json(
+              200,
+              page([memberBody(41, { name: 'Ana Reyes' }), memberBody(42, { name: 'Bo Tran' })])
+            )
+          : json(200, page([memberBody(1, { name: 'Maya Chen' })]))
+      )
+    )
+    const table = await screen.findByRole('table', { name: 'Prospects' })
+    expect(within(table).getByRole('columnheader', { name: 'Owner' })).toBeTruthy()
+    await waitFor(() => expect(within(table).getAllByText('Ana Reyes')).toHaveLength(2))
+    expect(within(table).getByText('Bo Tran')).toBeTruthy()
+    expect(portal.calls.filter((call) => params(call.url).has('ids'))).toHaveLength(1)
+  })
+
+  test('a Rep sees no Owner column and no member lookup', async () => {
+    const portal = visit(
+      'rep',
+      '/prospects',
+      route('GET', PROSPECTS, json(200, page([prospectBody(1)])))
+    )
+    const table = await screen.findByRole('table', { name: 'Prospects' })
+    expect(within(table).queryByRole('columnheader', { name: 'Owner' })).toBeNull()
+    expect(portal.calls.filter((call) => call.path === '/v1/members')).toHaveLength(0)
   })
 })

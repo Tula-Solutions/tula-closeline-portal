@@ -9,7 +9,7 @@ import {
 import { PageHeader } from '~/components/app/page-header'
 import { can } from '~/data/permissions'
 import { fieldValue, prospectName, SOURCE_CHOICES, sourceLabel } from '~/data/prospects'
-import { useProspectCompanyNames, useProspects } from '~/data/queries'
+import { useMembersByIds, useProspectCompanyNames, useProspects } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { cn } from '~/lib/utils'
 import { Field } from '~/ui/Field'
@@ -51,6 +51,13 @@ export function ProspectsScreen() {
     ...prospects.items.flatMap((prospect) => (prospect.companyId ? [prospect.companyId] : [])),
     ...(search.company ? [search.company] : []),
   ])
+  // One lookup for the whole page of rows, never one per row; only those who may list members.
+  const owners = useMembersByIds(
+    prospects.items.flatMap((prospect) =>
+      prospect.ownerMembershipId ? [prospect.ownerMembershipId] : []
+    ),
+    showOwner
+  )
   if (role === null) {
     return null
   }
@@ -229,6 +236,7 @@ export function ProspectsScreen() {
                     <th scope='col' className='ledger-detail'>
                       Source
                     </th>
+                    {showOwner ? <th scope='col'>Owner</th> : null}
                     <th scope='col'>Status</th>
                     <th scope='col' className='ledger-detail'>
                       Added
@@ -240,6 +248,12 @@ export function ProspectsScreen() {
                     <ProspectRow
                       key={prospect.id}
                       prospect={prospect}
+                      showOwner={showOwner}
+                      owner={
+                        prospect.ownerMembershipId
+                          ? owners.get(prospect.ownerMembershipId)
+                          : undefined
+                      }
                       company={
                         prospect.companyId ? companyNames.get(prospect.companyId) : undefined
                       }
@@ -255,7 +269,12 @@ export function ProspectsScreen() {
   )
 }
 
-function ProspectRow(props: { readonly prospect: Prospect; readonly company: string | undefined }) {
+function ProspectRow(props: {
+  readonly prospect: Prospect
+  readonly company: string | undefined
+  readonly showOwner: boolean
+  readonly owner: { readonly name: string | null; readonly email: string } | undefined
+}) {
   const { prospect } = props
   const email = fieldValue(prospect, 'email')
   return (
@@ -274,6 +293,15 @@ function ProspectRow(props: { readonly prospect: Prospect; readonly company: str
         )}
       </td>
       <td className='ledger-detail'>{sourceLabel(prospect.source)}</td>
+      {props.showOwner ? (
+        <td className='ledger-pair'>
+          {prospect.ownerMembershipId === null ? (
+            '—'
+          ) : (
+            <Untrusted value={props.owner?.name || props.owner?.email || 'Owner'} />
+          )}
+        </td>
+      ) : null}
       <td className='ledger-pair'>{prospect.status === 'active' ? 'Active' : 'Archived'}</td>
       <td className='num ledger-detail'>
         <When iso={prospect.createdAt} />
