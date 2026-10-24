@@ -380,6 +380,17 @@ describe('Rep views', () => {
     expect(call && query(call).get('campaignId')).toBeNull()
   })
 
+  test('the Reps view shows no Campaign chip for a Campaign it does not apply', async () => {
+    visit(
+      'admin',
+      `/analytics/reps?${RANGE}&campaignId=${hexId('cpg', 1)}`,
+      route('GET', TABLE, json(200, page([tableRow(mem1)]))),
+      route('GET', '/v1/members', json(200, page([memberBody(1, { name: 'Ada Rep' })])))
+    )
+    expect(await screen.findByRole('link', { name: /Ada Rep/ })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Clear Campaign' })).toBeNull()
+  })
+
   test('the empty state explains that only meetings are credited to a Rep', async () => {
     visit('manager', `/analytics/reps?${RANGE}`, route('GET', TABLE, json(200, page([]))))
     expect(await screen.findByText('No Rep numbers in this range')).toBeTruthy()
@@ -474,6 +485,28 @@ describe('CSV', () => {
     await portal.user.click(screen.getByRole('button', { name: /Download CSV/ }))
     await waitFor(() => expect(blob).toBeDefined())
     expect(await blob?.text()).toBe('group,sends\ncpg_1,100\ncpg_2,40')
+  })
+
+  test('a header-only last page without a newline adds no second header', async () => {
+    let blob: Blob | undefined
+    URL.createObjectURL = (made: Blob | MediaSource) => {
+      blob = made as Blob
+      return 'blob:analytics'
+    }
+    const portal = visit('owner', `/analytics/campaigns?${RANGE}`, campaigns, (call) => {
+      if (call.path !== CSV) {
+        return null
+      }
+      return query(call).get('cursor') === 'p2'
+        ? new Response('group,sends', { headers: { 'content-type': 'text/csv' } })
+        : new Response('group,sends\ncpg_1,100\n', {
+            headers: { 'content-type': 'text/csv', 'x-next-cursor': 'p2' },
+          })
+    })
+    await screen.findByRole('table')
+    await portal.user.click(screen.getByRole('button', { name: /Download CSV/ }))
+    await waitFor(() => expect(blob).toBeDefined())
+    expect(await blob?.text()).toBe('group,sends\ncpg_1,100\n')
   })
 
   test('a failure is said and the button works again', async () => {

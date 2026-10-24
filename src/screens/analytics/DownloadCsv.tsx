@@ -32,7 +32,9 @@ export function DownloadCsv(props: {
       for (let pages = 0; more && pages < MAX_CSV_PAGES; pages += 1) {
         const got = await app.analytics.downloadTableCsv(props.filter, props.groupBy, cursor)
         // Every page repeats the header row; the file keeps the first.
-        const body = pages === 0 ? got.csv : got.csv.slice(got.csv.indexOf('\n') + 1)
+        const firstBreak = got.csv.indexOf('\n')
+        const later = firstBreak === -1 ? '' : got.csv.slice(firstBreak + 1)
+        const body = pages === 0 ? got.csv : later
         text += text !== '' && !text.endsWith('\n') ? `\n${body}` : body
         cursor = got.nextCursor ?? undefined
         more = cursor !== undefined

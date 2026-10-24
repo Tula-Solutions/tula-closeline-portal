@@ -14,7 +14,11 @@ const AGENT_WORD = { inbound: 'Inbound Agent', outbound: 'Outbound Agent' } as c
 const ANY = 'any'
 
 /** Which dimension filters a view offers (a role may still not hold them; see `can`). */
-export type Dimensions = { readonly channelAndAgent: boolean; readonly rep: boolean }
+export type Dimensions = {
+  readonly channelAndAgent: boolean
+  readonly rep: boolean
+  readonly campaign: boolean
+}
 
 function Dates(props: {
   readonly from: string
@@ -139,7 +143,7 @@ export function FilterBar(props: {
           onChange={(id) => props.onChange({ repMembershipId: id === '' ? undefined : id })}
         />
       ) : null}
-      {wide && search.campaignId ? (
+      {dimensions.campaign && wide && search.campaignId ? (
         <p className='analytics-chip'>
           <span className='label-mono'>Campaign</span> <bdi>{search.campaignId}</bdi>{' '}
           <button

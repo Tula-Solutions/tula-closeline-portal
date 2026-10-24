@@ -218,7 +218,7 @@ export function ComparisonScreen(props: {
         to={filter.to}
         today={props.today}
         search={{ ...props.search, from: filter.from, to: filter.to }}
-        dimensions={{ channelAndAgent: false, rep: isRep && !own }}
+        dimensions={{ channelAndAgent: false, rep: isRep && !own, campaign: !isRep }}
         onChange={props.onChange}
       />
       {problem === null ? null : <Banner kind='error'>{problem}</Banner>}

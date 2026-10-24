@@ -193,7 +193,7 @@ export function OverviewScreen() {
         to={filter.to}
         today={today}
         search={{ ...search, from: filter.from, to: filter.to }}
-        dimensions={{ channelAndAgent: true, rep: true }}
+        dimensions={{ channelAndAgent: true, rep: true, campaign: true }}
         onChange={(next) =>
           void navigate({
             search: (now) => mergeSearch(readAnalyticsSearch(now), next),
