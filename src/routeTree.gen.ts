@@ -40,6 +40,7 @@ import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox/index'
 import { Route as AppInboxConversationIdRouteImport } from './routes/_app/inbox/$conversationId'
 import { Route as AppPlaybookIndexRouteImport } from './routes/_app/playbook/index'
 import { Route as AppPlaybookSearchRouteImport } from './routes/_app/playbook/search'
+import { Route as AppPlaybookSuggestionsRouteImport } from './routes/_app/playbook/suggestions'
 import { Route as AppProspectsIndexRouteImport } from './routes/_app/prospects/index'
 import { Route as AppProspectsProspectIdRouteImport } from './routes/_app/prospects/$prospectId'
 import { Route as AppProspectsImportsRouteImport } from './routes/_app/prospects/imports'
@@ -209,6 +210,11 @@ const AppPlaybookSearchRoute = AppPlaybookSearchRouteImport.update({
   path: '/search',
   getParentRoute: () => AppPlaybookRoute,
 } as any)
+const AppPlaybookSuggestionsRoute = AppPlaybookSuggestionsRouteImport.update({
+  id: '/suggestions',
+  path: '/suggestions',
+  getParentRoute: () => AppPlaybookRoute,
+} as any)
 const AppProspectsIndexRoute = AppProspectsIndexRouteImport.update({
   id: '/prospects/',
   path: '/prospects/',
@@ -323,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
+  '/playbook/suggestions': typeof AppPlaybookSuggestionsRoute
   '/prospects/$prospectId': typeof AppProspectsProspectIdRoute
   '/prospects/imports': typeof AppProspectsImportsRouteWithChildren
   '/prospects/new': typeof AppProspectsNewRoute
@@ -367,6 +374,7 @@ export interface FileRoutesByTo {
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
+  '/playbook/suggestions': typeof AppPlaybookSuggestionsRoute
   '/prospects/$prospectId': typeof AppProspectsProspectIdRoute
   '/prospects/new': typeof AppProspectsNewRoute
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
@@ -416,6 +424,7 @@ export interface FileRoutesById {
   '/_app/analytics/reps': typeof AppAnalyticsRepsRoute
   '/_app/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/_app/playbook/search': typeof AppPlaybookSearchRoute
+  '/_app/playbook/suggestions': typeof AppPlaybookSuggestionsRoute
   '/_app/prospects/$prospectId': typeof AppProspectsProspectIdRoute
   '/_app/prospects/imports': typeof AppProspectsImportsRouteWithChildren
   '/_app/prospects/new': typeof AppProspectsNewRoute
@@ -464,6 +473,7 @@ export interface FileRouteTypes {
     | '/analytics/reps'
     | '/inbox/$conversationId'
     | '/playbook/search'
+    | '/playbook/suggestions'
     | '/prospects/$prospectId'
     | '/prospects/imports'
     | '/prospects/new'
@@ -508,6 +518,7 @@ export interface FileRouteTypes {
     | '/analytics/reps'
     | '/inbox/$conversationId'
     | '/playbook/search'
+    | '/playbook/suggestions'
     | '/prospects/$prospectId'
     | '/prospects/new'
     | '/sales-history/rights'
@@ -556,6 +567,7 @@ export interface FileRouteTypes {
     | '/_app/analytics/reps'
     | '/_app/inbox/$conversationId'
     | '/_app/playbook/search'
+    | '/_app/playbook/suggestions'
     | '/_app/prospects/$prospectId'
     | '/_app/prospects/imports'
     | '/_app/prospects/new'
@@ -802,6 +814,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPlaybookSearchRouteImport
       parentRoute: typeof AppPlaybookRoute
     }
+    '/_app/playbook/suggestions': {
+      id: '/_app/playbook/suggestions'
+      path: '/suggestions'
+      fullPath: '/playbook/suggestions'
+      preLoaderRoute: typeof AppPlaybookSuggestionsRouteImport
+      parentRoute: typeof AppPlaybookRoute
+    }
     '/_app/prospects/': {
       id: '/_app/prospects/'
       path: '/prospects'
@@ -919,11 +938,13 @@ declare module '@tanstack/react-router' {
 
 interface AppPlaybookRouteChildren {
   AppPlaybookSearchRoute: typeof AppPlaybookSearchRoute
+  AppPlaybookSuggestionsRoute: typeof AppPlaybookSuggestionsRoute
   AppPlaybookIndexRoute: typeof AppPlaybookIndexRoute
 }
 
 const AppPlaybookRouteChildren: AppPlaybookRouteChildren = {
   AppPlaybookSearchRoute: AppPlaybookSearchRoute,
+  AppPlaybookSuggestionsRoute: AppPlaybookSuggestionsRoute,
   AppPlaybookIndexRoute: AppPlaybookIndexRoute,
 }
 

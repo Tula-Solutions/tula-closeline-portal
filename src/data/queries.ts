@@ -4,6 +4,7 @@ import {
   type AnalyticsGroupBy,
   type AnalyticsMetric,
   type CallState,
+  type CitationRef,
   type DocumentState,
   type GetSeriesResponse,
   type ListDealImportRowsResponse,
@@ -25,6 +26,7 @@ import {
   type ProspectImportRowResult,
   prospectCompanyIdSchema,
   type Role,
+  type SuggestionStatus,
   type TableRow,
 } from 'tula-closeline-contract'
 import type { AnalyticsFilter } from '~/api/analytics'
@@ -39,6 +41,7 @@ import type {
 import type { ProspectFilter } from '~/api/core'
 import type { ExportsPage } from '~/api/exports'
 import type { ConversationFilter, ConversationsPage, MessagesPage } from '~/api/inbox'
+import type { SuggestionsPage } from '~/api/playbook'
 import type { CallsPage } from '~/api/sales-history'
 import type { LinesPage } from '~/api/voice'
 import type { App } from '~/app'
@@ -59,6 +62,10 @@ export const KEYS = {
   apiKeys: (organizationId: string) => [organizationId, 'api-keys'] as const,
   /** Every list of documents of the Organization, whatever its state filter: invalidate this to refresh them all. */
   documents: (organizationId: string) => [organizationId, 'documents'] as const,
+  /** Every cached read about Suggestions (lists in each status): invalidate this after one is decided. */
+  suggestions: (organizationId: string) => [organizationId, 'suggestions'] as const,
+  /** The learning setting of the Playbook. */
+  learning: (organizationId: string) => [organizationId, 'learning'] as const,
   /** Every cached read about Deals (lists and single Deals): invalidate this after an Outcome changes. */
   deals: (organizationId: string) => [organizationId, 'deals'] as const,
   /** Every cached read about Deal imports (lists, single imports and reports). */
@@ -457,6 +464,49 @@ export function useDocuments(state: DocumentState | undefined) {
     enabled: organizationId !== '',
   })
   return { ...pagedState(query), refetch: () => query.refetch() }
+}
+
+/** The Suggestions in one status, newest first, a page at a time; `enabled` is false for a role that may not list them (no request is made). */
+export function useSuggestions(status: SuggestionStatus, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    SuggestionsPage,
+    Error,
+    InfiniteData<SuggestionsPage, string | undefined>,
+    readonly [string, string, string],
+    string | undefined
+  >({
+    queryKey: [...KEYS.suggestions(organizationId), status],
+    queryFn: ({ pageParam, signal }) =>
+      app.playbook.listSuggestions({ cursor: pageParam, status, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return { ...pagedState(query), refetch: () => query.refetch() }
+}
+
+/** Whether learning from Agent Moments is on (Owner, Admin); no request unless `enabled`. */
+export function useLearningSettings(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: KEYS.learning(organizationId),
+    queryFn: ({ signal }) => app.playbook.getLearningSettings(signal),
+    enabled: enabled && organizationId !== '',
+  })
+}
+
+/** The text of the Moments a Suggestion cites; read only once `enabled` (the person opened a citation). */
+export function useResolvedCitations(refs: readonly CitationRef[], enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.suggestions(organizationId), 'citations', JSON.stringify(refs)],
+    queryFn: ({ signal }) => app.playbook.resolveCitations(refs, signal),
+    enabled: enabled && refs.length > 0 && organizationId !== '',
+  })
 }
 
 /** The Organization's rights confirmation and the wording version to show (Owner, Admin). */

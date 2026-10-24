@@ -224,6 +224,9 @@ export function Shell() {
                 {can.searchDocuments(role) ? (
                   <SubNavLink to='/playbook/search'>Search</SubNavLink>
                 ) : null}
+                {can.managePlaybook(role) ? (
+                  <SubNavLink to='/playbook/suggestions'>Suggestions</SubNavLink>
+                ) : null}
               </nav>
             ) : null}
           </NavGroup>

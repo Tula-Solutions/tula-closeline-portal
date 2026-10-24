@@ -87,6 +87,13 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
 - Developers (`src/screens/DevelopersScreen.tsx`): renders the vendored public OpenAPI document
   (`openapi/public.openapi.json`, refreshed with `bun run vendor:public -- --from <hub clone>`) and
   calls no private route. Visible to every role.
+- Suggestions review (`src/screens/SuggestionsScreen.tsx`, `src/screens/suggestions/`): Owner and
+  Admin only (`can.managePlaybook`); anyone else gets a notice and no request. Suggestion and Moment
+  text is untrusted and shown as text. There is no page for one Call or Moment, so a citation
+  superscript opens a footnote of the Moment text read through `POST /v1/playbook/citations/resolve`
+  (only after it is opened) and links to the Calls of its Deal. Accept and reject send an
+  Idempotency-Key held through `app.keys`; a 409 `suggestion.not_pending` says it was already
+  decided and refreshes the list.
 - Playbook documents (`src/screens/DocumentsScreen.tsx`): file names are untrusted and shown as text
   only (`Untrusted`, `plain` for labels), never as a link or markup. Upload limits come from the
   contract's constants and `checkUploadFile`, never typed numbers. The follow-up poll waits through
