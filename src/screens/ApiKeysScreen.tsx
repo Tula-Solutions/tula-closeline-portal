@@ -172,10 +172,10 @@ function CreateKeyForm(props: {
   const [expiry, setExpiry] = useState<string>('90')
   const [errors, setErrors] = useState<CreateErrors>({})
   const { formRef, bannerRef, focusFirstError } = useFocusOnError()
-  // Only a retry after an unknown outcome must resend the same body (it reuses the idempotency
-  // key), so the expiry date is kept for that retry alone; every other submit counts from now.
-  const fixed = useRef<{ intent: string; expiresAt: string | null } | null>(null)
-  const resend = useRef(false)
+  // An intent whose outcome is unknown holds an idempotency key, so its retry must resend the
+  // same body: its expiry date is kept here until the key is dropped. Every other submit counts
+  // from now.
+  const held = useRef(new Map<string, string | null>())
   const create = useSubmit<{ body: ReturnType<typeof buildBody>; intent: string }>(
     async ({ body, intent }) => {
       const attempt = app.keys.begin(fingerprint.apiKey(intent))
@@ -184,7 +184,9 @@ function CreateKeyForm(props: {
         created = await app.apiKeys.createApiKey(body, attempt.key)
       } catch (error) {
         attempt.failed(error)
-        resend.current = outcomeUnknown(error)
+        if (!outcomeUnknown(error)) {
+          held.current.delete(intent)
+        }
         throw error
       }
       attempt.succeeded()
@@ -198,7 +200,7 @@ function CreateKeyForm(props: {
         focusFirstError()
         return
       }
-      fixed.current = null
+      held.current.delete(intent)
       setName('')
       setScopes(new Set())
       setCeiling('rep')
@@ -245,14 +247,13 @@ function CreateKeyForm(props: {
       next.scopes = 'Choose at least one scope.'
     }
     const intent = JSON.stringify([trimmed, chosen, ceiling, expiry])
-    if (!resend.current || fixed.current?.intent !== intent) {
-      const days = EXPIRY_CHOICES.find((choice) => choice.value === expiry)?.days ?? null
-      fixed.current = {
-        intent,
-        expiresAt: days === null ? null : new Date(Date.now() + days * DAY_MS).toISOString(),
-      }
-    }
-    const body = buildBody(trimmed, chosen, ceiling, fixed.current.expiresAt)
+    const days = EXPIRY_CHOICES.find((choice) => choice.value === expiry)?.days ?? null
+    const expiresAt = held.current.has(intent)
+      ? (held.current.get(intent) ?? null)
+      : days === null
+        ? null
+        : new Date(Date.now() + days * DAY_MS).toISOString()
+    const body = buildBody(trimmed, chosen, ceiling, expiresAt)
     const parsed = createApiKeyRequestSchema.safeParse(body)
     if (next.name === undefined && next.scopes === undefined && !parsed.success) {
       next.form = 'Check the name and scopes, then try again.'
@@ -263,7 +264,7 @@ function CreateKeyForm(props: {
       return
     }
     setErrors({})
-    resend.current = false
+    held.current.set(intent, expiresAt)
     create.submit({ body, intent })
   }
   const ceilings = ROLES.slice(ROLES.indexOf(props.role))

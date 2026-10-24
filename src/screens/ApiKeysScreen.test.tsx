@@ -271,6 +271,41 @@ describe('API keys: create', () => {
     expect(second?.body).toEqual(first?.body ?? null)
   })
 
+  test('going back to an unfinished create resends its body under its key', async () => {
+    let posts = 0
+    const portal = visit(
+      'admin',
+      '/api-keys',
+      route('POST', KEYS, () => {
+        posts += 1
+        return posts === 2
+          ? failure(403, APIKEY_ERRORS['apikey.scope_not_allowed'].code)
+          : failure(503, ERRORS['server.unavailable'].code)
+      }),
+      keys
+    )
+    await fillIn(portal)
+    const create = () => portal.user.click(screen.getByRole('button', { name: 'Create key' }))
+    await create()
+    await waitFor(() => expect(posts).toBe(1))
+    await screen.findByRole('alert')
+    const name = screen.getByLabelText('Name')
+    await portal.user.type(name, 'x')
+    setSystemTime(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000))
+    try {
+      await create()
+      await waitFor(() => expect(posts).toBe(2))
+      await portal.user.type(name, '{Backspace}')
+      await create()
+      await waitFor(() => expect(posts).toBe(3))
+    } finally {
+      setSystemTime()
+    }
+    const [first, , third] = portal.calls.filter((call) => call.method === 'POST')
+    expect(third?.headers.get('idempotency-key')).toBe(first?.headers.get('idempotency-key') ?? '')
+    expect(third?.body).toEqual(first?.body ?? null)
+  })
+
   test('a retry after a refused create works out the expiry from the retry', async () => {
     const portal = visit(
       'admin',
