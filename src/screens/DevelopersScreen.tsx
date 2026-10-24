@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
+import { EmptyState } from '~/components/app/empty-state'
 import { PageHeader } from '~/components/app/page-header'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
 import publicDocument from '../../openapi/public.openapi.json'
@@ -87,7 +88,7 @@ export function DevelopersScreen(props: { readonly document?: PublicDocument }) 
         </section>
         <section
           aria-labelledby='reference-heading'
-          className='flex min-w-0 flex-col gap-4 lg:col-span-8'
+          className='flex min-w-0 flex-col gap-4 lg:col-span-8 lg:mt-0'
         >
           <h2 id='reference-heading' className='m-0 border-t border-rule-strong pt-4'>
             {document.info?.title ?? 'Public API'}
@@ -96,9 +97,9 @@ export function DevelopersScreen(props: { readonly document?: PublicDocument }) 
             ) : null}
           </h2>
           {operations.length === 0 ? (
-            <p className='notice' role='status'>
-              No endpoints are open to API keys yet. They appear here as soon as they are published.
-            </p>
+            <EmptyState title='No endpoints are open to API keys yet.'>
+              They appear here as soon as they are published.
+            </EmptyState>
           ) : (
             <ul className='m-0 list-none divide-y border-y p-0' aria-label='Endpoints'>
               {operations.map(({ path, method, operation }) => (

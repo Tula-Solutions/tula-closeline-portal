@@ -541,7 +541,23 @@
 
   /* API keys: the scope grid, a key's facts, the show-once secret and the developer page. */
   .key-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
     margin: 0.75rem 0 0;
+    border-top: 0;
+  }
+
+  .key-facts > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .key-facts dt,
+  .key-facts dd {
+    padding: 0;
+    border-bottom: 0;
   }
 
   .scope-fieldset {
@@ -572,6 +588,8 @@
   }
 
   .secret-dialog {
+    /* Preflight zeroes a dialog's margin, which is what centres it. */
+    margin: auto;
     width: min(34rem, calc(100vw - 2rem));
     max-height: calc(100dvh - 2rem);
     overflow: auto;
@@ -583,7 +601,7 @@
   }
 
   .secret-dialog::backdrop {
-    background: color-mix(in srgb, var(--foreground) 55%, transparent);
+    background: color-mix(in srgb, black 60%, transparent);
   }
 
   .secret-value {
@@ -601,6 +619,7 @@
   .guide-steps {
     margin: 1rem 0;
     padding-left: 1.25rem;
+    list-style: decimal;
     display: grid;
     gap: 0.75rem;
   }

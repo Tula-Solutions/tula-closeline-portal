@@ -58,7 +58,7 @@ describe('Developers: the reference', () => {
 
   test('says so when no endpoint is public yet', async () => {
     await renderWith({ info: { title: 'Closeline public API' }, paths: {} })
-    expect(screen.getByText(/No endpoints are open to API keys yet/)).toBeTruthy()
+    expect(screen.getByText(/No endpoints are open to API keys yet\./)).toBeTruthy()
     expect(screen.queryByRole('list', { name: 'Endpoints' })).toBeNull()
   })
 

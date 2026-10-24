@@ -395,7 +395,7 @@ function KeyItem(props: {
   return (
     <li className='py-4'>
       <div className='list-item-head'>
-        <div className='flex min-w-0 flex-col'>
+        <div className='flex min-w-0 flex-1 flex-col'>
           <h3 className='item-title m-0 font-serif text-xl font-normal tracking-[-0.01em]'>
             <Untrusted value={apiKey.name} />
           </h3>
@@ -406,14 +406,22 @@ function KeyItem(props: {
             Role ceiling {ROLE_LABEL[apiKey.roleCeiling]}. Scopes: {apiKey.scopes.join(', ')}.
           </span>
           <dl className='key-facts'>
-            <dt>Created</dt>
-            <dd>
-              <When iso={apiKey.createdAt} />
-            </dd>
-            <dt>Last used</dt>
-            <dd>{apiKey.lastUsedAt === null ? 'Never used' : <When iso={apiKey.lastUsedAt} />}</dd>
-            <dt>Expires</dt>
-            <dd>{apiKey.expiresAt === null ? 'No expiry' : <When iso={apiKey.expiresAt} />}</dd>
+            <div>
+              <dt>Created</dt>
+              <dd>
+                <When iso={apiKey.createdAt} />
+              </dd>
+            </div>
+            <div>
+              <dt>Last used</dt>
+              <dd>
+                {apiKey.lastUsedAt === null ? 'Never used' : <When iso={apiKey.lastUsedAt} />}
+              </dd>
+            </div>
+            <div>
+              <dt>Expires</dt>
+              <dd>{apiKey.expiresAt === null ? 'No expiry' : <When iso={apiKey.expiresAt} />}</dd>
+            </div>
           </dl>
         </div>
         {state === 'Active' ? (
