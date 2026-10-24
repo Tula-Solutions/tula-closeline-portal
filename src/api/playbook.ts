@@ -1,13 +1,22 @@
 import {
+  type CitationRef,
   type DocumentState,
   documentSchema,
   IDEMPOTENCY_KEY_HEADER,
+  type LearningSettings,
   type ListDocumentsResponse,
+  learningSettingsSchema,
   listDocumentsResponseSchema,
+  listSuggestionsResponseSchema,
   type PlaybookDocument,
+  type ResolveCitationsResponse,
+  resolveCitationsResponseSchema,
   type SearchDocumentsRequest,
   type SearchDocumentsResponse,
+  type Suggestion,
+  type SuggestionStatus,
   searchDocumentsResponseSchema,
+  suggestionSchema,
   UPLOAD_FILE_FIELD,
 } from 'tula-closeline-contract'
 import { PAGE_SIZE, type PageRequest } from '~/api/core'
@@ -21,6 +30,15 @@ export type UploadResult = { readonly document: PlaybookDocument; readonly dupli
 
 /** One page request for documents: with a state, only documents in it (`deleted` lists the restorable ones). */
 export type DocumentPageRequest = PageRequest & { readonly state?: DocumentState | undefined }
+
+/** One page of Suggestions as the service answers it. */
+export type SuggestionsPage = {
+  readonly items: readonly Suggestion[]
+  readonly nextCursor: string | null
+}
+
+/** One page request for Suggestions: with a status, only Suggestions in it. */
+export type SuggestionPageRequest = PageRequest & { readonly status?: SuggestionStatus | undefined }
 
 /** The playbook service routes the portal uses. */
 export type PlaybookApi = {
@@ -37,6 +55,25 @@ export type PlaybookApi = {
   deleteDocument(documentId: string): Promise<PlaybookDocument>
   /** Restores a soft-deleted document (Owner, Admin). */
   restoreDocument(documentId: string): Promise<PlaybookDocument>
+  /** One page of Suggestions (Owner, Admin), newest first, in one status. */
+  listSuggestions(page: SuggestionPageRequest): Promise<SuggestionsPage>
+  /** Accepts a pending Suggestion (Owner, Admin), as it stands or with edited text; the key makes a repeat decide once. */
+  acceptSuggestion(
+    id: string,
+    text: string | undefined,
+    idempotencyKey: string
+  ): Promise<Suggestion>
+  /** Rejects a pending Suggestion (Owner, Admin); the key makes a repeat decide once. */
+  rejectSuggestion(id: string, idempotencyKey: string): Promise<Suggestion>
+  /** Whether Suggestions may be drawn from Agent Moments (Owner, Admin). */
+  getLearningSettings(signal?: AbortSignal): Promise<LearningSettings>
+  /** Turns learning from Agent Moments on or off (Owner, Admin). */
+  setLearningSettings(settings: LearningSettings): Promise<LearningSettings>
+  /** Reads the text of the Moments a Suggestion cites; the body is only ids, and the read needs no key. */
+  resolveCitations(
+    refs: readonly CitationRef[],
+    signal?: AbortSignal
+  ): Promise<ResolveCitationsResponse>
 }
 
 const segment = encodeURIComponent
@@ -109,6 +146,62 @@ export function createPlaybookApi(http: HttpClient): PlaybookApi {
           onlyStatus(status, 200)
           return documentSchema.parse(json)
         },
+      }),
+    listSuggestions: (page) =>
+      http.request({
+        path: '/v1/playbook/suggestions',
+        query: { cursor: page.cursor, limit: page.limit ?? PAGE_SIZE, status: page.status },
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => listSuggestionsResponseSchema.parse(json),
+      }),
+    acceptSuggestion: (id, text, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: `/v1/playbook/suggestions/${segment(id)}/accept`,
+        body: text === undefined ? {} : { text },
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json, status) => {
+          onlyStatus(status, 200)
+          return suggestionSchema.parse(json)
+        },
+      }),
+    rejectSuggestion: (id, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: `/v1/playbook/suggestions/${segment(id)}/reject`,
+        body: {},
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json, status) => {
+          onlyStatus(status, 200)
+          return suggestionSchema.parse(json)
+        },
+      }),
+    getLearningSettings: (signal) =>
+      http.request({
+        path: '/v1/playbook/settings/learning',
+        auth: true,
+        ...(signal ? { signal } : {}),
+        parse: (json) => learningSettingsSchema.parse(json),
+      }),
+    setLearningSettings: (settings) =>
+      http.request({
+        method: 'PUT',
+        path: '/v1/playbook/settings/learning',
+        body: settings,
+        auth: true,
+        parse: (json) => learningSettingsSchema.parse(json),
+      }),
+    resolveCitations: (refs, signal) =>
+      http.request({
+        method: 'POST',
+        path: '/v1/playbook/citations/resolve',
+        body: { refs },
+        auth: true,
+        ...(signal ? { signal } : {}),
+        parse: (json) => resolveCitationsResponseSchema.parse(json),
       }),
   }
 }
