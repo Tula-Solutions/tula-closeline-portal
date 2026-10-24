@@ -45,6 +45,10 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
 
 ## Rules specific to this repo
 
+- Audit log (`/audit`: Owner, Admin, Manager) and Data export (`/export`: Owner, Admin) are hidden from
+  everyone else, in the nav and by a notice on the route. The audit screen shows ids, labels and
+  actions, never the text of a Message. An export download link is requested on click, handed to
+  `app.assign` and never stored, shown or logged.
 - Browser sessions follow ADR 0012. Every call is a same-origin path (`/v1/...`) with
   `credentials: 'same-origin'`; no service URL is a setting, in code or in the bundle, and there is no
   CORS. Every call to auth sends `x-tula-client: browser`, so auth keeps the refresh token in an

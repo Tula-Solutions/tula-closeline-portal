@@ -133,7 +133,7 @@ export type RequestOptions<T> = {
   /** The answer is plain text (a CSV), not JSON: it is read as text and handed to `parse` as a string. */
   readonly text?: boolean
   /** Checks and narrows the JSON answer (and sees the status, for a route with two success codes); a throw becomes `client.bad_response`. */
-  readonly parse?: (json: unknown, status: number) => T
+  readonly parse?: (json: unknown, status: number, headers: Headers) => T
 }
 
 /** A thin typed client over fetch. */
@@ -226,7 +226,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
       }
       const json: unknown = options.text ? await response.text() : await response.json()
       try {
-        return options.parse ? options.parse(json, response.status) : (json as T)
+        return options.parse ? options.parse(json, response.status, response.headers) : (json as T)
       } catch {
         throw clientError(CLIENT_ERRORS.badResponse, response.status)
       }

@@ -1,9 +1,11 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { type RightsWording, rightsWordingFor } from 'tula-closeline-contract'
 import { type ApiKeysApi, createApiKeysApi } from '~/api/api-keys'
+import { type AuditApi, createAuditApi } from '~/api/audit'
 import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
 import { type ConsentApi, createConsentApi } from '~/api/consent'
 import { type CoreApi, createCoreApi } from '~/api/core'
+import { createExportsApi, type ExportsApi } from '~/api/exports'
 import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
 import { createInboxApi, type InboxApi } from '~/api/inbox'
@@ -27,6 +29,10 @@ export type App = {
   readonly voice: VoiceApi
   readonly apiKeys: ApiKeysApi
   readonly inbox: InboxApi
+  /** The audit log: events, the CSV and the hash-chain check. */
+  readonly audit: AuditApi
+  /** The Organization data export: request, watch, download. */
+  readonly exports: ExportsApi
   /** Contact Consent on a Prospect, and the Suppression list. */
   readonly consent: ConsentApi
   /** The public marketing route (the Demo Request form); sends no token. */
@@ -146,6 +152,8 @@ export function createApp(init: AppInit): App {
     voice: createVoiceApi(coreHttp),
     apiKeys: createApiKeysApi(coreHttp),
     inbox: createInboxApi(coreHttp),
+    audit: createAuditApi(coreHttp),
+    exports: createExportsApi(coreHttp),
     consent: createConsentApi(coreHttp),
     marketing: createMarketingApi(coreHttp),
     unsubscribe: createUnsubscribeApi(coreHttp),
