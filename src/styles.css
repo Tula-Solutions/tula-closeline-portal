@@ -540,26 +540,6 @@
   }
 
   /* API keys: the scope grid, a key's facts, the show-once secret and the developer page. */
-  .key-facts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 2rem;
-    margin: 0.75rem 0 0;
-    border-top: 0;
-  }
-
-  .key-facts > div {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .key-facts dt,
-  .key-facts dd {
-    padding: 0;
-    border-bottom: 0;
-  }
-
   .scope-fieldset {
     min-width: 0;
     margin: 0;
@@ -676,6 +656,26 @@
   dl dd {
     margin: 0;
     font-variant-numeric: tabular-nums;
+  }
+
+  .key-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+    margin: 0.75rem 0 0;
+    border-top: 0;
+  }
+
+  .key-facts > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .key-facts dt,
+  .key-facts dd {
+    padding: 0;
+    border-bottom: 0;
   }
 
   /* A dt with its dd rows, kept as one grouping without a box of its own. */
