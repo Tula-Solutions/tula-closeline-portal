@@ -105,7 +105,7 @@ export function ConversationScreen() {
         >
           <ol aria-label='Messages' className='m-0 flex list-none flex-col gap-0 p-0'>
             {messages.items.map((message) => (
-              <MessageItem key={message.id} message={message} rep={writer} />
+              <MessageItem key={message.id} message={message} />
             ))}
           </ol>
         </Paged>
@@ -130,7 +130,7 @@ function authorOf(message: Message): string {
   return message.authorKind === 'agent' ? 'Agent' : 'Rep'
 }
 
-function MessageItem(props: { readonly message: Message; readonly rep: string }) {
+function MessageItem(props: { readonly message: Message }) {
   const { message } = props
   const label = message.classification?.label
   return (

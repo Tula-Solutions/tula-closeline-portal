@@ -712,7 +712,7 @@ export function useProspect(prospectId: string) {
   return useQuery({
     queryKey: [...KEYS.prospects(organizationId), 'one', prospectId],
     queryFn: ({ signal }) => app.core.getProspect(prospectId, signal),
-    enabled: organizationId !== '',
+    enabled: organizationId !== '' && prospectId !== '',
     retry: false,
   })
 }

@@ -164,13 +164,17 @@ describe('Conversation: the transcript', () => {
   })
 
   test('a Conversation that is not found or not visible is said so plainly, with a way back', async () => {
-    visit(
+    const portal = visit(
       'rep',
       route('GET', CONVERSATION, failure(404, INBOX_ERRORS['inbox.conversation_not_found'].code)),
       route('GET', MESSAGES, failure(404, INBOX_ERRORS['inbox.conversation_not_found'].code))
     )
     expect((await screen.findByRole('alert')).textContent).toContain(
       'does not exist, or it is not one you can see'
+    )
+    // No Prospect is asked for before the Conversation names one (an empty id hits the list route).
+    expect(portal.calls.some((call) => call.path.replace(/\/$/, '') === '/v1/prospects')).toBe(
+      false
     )
     expect(screen.getByRole('link', { name: 'Back to the inbox' }).getAttribute('href')).toBe(
       '/inbox'
