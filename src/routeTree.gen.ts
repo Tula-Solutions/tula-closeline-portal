@@ -33,6 +33,9 @@ import { Route as SiteInboundAgentRouteImport } from './routes/_site/inbound-age
 import { Route as SiteOutboundAgentRouteImport } from './routes/_site/outbound-agent'
 import { Route as SiteSecurityRouteImport } from './routes/_site/security'
 import { Route as SiteThePlaybookRouteImport } from './routes/_site/the-playbook'
+import { Route as AppAnalyticsIndexRouteImport } from './routes/_app/analytics/index'
+import { Route as AppAnalyticsCampaignsRouteImport } from './routes/_app/analytics/campaigns'
+import { Route as AppAnalyticsRepsRouteImport } from './routes/_app/analytics/reps'
 import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox/index'
 import { Route as AppInboxConversationIdRouteImport } from './routes/_app/inbox/$conversationId'
 import { Route as AppPlaybookIndexRouteImport } from './routes/_app/playbook/index'
@@ -171,6 +174,21 @@ const SiteThePlaybookRoute = SiteThePlaybookRouteImport.update({
   path: '/the-playbook',
   getParentRoute: () => SiteRoute,
 } as any)
+const AppAnalyticsIndexRoute = AppAnalyticsIndexRouteImport.update({
+  id: '/analytics/',
+  path: '/analytics/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAnalyticsCampaignsRoute = AppAnalyticsCampaignsRouteImport.update({
+  id: '/analytics/campaigns',
+  path: '/analytics/campaigns',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAnalyticsRepsRoute = AppAnalyticsRepsRouteImport.update({
+  id: '/analytics/reps',
+  path: '/analytics/reps',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppInboxIndexRoute = AppInboxIndexRouteImport.update({
   id: '/inbox/',
   path: '/inbox/',
@@ -301,6 +319,8 @@ export interface FileRoutesByFullPath {
   '/outbound-agent': typeof SiteOutboundAgentRoute
   '/security': typeof SiteSecurityRoute
   '/the-playbook': typeof SiteThePlaybookRoute
+  '/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
+  '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/prospects/$prospectId': typeof AppProspectsProspectIdRoute
@@ -310,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sign-up/google': typeof PublicSignUpGoogleRoute
   '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
+  '/analytics/': typeof AppAnalyticsIndexRoute
   '/inbox/': typeof AppInboxIndexRoute
   '/playbook/': typeof AppPlaybookIndexRoute
   '/prospects/': typeof AppProspectsIndexRoute
@@ -342,6 +363,8 @@ export interface FileRoutesByTo {
   '/outbound-agent': typeof SiteOutboundAgentRoute
   '/security': typeof SiteSecurityRoute
   '/the-playbook': typeof SiteThePlaybookRoute
+  '/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
+  '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/prospects/$prospectId': typeof AppProspectsProspectIdRoute
@@ -350,6 +373,7 @@ export interface FileRoutesByTo {
   '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sign-up/google': typeof PublicSignUpGoogleRoute
   '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
+  '/analytics': typeof AppAnalyticsIndexRoute
   '/inbox': typeof AppInboxIndexRoute
   '/playbook': typeof AppPlaybookIndexRoute
   '/prospects': typeof AppProspectsIndexRoute
@@ -388,6 +412,8 @@ export interface FileRoutesById {
   '/_site/security': typeof SiteSecurityRoute
   '/_site/the-playbook': typeof SiteThePlaybookRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
+  '/_app/analytics/reps': typeof AppAnalyticsRepsRoute
   '/_app/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/_app/playbook/search': typeof AppPlaybookSearchRoute
   '/_app/prospects/$prospectId': typeof AppProspectsProspectIdRoute
@@ -397,6 +423,7 @@ export interface FileRoutesById {
   '/_app/sales-history/search': typeof AppSalesHistorySearchRoute
   '/_public/sign-up_/google': typeof PublicSignUpGoogleRoute
   '/_site/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
+  '/_app/analytics/': typeof AppAnalyticsIndexRoute
   '/_app/inbox/': typeof AppInboxIndexRoute
   '/_app/playbook/': typeof AppPlaybookIndexRoute
   '/_app/prospects/': typeof AppProspectsIndexRoute
@@ -433,6 +460,8 @@ export interface FileRouteTypes {
     | '/outbound-agent'
     | '/security'
     | '/the-playbook'
+    | '/analytics/campaigns'
+    | '/analytics/reps'
     | '/inbox/$conversationId'
     | '/playbook/search'
     | '/prospects/$prospectId'
@@ -442,6 +471,7 @@ export interface FileRouteTypes {
     | '/sales-history/search'
     | '/sign-up/google'
     | '/unsubscribe/$token'
+    | '/analytics/'
     | '/inbox/'
     | '/playbook/'
     | '/prospects/'
@@ -474,6 +504,8 @@ export interface FileRouteTypes {
     | '/outbound-agent'
     | '/security'
     | '/the-playbook'
+    | '/analytics/campaigns'
+    | '/analytics/reps'
     | '/inbox/$conversationId'
     | '/playbook/search'
     | '/prospects/$prospectId'
@@ -482,6 +514,7 @@ export interface FileRouteTypes {
     | '/sales-history/search'
     | '/sign-up/google'
     | '/unsubscribe/$token'
+    | '/analytics'
     | '/inbox'
     | '/playbook'
     | '/prospects'
@@ -519,6 +552,8 @@ export interface FileRouteTypes {
     | '/_site/security'
     | '/_site/the-playbook'
     | '/_app/'
+    | '/_app/analytics/campaigns'
+    | '/_app/analytics/reps'
     | '/_app/inbox/$conversationId'
     | '/_app/playbook/search'
     | '/_app/prospects/$prospectId'
@@ -528,6 +563,7 @@ export interface FileRouteTypes {
     | '/_app/sales-history/search'
     | '/_public/sign-up_/google'
     | '/_site/unsubscribe/$token'
+    | '/_app/analytics/'
     | '/_app/inbox/'
     | '/_app/playbook/'
     | '/_app/prospects/'
@@ -716,6 +752,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/the-playbook'
       preLoaderRoute: typeof SiteThePlaybookRouteImport
       parentRoute: typeof SiteRoute
+    }
+    '/_app/analytics/': {
+      id: '/_app/analytics/'
+      path: '/analytics'
+      fullPath: '/analytics/'
+      preLoaderRoute: typeof AppAnalyticsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/analytics/campaigns': {
+      id: '/_app/analytics/campaigns'
+      path: '/analytics/campaigns'
+      fullPath: '/analytics/campaigns'
+      preLoaderRoute: typeof AppAnalyticsCampaignsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/analytics/reps': {
+      id: '/_app/analytics/reps'
+      path: '/analytics/reps'
+      fullPath: '/analytics/reps'
+      preLoaderRoute: typeof AppAnalyticsRepsRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/inbox/': {
       id: '/_app/inbox/'
@@ -927,10 +984,13 @@ interface AppRouteChildren {
   AppSuppressionRoute: typeof AppSuppressionRoute
   AppTeamsRoute: typeof AppTeamsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAnalyticsCampaignsRoute: typeof AppAnalyticsCampaignsRoute
+  AppAnalyticsRepsRoute: typeof AppAnalyticsRepsRoute
   AppInboxConversationIdRoute: typeof AppInboxConversationIdRoute
   AppProspectsProspectIdRoute: typeof AppProspectsProspectIdRoute
   AppProspectsImportsRoute: typeof AppProspectsImportsRouteWithChildren
   AppProspectsNewRoute: typeof AppProspectsNewRoute
+  AppAnalyticsIndexRoute: typeof AppAnalyticsIndexRoute
   AppInboxIndexRoute: typeof AppInboxIndexRoute
   AppProspectsIndexRoute: typeof AppProspectsIndexRoute
 }
@@ -949,10 +1009,13 @@ const AppRouteChildren: AppRouteChildren = {
   AppSuppressionRoute: AppSuppressionRoute,
   AppTeamsRoute: AppTeamsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAnalyticsCampaignsRoute: AppAnalyticsCampaignsRoute,
+  AppAnalyticsRepsRoute: AppAnalyticsRepsRoute,
   AppInboxConversationIdRoute: AppInboxConversationIdRoute,
   AppProspectsProspectIdRoute: AppProspectsProspectIdRoute,
   AppProspectsImportsRoute: AppProspectsImportsRouteWithChildren,
   AppProspectsNewRoute: AppProspectsNewRoute,
+  AppAnalyticsIndexRoute: AppAnalyticsIndexRoute,
   AppInboxIndexRoute: AppInboxIndexRoute,
   AppProspectsIndexRoute: AppProspectsIndexRoute,
 }

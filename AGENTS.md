@@ -122,6 +122,16 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
 - A generated file (`*.gen.ts`, `openapi/`) is changed only by its script.
 - `bun test` needs a DOM: `test/dom.ts` registers happy-dom before Testing Library loads. In
   `test.each`, give every row all parameters, or Bun reads the last one as a `done` callback.
+- Analytics dashboards (`src/screens/analytics/`, `/analytics`, `/analytics/campaigns`,
+  `/analytics/reps`) read core's `/v1/analytics/*` (a `service-routes` prefix). Every role reads,
+  within its scope: Owner and Admin see all; a Manager sees their Reps and filters only by Rep; a Rep
+  sees their own row. A view the role cannot use is hidden (`can.compareCampaigns`,
+  `can.compareReps`), and Manager and Rep requests never carry Channel, Agent or Campaign. A rate
+  below `MIN_RATE_SAMPLE` arrives as `not_enough_data`: show it with its sample size, never as zero.
+  Failures are branched on `area.reason` (`analytics.range_too_large`, `auth.forbidden`,
+  `request.not_found`) in `analytics-messages.ts`. Drill-down opens the Inbox with Channel and label
+  only, because core cannot yet filter Conversations by Campaign, Rep or day, and the screen says so.
+  The CSV loops `table.csv` by `x-next-cursor`, one header, at most 20 pages.
 
 ## Hot paths
 

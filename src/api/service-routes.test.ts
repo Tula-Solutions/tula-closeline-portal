@@ -45,6 +45,7 @@ describe('the routing table', () => {
       '/v1/audit-csv -> core',
       '/v1/exports -> core',
       '/v1/audit-verification -> core',
+      '/v1/analytics -> core',
       '/v1/playbook -> playbook',
       '/v1/lines -> voice',
     ])

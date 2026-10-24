@@ -205,6 +205,15 @@ export function Shell() {
             <NavLink to='/consent-wordings'>Consent Wording</NavLink>
             {can.manageSuppression(role) ? <NavLink to='/suppression'>Suppression</NavLink> : null}
           </NavGroup>
+          <NavGroup id='analytics' label='Analytics'>
+            <NavLink to='/analytics' exact>
+              Overview
+            </NavLink>
+            {can.compareCampaigns(role) ? (
+              <NavLink to='/analytics/campaigns'>Campaigns</NavLink>
+            ) : null}
+            <NavLink to='/analytics/reps'>{role === 'rep' ? 'Your numbers' : 'Reps'}</NavLink>
+          </NavGroup>
           <NavGroup id='knowledge' label='Knowledge'>
             <NavLink to='/playbook'>Playbook</NavLink>
             {inPlaybook ? (

@@ -19,7 +19,8 @@ export function hexId(
     | 'sup'
     | 'cnv'
     | 'msg'
-    | 'drf',
+    | 'drf'
+    | 'cpg',
   n: number
 ): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`
