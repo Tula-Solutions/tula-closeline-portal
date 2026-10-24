@@ -1,8 +1,11 @@
 import { type InfiniteData, useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import {
+  type AnalyticsGroupBy,
+  type AnalyticsMetric,
   type CallState,
   type DocumentState,
+  type GetSeriesResponse,
   type ListDealImportRowsResponse,
   type ListDealImportsResponse,
   type ListDealsResponse,
@@ -22,7 +25,9 @@ import {
   type ProspectImportRowResult,
   prospectCompanyIdSchema,
   type Role,
+  type TableRow,
 } from 'tula-closeline-contract'
+import type { AnalyticsFilter } from '~/api/analytics'
 import type { ApiKeysPage } from '~/api/api-keys'
 import type { AuditFilter, AuditPage } from '~/api/audit'
 import type {
@@ -62,6 +67,8 @@ export const KEYS = {
   prospectImports: (organizationId: string) => [organizationId, 'prospect-imports'] as const,
   /** Every cached list of Calls, whatever its filters. */
   calls: (organizationId: string) => [organizationId, 'calls'] as const,
+  /** Every cached analytics read (series and tables), whatever its range or filters. */
+  analytics: (organizationId: string) => [organizationId, 'analytics'] as const,
   /** Every cached list of audit events, whatever its filter. */
   audit: (organizationId: string) => [organizationId, 'audit'] as const,
   /** The export jobs of the Organization. */
@@ -290,6 +297,56 @@ export function useAuditEvents(filter: AuditFilter, enabled: boolean) {
     enabled: enabled && organizationId !== '',
   })
   return pagedState(query)
+}
+
+/** One analytics metric by day over the range, ungrouped or one line per group. `enabled` is false for a view the role does not have. */
+export function useAnalyticsSeries(
+  filter: AnalyticsFilter,
+  metric: AnalyticsMetric,
+  groupBy: AnalyticsGroupBy | undefined,
+  enabled: boolean
+) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery<GetSeriesResponse>({
+    queryKey: [
+      ...KEYS.analytics(organizationId),
+      'series',
+      metric,
+      groupBy ?? '',
+      JSON.stringify(filter),
+    ],
+    queryFn: ({ signal }) => app.analytics.getSeries(filter, metric, groupBy, signal),
+    enabled: enabled && organizationId !== '',
+  })
+}
+
+/** The comparison table grouped by `groupBy`, a page of groups at a time. `enabled` is false for a view the role does not have. */
+export function useAnalyticsTable(
+  filter: AnalyticsFilter,
+  groupBy: AnalyticsGroupBy,
+  enabled: boolean
+) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    { readonly items: readonly TableRow[]; readonly nextCursor: string | null },
+    Error,
+    InfiniteData<
+      { readonly items: readonly TableRow[]; readonly nextCursor: string | null },
+      string | undefined
+    >,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.analytics(organizationId), 'table', groupBy, JSON.stringify(filter)],
+    queryFn: ({ pageParam, signal }) =>
+      app.analytics.listTable(filter, groupBy, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedStateBy(query, (row) => row.group)
 }
 
 /** The Conversations the caller may see, latest activity first, a page at a time and narrowed by the filter. */

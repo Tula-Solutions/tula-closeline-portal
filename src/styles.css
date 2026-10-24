@@ -696,6 +696,79 @@
     grid-column: 1 / -1;
   }
 
+  /* Analytics: one filter block above the views, and a ledger of metrics (a heading, its total, a chart). */
+  .analytics-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    align-items: end;
+    gap: 0.5rem 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .analytics-presets {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .analytics-dates {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 14rem));
+    align-items: end;
+    gap: 0 1.5rem;
+  }
+
+  .analytics-dates-problem {
+    grid-column: 1 / -1;
+  }
+
+  .analytics-dimensions {
+    display: contents;
+  }
+
+  .analytics-chip {
+    grid-column: 1 / -1;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .analytics-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  .analytics-metric {
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+
+  .analytics-metric-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .analytics-metric-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1.5rem;
+    margin-top: 0.5rem;
+  }
+
   .audit-details {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);

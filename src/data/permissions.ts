@@ -1,4 +1,6 @@
 import {
+  ANALYTICS_ADMIN_ROLES,
+  ANALYTICS_READ_ROLES,
   APIKEY_ADMIN_ROLES,
   AUDIT_ADMIN_ROLES,
   AUDIT_READ_ROLES,
@@ -39,6 +41,12 @@ export const can = {
   manageLines: (role: Role) => VOICE_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Creating, listing and revoking API keys. */
   manageApiKeys: (role: Role) => APIKEY_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** The roles the contract gives the analytics read routes (every role) open the dashboards, each within its own scope. */
+  viewAnalytics: (role: Role) => ANALYTICS_READ_ROLES.some((allowed) => allowed === role),
+  /** Owner and Admin (the contract's analytics admin roles) compare Campaigns and break numbers down by Channel or Agent; a Manager or Rep core refuses with auth.forbidden. */
+  compareCampaigns: (role: Role) => ANALYTICS_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** Owner, Admin and Manager see one row per Rep; a Rep sees only their own row. */
+  compareReps: (role: Role) => roleAtLeast(role, 'manager'),
   /** The roles the contract gives the audit read routes (Owner, Admin, Manager) see the audit log; a Manager sees only events about their Team's Prospects. */
   viewAudit: (role: Role) => AUDIT_READ_ROLES.some((allowed) => allowed === role),
   /** The roles the contract gives the audit CSV and verification routes (Owner, Admin). */
