@@ -3,7 +3,12 @@ import { ApiError, CLIENT_ERRORS } from '~/api/errors'
 import { GENERIC_MESSAGE, waitPhrase } from '~/api/messages'
 
 /** What to show for a failure of a members, Invitations or Teams call, and the field it belongs to. */
-export type ShownFailure = { readonly message: string; readonly field?: 'email' | 'name' }
+export type ShownFailure = {
+  readonly message: string
+  readonly field?: 'email' | 'name'
+  /** Where the person should go to put it right: the Conversation the call was about. */
+  readonly link?: 'conversation'
+}
 
 function tryAgain(seconds: number | undefined): string {
   return seconds === undefined ? 'Try again shortly.' : `Try again in ${waitPhrase(seconds)}.`
