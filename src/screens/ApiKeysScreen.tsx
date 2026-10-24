@@ -10,6 +10,7 @@ import {
 } from 'tula-closeline-contract'
 import { presentApiKey } from '~/api/api-key-messages'
 import { fingerprint } from '~/api/idempotency'
+import { outcomeUnknown } from '~/api/manage-messages'
 import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
 import { Section } from '~/components/app/section'
@@ -171,8 +172,10 @@ function CreateKeyForm(props: {
   const [expiry, setExpiry] = useState<string>('90')
   const [errors, setErrors] = useState<CreateErrors>({})
   const { formRef, bannerRef, focusFirstError } = useFocusOnError()
-  // A retry of the same intent must send the same body, so the expiry date is fixed per intent.
+  // Only a retry after an unknown outcome must resend the same body (it reuses the idempotency
+  // key), so the expiry date is kept for that retry alone; every other submit counts from now.
   const fixed = useRef<{ intent: string; expiresAt: string | null } | null>(null)
+  const resend = useRef(false)
   const create = useSubmit<{ body: ReturnType<typeof buildBody>; intent: string }>(
     async ({ body, intent }) => {
       const attempt = app.keys.begin(fingerprint.apiKey(intent))
@@ -181,6 +184,7 @@ function CreateKeyForm(props: {
         created = await app.apiKeys.createApiKey(body, attempt.key)
       } catch (error) {
         attempt.failed(error)
+        resend.current = outcomeUnknown(error)
         throw error
       }
       attempt.succeeded()
@@ -241,7 +245,7 @@ function CreateKeyForm(props: {
       next.scopes = 'Choose at least one scope.'
     }
     const intent = JSON.stringify([trimmed, chosen, ceiling, expiry])
-    if (fixed.current?.intent !== intent) {
+    if (!resend.current || fixed.current?.intent !== intent) {
       const days = EXPIRY_CHOICES.find((choice) => choice.value === expiry)?.days ?? null
       fixed.current = {
         intent,
@@ -259,6 +263,7 @@ function CreateKeyForm(props: {
       return
     }
     setErrors({})
+    resend.current = false
     create.submit({ body, intent })
   }
   const ceilings = ROLES.slice(ROLES.indexOf(props.role))
@@ -394,36 +399,10 @@ function KeyItem(props: {
   )
   return (
     <li className='py-4'>
-      <div className='list-item-head'>
-        <div className='flex min-w-0 flex-1 flex-col'>
-          <h3 className='item-title m-0 font-serif text-xl font-normal tracking-[-0.01em]'>
-            <Untrusted value={apiKey.name} />
-          </h3>
-          <span className='label-mono mt-1 block'>
-            <span className='secret-prefix'>{apiKey.prefix}</span> · {state}
-          </span>
-          <span className='hint'>
-            Role ceiling {ROLE_LABEL[apiKey.roleCeiling]}. Scopes: {apiKey.scopes.join(', ')}.
-          </span>
-          <dl className='key-facts'>
-            <div>
-              <dt>Created</dt>
-              <dd>
-                <When iso={apiKey.createdAt} />
-              </dd>
-            </div>
-            <div>
-              <dt>Last used</dt>
-              <dd>
-                {apiKey.lastUsedAt === null ? 'Never used' : <When iso={apiKey.lastUsedAt} />}
-              </dd>
-            </div>
-            <div>
-              <dt>Expires</dt>
-              <dd>{apiKey.expiresAt === null ? 'No expiry' : <When iso={apiKey.expiresAt} />}</dd>
-            </div>
-          </dl>
-        </div>
+      <div className='key-head'>
+        <h3 className='item-title key-name m-0 font-serif text-xl font-normal tracking-[-0.01em]'>
+          <Untrusted value={apiKey.name} />
+        </h3>
         {state === 'Active' ? (
           <div className='row-actions'>
             <Confirm
@@ -445,6 +424,30 @@ function KeyItem(props: {
             />
           </div>
         ) : null}
+      </div>
+      <div className='flex min-w-0 flex-col'>
+        <span className='label-mono mt-1 block'>
+          <span className='secret-prefix'>{apiKey.prefix}</span> · {state}
+        </span>
+        <span className='hint'>
+          Role ceiling {ROLE_LABEL[apiKey.roleCeiling]}. Scopes: {apiKey.scopes.join(', ')}.
+        </span>
+        <dl className='key-facts'>
+          <div>
+            <dt>Created</dt>
+            <dd>
+              <When iso={apiKey.createdAt} />
+            </dd>
+          </div>
+          <div>
+            <dt>Last used</dt>
+            <dd>{apiKey.lastUsedAt === null ? 'Never used' : <When iso={apiKey.lastUsedAt} />}</dd>
+          </div>
+          <div>
+            <dt>Expires</dt>
+            <dd>{apiKey.expiresAt === null ? 'No expiry' : <When iso={apiKey.expiresAt} />}</dd>
+          </div>
+        </dl>
       </div>
       {error ? (
         <p className='field-error' id={errorId} role='alert'>

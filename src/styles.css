@@ -658,6 +658,25 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* A key's name and its Revoke control share one header line, the control always at the right. */
+  .key-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .key-head .key-name {
+    flex: 1 1 12rem;
+    min-width: 0;
+  }
+
+  .key-head .row-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
   .key-facts {
     display: flex;
     flex-wrap: wrap;

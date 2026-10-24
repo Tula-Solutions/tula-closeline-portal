@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, setSystemTime, test } from 'bun:test'
 import { screen, waitFor, within } from '@testing-library/react'
 import { APIKEY_ERRORS, ERRORS } from 'tula-closeline-contract'
 import { apiKeyBody, hexId, page, teamBody } from '~/testing/core-bodies'
@@ -269,6 +269,32 @@ describe('API keys: create', () => {
     const [first, second] = portal.calls.filter((call) => call.method === 'POST')
     expect(second?.headers.get('idempotency-key')).toBe(first?.headers.get('idempotency-key') ?? '')
     expect(second?.body).toEqual(first?.body ?? null)
+  })
+
+  test('a retry after a refused create works out the expiry from the retry', async () => {
+    const portal = visit(
+      'admin',
+      '/api-keys',
+      route('POST', KEYS, () => failure(403, APIKEY_ERRORS['apikey.scope_not_allowed'].code)),
+      keys
+    )
+    await fillIn(portal)
+    await portal.user.click(screen.getByRole('button', { name: 'Create key' }))
+    await screen.findByRole('alert')
+    const later = Date.now() + 3 * 24 * 60 * 60 * 1000
+    setSystemTime(new Date(later))
+    try {
+      await portal.user.click(screen.getByRole('button', { name: 'Create key' }))
+      await waitFor(() =>
+        expect(portal.calls.filter((call) => call.method === 'POST')).toHaveLength(2)
+      )
+    } finally {
+      setSystemTime()
+    }
+    const [first, second] = portal.calls.filter((call) => call.method === 'POST')
+    const expiry = (call: typeof first) =>
+      Date.parse(String((call?.body as { expiresAt?: string } | null)?.expiresAt))
+    expect(expiry(second) - expiry(first)).toBeGreaterThanOrEqual(2 * 24 * 60 * 60 * 1000)
   })
 })
 
