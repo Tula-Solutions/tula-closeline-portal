@@ -539,6 +539,80 @@
     border-bottom: 1px solid var(--border);
   }
 
+  /* API keys: the scope grid, a key's facts, the show-once secret and the developer page. */
+  .scope-fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .scope-grid {
+    margin-top: 0.5rem;
+  }
+
+  .scope-grid th,
+  .scope-grid td {
+    padding-block: 0.375rem;
+  }
+
+  .scope-grid th:not(:first-child),
+  .scope-grid td {
+    width: 4.5rem;
+    text-align: center;
+  }
+
+  .secret-prefix {
+    font-family: var(--font-mono);
+    text-transform: none;
+  }
+
+  .secret-dialog {
+    /* Preflight zeroes a dialog's margin, which is what centres it. */
+    margin: auto;
+    width: min(34rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    padding: 1.5rem;
+    border: 1px solid var(--rule-strong);
+    border-radius: 0;
+    background: var(--popover);
+    color: var(--foreground);
+  }
+
+  .secret-dialog::backdrop {
+    background: color-mix(in srgb, black 60%, transparent);
+  }
+
+  .secret-value {
+    display: block;
+    margin: 1rem 0;
+    padding: 0.75rem;
+    border: 1px solid var(--rule-strong);
+    background: var(--background);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+    user-select: all;
+  }
+
+  .guide-steps {
+    margin: 1rem 0;
+    padding-left: 1.25rem;
+    list-style: decimal;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .schema {
+    margin: 0.25rem 0 0;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    background: var(--popover);
+    font-size: 0.8125rem;
+    overflow: auto;
+  }
+
   .list-item-head {
     display: flex;
     flex-wrap: wrap;
@@ -582,6 +656,45 @@
   dl dd {
     margin: 0;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* A key's name and its Revoke control share one header line, the control always at the right. */
+  .key-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .key-head .key-name {
+    flex: 1 1 12rem;
+    min-width: 0;
+  }
+
+  .key-head .row-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .key-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 2rem;
+    margin: 0.75rem 0 0;
+    border-top: 0;
+  }
+
+  .key-facts > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .key-facts dt,
+  .key-facts dd {
+    padding: 0;
+    border-bottom: 0;
   }
 
   /* A dt with its dd rows, kept as one grouping without a box of its own. */

@@ -71,6 +71,14 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
   anyone else the nav link is hidden and the page shows a notice and makes no request. A Line's number
   and label are untrusted text (`Untrusted`, `plain`). Errors are worded by `presentLine`
   (`src/api/voice-messages.ts`) from `VOICE_ERRORS`, falling back to `presentManage`.
+- API keys (`src/screens/ApiKeysScreen.tsx`, core): Owners and Admins only (`can.manageApiKeys`); for
+  anyone else the nav link is hidden and the page shows a notice and makes no request. The secret
+  returned by create lives only in the dialog's component state: never stored, logged or put in a
+  URL, and gone when the dialog closes. Key names are untrusted (`Untrusted`). Errors are worded by
+  `presentApiKey` (`src/api/api-key-messages.ts`).
+- Developers (`src/screens/DevelopersScreen.tsx`): renders the vendored public OpenAPI document
+  (`openapi/public.openapi.json`, refreshed with `bun run vendor:public -- --from <hub clone>`) and
+  calls no private route. Visible to every role.
 - Playbook documents (`src/screens/DocumentsScreen.tsx`): file names are untrusted and shown as text
   only (`Untrusted`, `plain` for labels), never as a link or markup. Upload limits come from the
   contract's constants and `checkUploadFile`, never typed numbers. The follow-up poll waits through

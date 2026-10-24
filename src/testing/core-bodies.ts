@@ -13,6 +13,7 @@ export function hexId(
     | 'pco'
     | 'pimp'
     | 'line'
+    | 'akey'
     | 'cev'
     | 'cwd'
     | 'sup',
@@ -486,6 +487,33 @@ export function suppressionBody(
     removedAt: null,
     removedByUserId: overrides.removedAt ? hexId('usr', 2) : null,
     removalReason: overrides.removedAt ? 'Added by mistake' : null,
+    ...overrides,
+  }
+}
+
+/** An API key as core returns it (no secret): active, never used, expiring in 90 days, unless overridden. */
+export function apiKeyBody(
+  n: number,
+  overrides: Partial<{
+    name: string
+    scopes: string[]
+    roleCeiling: 'owner' | 'admin' | 'manager' | 'rep'
+    expiresAt: string | null
+    lastUsedAt: string | null
+    revokedAt: string | null
+  }> = {}
+) {
+  return {
+    id: hexId('akey', n),
+    name: `Key ${n}`,
+    prefix: `clk_${String(n).padStart(8, 'a')}`,
+    scopes: ['prospects:read'],
+    roleCeiling: 'rep',
+    expiresAt: '2099-01-01T00:00:00Z',
+    lastUsedAt: null,
+    revokedAt: null,
+    createdAt: '2026-10-01T00:00:00Z',
+    createdByMembershipId: hexId('mem', 1),
     ...overrides,
   }
 }

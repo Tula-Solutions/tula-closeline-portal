@@ -15,6 +15,7 @@
     "routes:generate": "tsr generate",
     "generate:api": "bun scripts/generate-api.ts",
     "test:scripts": "bun test scripts",
+    "vendor:public": "bun scripts/vendor-public-openapi.ts",
     "spec:check": "bun scripts/generate-api.ts --check --siblings",
     "generate:check": "bun scripts/generate-api.ts --check && tsr generate && git diff --exit-code -- src/routeTree.gen.ts",
     "typecheck": "tsr generate && tsc --noEmit",

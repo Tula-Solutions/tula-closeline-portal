@@ -120,7 +120,11 @@ const VOICE_SPEC = new URL('openapi/voice.openapi.json', ROOT)
 const VOICE_COMMIT = new URL('openapi/voice.commit', ROOT)
 
 function git(directory: string, args: readonly string[]): string {
-  const result = spawnSync('git', ['-C', directory, ...args], { encoding: 'utf8' })
+  // A service's OpenAPI document can pass the 1 MB default buffer; allow far more than it will need.
+  const result = spawnSync('git', ['-C', directory, ...args], {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  })
   if (result.status !== 0) {
     throw new Error(`git ${args.join(' ')} failed: ${result.stderr.trim()}`)
   }
