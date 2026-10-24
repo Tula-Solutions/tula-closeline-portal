@@ -16,7 +16,10 @@ export function hexId(
     | 'akey'
     | 'cev'
     | 'cwd'
-    | 'sup',
+    | 'sup'
+    | 'cnv'
+    | 'msg'
+    | 'drf',
   n: number
 ): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`
@@ -514,6 +517,64 @@ export function apiKeyBody(
     revokedAt: null,
     createdAt: '2026-10-01T00:00:00Z',
     createdByMembershipId: hexId('mem', 1),
+    ...overrides,
+  }
+}
+
+/** A Conversation as core returns it: an Agent-controlled email Conversation unless overridden. */
+export function conversationBody(
+  n: number,
+  overrides: Partial<{
+    channel: 'email' | 'linkedin' | 'chat'
+    controller: 'agent' | 'rep'
+    controllerMembershipId: string | null
+    state: 'agent' | 'awaiting_approval' | 'rep' | 'escalated' | 'closed'
+    latestLabel: string | null
+    pendingDraftCount: number
+    lastMessageAt: string
+  }> = {}
+) {
+  return {
+    id: hexId('cnv', n),
+    prospectId: hexId('prs', n),
+    channel: 'email',
+    controller: 'agent',
+    controllerMembershipId: null,
+    state: 'agent',
+    ownerMembershipId: hexId('mem', 1),
+    latestLabel: null,
+    pendingDraftCount: 0,
+    lastMessageAt: '2026-10-05T10:00:00Z',
+    createdAt: '2026-10-01T09:00:00Z',
+    ...overrides,
+  }
+}
+
+/** A Message as core returns it: inbound from the Prospect, unclassified, unless overridden. */
+export function messageBody(
+  n: number,
+  conversationNumber: number,
+  overrides: Partial<{
+    direction: 'inbound' | 'outbound'
+    authorKind: 'prospect' | 'agent' | 'rep'
+    authorMembershipId: string | null
+    draftId: string | null
+    body: string
+    sentAt: string
+    classification: unknown
+  }> = {}
+) {
+  return {
+    id: hexId('msg', n),
+    conversationId: hexId('cnv', conversationNumber),
+    direction: 'inbound',
+    authorKind: 'prospect',
+    authorMembershipId: null,
+    providerMessageId: `provider-${n}`,
+    draftId: null,
+    body: `Message ${n}`,
+    sentAt: '2026-10-05T10:00:00Z',
+    classification: null,
     ...overrides,
   }
 }

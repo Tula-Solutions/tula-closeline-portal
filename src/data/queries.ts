@@ -31,6 +31,7 @@ import type {
   SuppressionPage,
 } from '~/api/consent'
 import type { ProspectFilter } from '~/api/core'
+import type { ConversationFilter, ConversationsPage, MessagesPage } from '~/api/inbox'
 import type { CallsPage } from '~/api/sales-history'
 import type { LinesPage } from '~/api/voice'
 import type { App } from '~/app'
@@ -45,6 +46,8 @@ export const KEYS = {
   teams: (organizationId: string) => [organizationId, 'teams'] as const,
   /** The Lines of the Organization (voice service). */
   lines: (organizationId: string) => [organizationId, 'lines'] as const,
+  /** Every cached read about the inbox (Conversation lists, single Conversations and their Messages). */
+  inbox: (organizationId: string) => [organizationId, 'inbox'] as const,
   /** The API keys of the Organization (core). */
   apiKeys: (organizationId: string) => [organizationId, 'api-keys'] as const,
   /** Every list of documents of the Organization, whatever its state filter: invalidate this to refresh them all. */
@@ -258,6 +261,66 @@ export function useApiKeys(enabled: boolean) {
     initialPageParam: undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** The Conversations the caller may see, latest activity first, a page at a time and narrowed by the filter. */
+export function useConversations(filter: ConversationFilter) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ConversationsPage,
+    Error,
+    InfiniteData<ConversationsPage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [
+      ...KEYS.inbox(organizationId),
+      'list',
+      filter.channel ?? '',
+      filter.state ?? '',
+      filter.label ?? '',
+    ],
+    queryFn: ({ pageParam, signal }) =>
+      app.inbox.listConversations({ ...filter, cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** One Conversation. */
+export function useConversation(conversationId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'one', conversationId],
+    queryFn: ({ signal }) => app.inbox.getConversation(conversationId, signal),
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The Messages of one Conversation, oldest first, a page at a time. */
+export function useConversationMessages(conversationId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    MessagesPage,
+    Error,
+    InfiniteData<MessagesPage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.inbox(organizationId), 'messages', conversationId],
+    queryFn: ({ pageParam, signal }) =>
+      app.inbox.listMessages(conversationId, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
   })
   return pagedState(query)
 }
@@ -649,7 +712,7 @@ export function useProspect(prospectId: string) {
   return useQuery({
     queryKey: [...KEYS.prospects(organizationId), 'one', prospectId],
     queryFn: ({ signal }) => app.core.getProspect(prospectId, signal),
-    enabled: organizationId !== '',
+    enabled: organizationId !== '' && prospectId !== '',
     retry: false,
   })
 }

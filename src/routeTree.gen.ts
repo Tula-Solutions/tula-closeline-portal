@@ -31,6 +31,8 @@ import { Route as SiteInboundAgentRouteImport } from './routes/_site/inbound-age
 import { Route as SiteOutboundAgentRouteImport } from './routes/_site/outbound-agent'
 import { Route as SiteSecurityRouteImport } from './routes/_site/security'
 import { Route as SiteThePlaybookRouteImport } from './routes/_site/the-playbook'
+import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox/index'
+import { Route as AppInboxConversationIdRouteImport } from './routes/_app/inbox/$conversationId'
 import { Route as AppPlaybookIndexRouteImport } from './routes/_app/playbook/index'
 import { Route as AppPlaybookSearchRouteImport } from './routes/_app/playbook/search'
 import { Route as AppProspectsIndexRouteImport } from './routes/_app/prospects/index'
@@ -157,6 +159,16 @@ const SiteThePlaybookRoute = SiteThePlaybookRouteImport.update({
   path: '/the-playbook',
   getParentRoute: () => SiteRoute,
 } as any)
+const AppInboxIndexRoute = AppInboxIndexRouteImport.update({
+  id: '/inbox/',
+  path: '/inbox/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInboxConversationIdRoute = AppInboxConversationIdRouteImport.update({
+  id: '/inbox/$conversationId',
+  path: '/inbox/$conversationId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPlaybookIndexRoute = AppPlaybookIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -275,6 +287,7 @@ export interface FileRoutesByFullPath {
   '/outbound-agent': typeof SiteOutboundAgentRoute
   '/security': typeof SiteSecurityRoute
   '/the-playbook': typeof SiteThePlaybookRoute
+  '/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/prospects/$prospectId': typeof AppProspectsProspectIdRoute
   '/prospects/imports': typeof AppProspectsImportsRouteWithChildren
@@ -283,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sign-up/google': typeof PublicSignUpGoogleRoute
   '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
+  '/inbox/': typeof AppInboxIndexRoute
   '/playbook/': typeof AppPlaybookIndexRoute
   '/prospects/': typeof AppProspectsIndexRoute
   '/sales-history/': typeof AppSalesHistoryIndexRoute
@@ -312,6 +326,7 @@ export interface FileRoutesByTo {
   '/outbound-agent': typeof SiteOutboundAgentRoute
   '/security': typeof SiteSecurityRoute
   '/the-playbook': typeof SiteThePlaybookRoute
+  '/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/prospects/$prospectId': typeof AppProspectsProspectIdRoute
   '/prospects/new': typeof AppProspectsNewRoute
@@ -319,6 +334,7 @@ export interface FileRoutesByTo {
   '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sign-up/google': typeof PublicSignUpGoogleRoute
   '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
+  '/inbox': typeof AppInboxIndexRoute
   '/playbook': typeof AppPlaybookIndexRoute
   '/prospects': typeof AppProspectsIndexRoute
   '/sales-history': typeof AppSalesHistoryIndexRoute
@@ -354,6 +370,7 @@ export interface FileRoutesById {
   '/_site/security': typeof SiteSecurityRoute
   '/_site/the-playbook': typeof SiteThePlaybookRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/_app/playbook/search': typeof AppPlaybookSearchRoute
   '/_app/prospects/$prospectId': typeof AppProspectsProspectIdRoute
   '/_app/prospects/imports': typeof AppProspectsImportsRouteWithChildren
@@ -362,6 +379,7 @@ export interface FileRoutesById {
   '/_app/sales-history/search': typeof AppSalesHistorySearchRoute
   '/_public/sign-up_/google': typeof PublicSignUpGoogleRoute
   '/_site/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
+  '/_app/inbox/': typeof AppInboxIndexRoute
   '/_app/playbook/': typeof AppPlaybookIndexRoute
   '/_app/prospects/': typeof AppProspectsIndexRoute
   '/_app/sales-history/': typeof AppSalesHistoryIndexRoute
@@ -395,6 +413,7 @@ export interface FileRouteTypes {
     | '/outbound-agent'
     | '/security'
     | '/the-playbook'
+    | '/inbox/$conversationId'
     | '/playbook/search'
     | '/prospects/$prospectId'
     | '/prospects/imports'
@@ -403,6 +422,7 @@ export interface FileRouteTypes {
     | '/sales-history/search'
     | '/sign-up/google'
     | '/unsubscribe/$token'
+    | '/inbox/'
     | '/playbook/'
     | '/prospects/'
     | '/sales-history/'
@@ -432,6 +452,7 @@ export interface FileRouteTypes {
     | '/outbound-agent'
     | '/security'
     | '/the-playbook'
+    | '/inbox/$conversationId'
     | '/playbook/search'
     | '/prospects/$prospectId'
     | '/prospects/new'
@@ -439,6 +460,7 @@ export interface FileRouteTypes {
     | '/sales-history/search'
     | '/sign-up/google'
     | '/unsubscribe/$token'
+    | '/inbox'
     | '/playbook'
     | '/prospects'
     | '/sales-history'
@@ -473,6 +495,7 @@ export interface FileRouteTypes {
     | '/_site/security'
     | '/_site/the-playbook'
     | '/_app/'
+    | '/_app/inbox/$conversationId'
     | '/_app/playbook/search'
     | '/_app/prospects/$prospectId'
     | '/_app/prospects/imports'
@@ -481,6 +504,7 @@ export interface FileRouteTypes {
     | '/_app/sales-history/search'
     | '/_public/sign-up_/google'
     | '/_site/unsubscribe/$token'
+    | '/_app/inbox/'
     | '/_app/playbook/'
     | '/_app/prospects/'
     | '/_app/sales-history/'
@@ -654,6 +678,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/the-playbook'
       preLoaderRoute: typeof SiteThePlaybookRouteImport
       parentRoute: typeof SiteRoute
+    }
+    '/_app/inbox/': {
+      id: '/_app/inbox/'
+      path: '/inbox'
+      fullPath: '/inbox/'
+      preLoaderRoute: typeof AppInboxIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/inbox/$conversationId': {
+      id: '/_app/inbox/$conversationId'
+      path: '/inbox/$conversationId'
+      fullPath: '/inbox/$conversationId'
+      preLoaderRoute: typeof AppInboxConversationIdRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/playbook/': {
       id: '/_app/playbook/'
@@ -849,9 +887,11 @@ interface AppRouteChildren {
   AppSuppressionRoute: typeof AppSuppressionRoute
   AppTeamsRoute: typeof AppTeamsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppInboxConversationIdRoute: typeof AppInboxConversationIdRoute
   AppProspectsProspectIdRoute: typeof AppProspectsProspectIdRoute
   AppProspectsImportsRoute: typeof AppProspectsImportsRouteWithChildren
   AppProspectsNewRoute: typeof AppProspectsNewRoute
+  AppInboxIndexRoute: typeof AppInboxIndexRoute
   AppProspectsIndexRoute: typeof AppProspectsIndexRoute
 }
 
@@ -867,9 +907,11 @@ const AppRouteChildren: AppRouteChildren = {
   AppSuppressionRoute: AppSuppressionRoute,
   AppTeamsRoute: AppTeamsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppInboxConversationIdRoute: AppInboxConversationIdRoute,
   AppProspectsProspectIdRoute: AppProspectsProspectIdRoute,
   AppProspectsImportsRoute: AppProspectsImportsRouteWithChildren,
   AppProspectsNewRoute: AppProspectsNewRoute,
+  AppInboxIndexRoute: AppInboxIndexRoute,
   AppProspectsIndexRoute: AppProspectsIndexRoute,
 }
 
