@@ -191,7 +191,13 @@ export function Shell() {
               Home
             </NavLink>
             <NavLink to='/prospects'>Prospects</NavLink>
-            <NavLink to='/inbox'>Inbox</NavLink>
+            <NavLink to='/inbox' exact>
+              Inbox
+            </NavLink>
+            <NavLink to='/inbox/approvals'>Approvals</NavLink>
+            {can.manageApprovalPolicy(role) ? (
+              <NavLink to='/inbox/policy'>Approval policy</NavLink>
+            ) : null}
           </div>
           <NavGroup id='organization' label='Organization'>
             {can.viewMembers(role) ? <NavLink to='/members'>Members</NavLink> : null}

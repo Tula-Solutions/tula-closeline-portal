@@ -38,6 +38,7 @@ import { Route as AppAnalyticsCampaignsRouteImport } from './routes/_app/analyti
 import { Route as AppAnalyticsRepsRouteImport } from './routes/_app/analytics/reps'
 import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox/index'
 import { Route as AppInboxConversationIdRouteImport } from './routes/_app/inbox/$conversationId'
+import { Route as AppInboxPolicyRouteImport } from './routes/_app/inbox/policy'
 import { Route as AppPlaybookIndexRouteImport } from './routes/_app/playbook/index'
 import { Route as AppPlaybookSearchRouteImport } from './routes/_app/playbook/search'
 import { Route as AppProspectsIndexRouteImport } from './routes/_app/prospects/index'
@@ -49,6 +50,8 @@ import { Route as AppSalesHistoryRightsRouteImport } from './routes/_app/sales-h
 import { Route as AppSalesHistorySearchRouteImport } from './routes/_app/sales-history/search'
 import { Route as PublicSignUpGoogleRouteImport } from './routes/_public/sign-up_.google'
 import { Route as SiteUnsubscribeTokenRouteImport } from './routes/_site/unsubscribe.$token'
+import { Route as AppInboxApprovalsIndexRouteImport } from './routes/_app/inbox/approvals.index'
+import { Route as AppInboxApprovalsDraftIdRouteImport } from './routes/_app/inbox/approvals.$draftId'
 import { Route as AppProspectsImportsIndexRouteImport } from './routes/_app/prospects/imports/index'
 import { Route as AppProspectsImportsImportIdRouteImport } from './routes/_app/prospects/imports/$importId'
 import { Route as AppSalesHistoryCallsIndexRouteImport } from './routes/_app/sales-history/calls/index'
@@ -199,6 +202,11 @@ const AppInboxConversationIdRoute = AppInboxConversationIdRouteImport.update({
   path: '/inbox/$conversationId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInboxPolicyRoute = AppInboxPolicyRouteImport.update({
+  id: '/inbox/policy',
+  path: '/inbox/policy',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPlaybookIndexRoute = AppPlaybookIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -254,6 +262,17 @@ const SiteUnsubscribeTokenRoute = SiteUnsubscribeTokenRouteImport.update({
   path: '/unsubscribe/$token',
   getParentRoute: () => SiteRoute,
 } as any)
+const AppInboxApprovalsIndexRoute = AppInboxApprovalsIndexRouteImport.update({
+  id: '/inbox/approvals/',
+  path: '/inbox/approvals/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInboxApprovalsDraftIdRoute =
+  AppInboxApprovalsDraftIdRouteImport.update({
+    id: '/inbox/approvals/$draftId',
+    path: '/inbox/approvals/$draftId',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppProspectsImportsIndexRoute =
   AppProspectsImportsIndexRouteImport.update({
     id: '/',
@@ -322,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
+  '/inbox/policy': typeof AppInboxPolicyRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/prospects/$prospectId': typeof AppProspectsProspectIdRoute
   '/prospects/imports': typeof AppProspectsImportsRouteWithChildren
@@ -335,9 +355,11 @@ export interface FileRoutesByFullPath {
   '/playbook/': typeof AppPlaybookIndexRoute
   '/prospects/': typeof AppProspectsIndexRoute
   '/sales-history/': typeof AppSalesHistoryIndexRoute
+  '/inbox/approvals/$draftId': typeof AppInboxApprovalsDraftIdRoute
   '/prospects/imports/$importId': typeof AppProspectsImportsImportIdRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/inbox/approvals/': typeof AppInboxApprovalsIndexRoute
   '/prospects/imports/': typeof AppProspectsImportsIndexRoute
   '/sales-history/calls/': typeof AppSalesHistoryCallsIndexRoute
   '/sales-history/deals/': typeof AppSalesHistoryDealsIndexRoute
@@ -366,6 +388,7 @@ export interface FileRoutesByTo {
   '/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
+  '/inbox/policy': typeof AppInboxPolicyRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/prospects/$prospectId': typeof AppProspectsProspectIdRoute
   '/prospects/new': typeof AppProspectsNewRoute
@@ -378,9 +401,11 @@ export interface FileRoutesByTo {
   '/playbook': typeof AppPlaybookIndexRoute
   '/prospects': typeof AppProspectsIndexRoute
   '/sales-history': typeof AppSalesHistoryIndexRoute
+  '/inbox/approvals/$draftId': typeof AppInboxApprovalsDraftIdRoute
   '/prospects/imports/$importId': typeof AppProspectsImportsImportIdRoute
   '/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/inbox/approvals': typeof AppInboxApprovalsIndexRoute
   '/prospects/imports': typeof AppProspectsImportsIndexRoute
   '/sales-history/calls': typeof AppSalesHistoryCallsIndexRoute
   '/sales-history/deals': typeof AppSalesHistoryDealsIndexRoute
@@ -415,6 +440,7 @@ export interface FileRoutesById {
   '/_app/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/_app/analytics/reps': typeof AppAnalyticsRepsRoute
   '/_app/inbox/$conversationId': typeof AppInboxConversationIdRoute
+  '/_app/inbox/policy': typeof AppInboxPolicyRoute
   '/_app/playbook/search': typeof AppPlaybookSearchRoute
   '/_app/prospects/$prospectId': typeof AppProspectsProspectIdRoute
   '/_app/prospects/imports': typeof AppProspectsImportsRouteWithChildren
@@ -428,9 +454,11 @@ export interface FileRoutesById {
   '/_app/playbook/': typeof AppPlaybookIndexRoute
   '/_app/prospects/': typeof AppProspectsIndexRoute
   '/_app/sales-history/': typeof AppSalesHistoryIndexRoute
+  '/_app/inbox/approvals/$draftId': typeof AppInboxApprovalsDraftIdRoute
   '/_app/prospects/imports/$importId': typeof AppProspectsImportsImportIdRoute
   '/_app/sales-history/deals/$dealRecordId': typeof AppSalesHistoryDealsDealRecordIdRoute
   '/_app/sales-history/imports/$importId': typeof AppSalesHistoryImportsImportIdRoute
+  '/_app/inbox/approvals/': typeof AppInboxApprovalsIndexRoute
   '/_app/prospects/imports/': typeof AppProspectsImportsIndexRoute
   '/_app/sales-history/calls/': typeof AppSalesHistoryCallsIndexRoute
   '/_app/sales-history/deals/': typeof AppSalesHistoryDealsIndexRoute
@@ -463,6 +491,7 @@ export interface FileRouteTypes {
     | '/analytics/campaigns'
     | '/analytics/reps'
     | '/inbox/$conversationId'
+    | '/inbox/policy'
     | '/playbook/search'
     | '/prospects/$prospectId'
     | '/prospects/imports'
@@ -476,9 +505,11 @@ export interface FileRouteTypes {
     | '/playbook/'
     | '/prospects/'
     | '/sales-history/'
+    | '/inbox/approvals/$draftId'
     | '/prospects/imports/$importId'
     | '/sales-history/deals/$dealRecordId'
     | '/sales-history/imports/$importId'
+    | '/inbox/approvals/'
     | '/prospects/imports/'
     | '/sales-history/calls/'
     | '/sales-history/deals/'
@@ -507,6 +538,7 @@ export interface FileRouteTypes {
     | '/analytics/campaigns'
     | '/analytics/reps'
     | '/inbox/$conversationId'
+    | '/inbox/policy'
     | '/playbook/search'
     | '/prospects/$prospectId'
     | '/prospects/new'
@@ -519,9 +551,11 @@ export interface FileRouteTypes {
     | '/playbook'
     | '/prospects'
     | '/sales-history'
+    | '/inbox/approvals/$draftId'
     | '/prospects/imports/$importId'
     | '/sales-history/deals/$dealRecordId'
     | '/sales-history/imports/$importId'
+    | '/inbox/approvals'
     | '/prospects/imports'
     | '/sales-history/calls'
     | '/sales-history/deals'
@@ -555,6 +589,7 @@ export interface FileRouteTypes {
     | '/_app/analytics/campaigns'
     | '/_app/analytics/reps'
     | '/_app/inbox/$conversationId'
+    | '/_app/inbox/policy'
     | '/_app/playbook/search'
     | '/_app/prospects/$prospectId'
     | '/_app/prospects/imports'
@@ -568,9 +603,11 @@ export interface FileRouteTypes {
     | '/_app/playbook/'
     | '/_app/prospects/'
     | '/_app/sales-history/'
+    | '/_app/inbox/approvals/$draftId'
     | '/_app/prospects/imports/$importId'
     | '/_app/sales-history/deals/$dealRecordId'
     | '/_app/sales-history/imports/$importId'
+    | '/_app/inbox/approvals/'
     | '/_app/prospects/imports/'
     | '/_app/sales-history/calls/'
     | '/_app/sales-history/deals/'
@@ -788,6 +825,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInboxConversationIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/inbox/policy': {
+      id: '/_app/inbox/policy'
+      path: '/inbox/policy'
+      fullPath: '/inbox/policy'
+      preLoaderRoute: typeof AppInboxPolicyRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/playbook/': {
       id: '/_app/playbook/'
       path: '/'
@@ -864,6 +908,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/unsubscribe/$token'
       preLoaderRoute: typeof SiteUnsubscribeTokenRouteImport
       parentRoute: typeof SiteRoute
+    }
+    '/_app/inbox/approvals/': {
+      id: '/_app/inbox/approvals/'
+      path: '/inbox/approvals'
+      fullPath: '/inbox/approvals/'
+      preLoaderRoute: typeof AppInboxApprovalsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/inbox/approvals/$draftId': {
+      id: '/_app/inbox/approvals/$draftId'
+      path: '/inbox/approvals/$draftId'
+      fullPath: '/inbox/approvals/$draftId'
+      preLoaderRoute: typeof AppInboxApprovalsDraftIdRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/prospects/imports/': {
       id: '/_app/prospects/imports/'
@@ -987,12 +1045,15 @@ interface AppRouteChildren {
   AppAnalyticsCampaignsRoute: typeof AppAnalyticsCampaignsRoute
   AppAnalyticsRepsRoute: typeof AppAnalyticsRepsRoute
   AppInboxConversationIdRoute: typeof AppInboxConversationIdRoute
+  AppInboxPolicyRoute: typeof AppInboxPolicyRoute
   AppProspectsProspectIdRoute: typeof AppProspectsProspectIdRoute
   AppProspectsImportsRoute: typeof AppProspectsImportsRouteWithChildren
   AppProspectsNewRoute: typeof AppProspectsNewRoute
   AppAnalyticsIndexRoute: typeof AppAnalyticsIndexRoute
   AppInboxIndexRoute: typeof AppInboxIndexRoute
   AppProspectsIndexRoute: typeof AppProspectsIndexRoute
+  AppInboxApprovalsDraftIdRoute: typeof AppInboxApprovalsDraftIdRoute
+  AppInboxApprovalsIndexRoute: typeof AppInboxApprovalsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -1012,12 +1073,15 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsCampaignsRoute: AppAnalyticsCampaignsRoute,
   AppAnalyticsRepsRoute: AppAnalyticsRepsRoute,
   AppInboxConversationIdRoute: AppInboxConversationIdRoute,
+  AppInboxPolicyRoute: AppInboxPolicyRoute,
   AppProspectsProspectIdRoute: AppProspectsProspectIdRoute,
   AppProspectsImportsRoute: AppProspectsImportsRouteWithChildren,
   AppProspectsNewRoute: AppProspectsNewRoute,
   AppAnalyticsIndexRoute: AppAnalyticsIndexRoute,
   AppInboxIndexRoute: AppInboxIndexRoute,
   AppProspectsIndexRoute: AppProspectsIndexRoute,
+  AppInboxApprovalsDraftIdRoute: AppInboxApprovalsDraftIdRoute,
+  AppInboxApprovalsIndexRoute: AppInboxApprovalsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

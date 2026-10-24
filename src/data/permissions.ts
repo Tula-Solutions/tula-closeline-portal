@@ -6,6 +6,8 @@ import {
   AUDIT_READ_ROLES,
   CONSENT_ADMIN_ROLES,
   EXPORT_ROLES,
+  INBOX_ADMIN_ROLES,
+  INBOX_REVIEW_ROLES,
   INVITABLE_ROLES,
   type InvitableRole,
   type Role,
@@ -39,6 +41,10 @@ export const can = {
   manageTeams: (role: Role) => roleAtLeast(role, 'admin'),
   /** The roles the contract gives the Line routes (Owner and Admin) add, assign and release Lines. */
   manageLines: (role: Role) => VOICE_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** Owner and Admin set which Drafts go out without a person (the approval policy). */
+  manageApprovalPolicy: (role: Role) => INBOX_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** Owner, Admin and Manager read the decisions made about Drafts. */
+  viewDecisions: (role: Role) => INBOX_REVIEW_ROLES.some((allowed) => allowed === role),
   /** Creating, listing and revoking API keys. */
   manageApiKeys: (role: Role) => APIKEY_ADMIN_ROLES.some((allowed) => allowed === role),
   /** The roles the contract gives the analytics read routes (every role) open the dashboards, each within its own scope. */
