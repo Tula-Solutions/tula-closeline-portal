@@ -304,6 +304,31 @@ describe('Campaign comparison', () => {
     expect(await screen.findByRole('button', { name: 'Try again' })).toBeTruthy()
   })
 
+  test('the table asks only for a filter on its own dimension and offers no Channel or Agent', async () => {
+    const portal = visit(
+      'owner',
+      `/analytics/campaigns?${RANGE}&channel=email&agentKind=inbound&campaignId=${hexId('cpg', 1)}`,
+      campaigns
+    )
+    await screen.findByRole('table')
+    const call = portal.calls.find((c) => c.path === TABLE)
+    expect(call && query(call).get('channel')).toBeNull()
+    expect(call && query(call).get('agentKind')).toBeNull()
+    expect(call && query(call).get('campaignId')).toBe(hexId('cpg', 1))
+    expect(screen.queryByRole('combobox', { name: 'Channel' })).toBeNull()
+    expect(screen.queryByRole('combobox', { name: 'Agent' })).toBeNull()
+  })
+
+  test('a refused request is an error state, not a blank table', async () => {
+    visit(
+      'owner',
+      `/analytics/campaigns?${RANGE}`,
+      route('GET', TABLE, failure(422, ERRORS['request.invalid'].code))
+    )
+    expect(await screen.findByText(/could not be used together/i)).toBeTruthy()
+    expect(screen.queryByText('No Campaign numbers in this range')).toBeNull()
+  })
+
   test('the bar chart can compare by another count', async () => {
     const portal = visit('owner', `/analytics/campaigns?${RANGE}`, campaigns)
     await screen.findByRole('table')
@@ -406,7 +431,7 @@ describe('CSV', () => {
     }
     const portal = visit(
       'owner',
-      `/analytics/campaigns?${RANGE}&channel=email`,
+      `/analytics/campaigns?${RANGE}&campaignId=${hexId('cpg', 1)}`,
       campaigns,
       (call) => {
         if (call.path !== CSV) {
@@ -425,7 +450,7 @@ describe('CSV', () => {
     expect(await blob?.text()).toBe('group,sends\ncpg_1,100\ncpg_2,40\n')
     const csvCalls = portal.calls.filter((call) => call.path === CSV)
     expect(csvCalls.length).toBe(2)
-    expect(query(csvCalls[0] as Call).get('channel')).toBe('email')
+    expect(query(csvCalls[0] as Call).get('campaignId')).toBe(hexId('cpg', 1))
     expect(query(csvCalls[0] as Call).get('groupBy')).toBe('campaign')
   })
 

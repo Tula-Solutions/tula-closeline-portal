@@ -172,21 +172,13 @@ export function ComparisonScreen(props: {
   ) => void
 }) {
   const { role, groupBy } = props
-  // A view sends only the filters it has a control for, so a shared address cannot narrow it unseen.
-  const { channel, agentKind, campaignId, repMembershipId, ...base } = analyticsFilter(
-    role,
-    props.search,
-    props.today
-  )
+  // Core refuses a table filtered on any dimension but the one it groups by, so each view sends
+  // only that one (Channel and Agent narrow the Overview charts, never these tables).
+  const { campaignId, repMembershipId, from, to } = analyticsFilter(role, props.search, props.today)
   const filter: AnalyticsFilter =
     groupBy === 'rep'
-      ? { ...base, ...(repMembershipId ? { repMembershipId } : {}) }
-      : {
-          ...base,
-          ...(channel ? { channel } : {}),
-          ...(agentKind ? { agentKind } : {}),
-          ...(campaignId ? { campaignId } : {}),
-        }
+      ? { from, to, ...(repMembershipId ? { repMembershipId } : {}) }
+      : { from, to, ...(campaignId ? { campaignId } : {}) }
   const problem = rangeProblem(filter.from, filter.to)
   const table = useAnalyticsTable(filter, groupBy, problem === null)
   const [compare, setCompare] = useState<CompareKey>('sends')
@@ -226,7 +218,7 @@ export function ComparisonScreen(props: {
         to={filter.to}
         today={props.today}
         search={{ ...props.search, from: filter.from, to: filter.to }}
-        dimensions={{ channelAndAgent: !isRep, rep: isRep && !own }}
+        dimensions={{ channelAndAgent: false, rep: isRep && !own }}
         onChange={props.onChange}
       />
       {problem === null ? null : <Banner kind='error'>{problem}</Banner>}

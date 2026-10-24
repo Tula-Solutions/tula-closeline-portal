@@ -17,6 +17,11 @@ export function presentAnalytics(error: unknown): ShownFailure {
         return {
           message: 'That Rep is not one of the people your numbers cover. Choose another.',
         }
+      case ERRORS['request.invalid'].code:
+        return {
+          message:
+            'Those filters could not be used together. Clear a filter or choose another range and try again.',
+        }
       case ERRORS['auth.forbidden'].code:
         return {
           message:
