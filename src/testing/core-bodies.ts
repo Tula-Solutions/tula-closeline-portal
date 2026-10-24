@@ -20,6 +20,7 @@ export function hexId(
     | 'cnv'
     | 'msg'
     | 'drf'
+    | 'dcs'
     | 'cpg',
   n: number
 ): string {
@@ -576,6 +577,96 @@ export function messageBody(
     body: `Message ${n}`,
     sentAt: '2026-10-05T10:00:00Z',
     classification: null,
+    ...overrides,
+  }
+}
+
+/** A pending Draft the Agent wrote, as core returns it: grounded in one Source and held by policy, unless overridden. */
+export function draftBody(
+  n: number,
+  overrides: Partial<{
+    conversationId: string
+    body: string
+    ungrounded: boolean
+    sources: unknown[]
+    hold: string | null
+    status: 'pending' | 'approved' | 'rejected' | 'sent' | 'superseded' | 'void'
+    confidence: number
+    checks: { name: string; passed: boolean }[]
+  }> = {}
+) {
+  const ungrounded = overrides.ungrounded ?? false
+  return {
+    id: hexId('drf', n),
+    conversationId: hexId('cnv', n),
+    author: 'agent',
+    authorMembershipId: null,
+    body: 'Thanks for the reply. Happy to walk through pricing on Thursday.',
+    reason: {
+      triggerMessageId: hexId('msg', n),
+      label: 'question',
+      strategy: 'Answer the pricing question and offer a time.',
+    },
+    sources: ungrounded ? [] : [sourceBody(1)],
+    confidence: 0.82,
+    ungrounded,
+    checks: [{ name: 'tone', passed: true }],
+    hold: ungrounded ? 'ungrounded' : 'policy',
+    status: 'pending',
+    createdAt: '2026-10-05T10:00:00Z',
+    decidedAt: null,
+    ...overrides,
+  }
+}
+
+/** A Source a Draft cites: a document chunk, unless overridden. */
+export function sourceBody(n: number, overrides: Record<string, unknown> = {}) {
+  return {
+    kind: 'document_chunk',
+    sourceRef: `chunk_${n}`,
+    dealRecordId: null,
+    documentId: hexId('doc', n),
+    outcome: null,
+    evidenceCount: 1,
+    ...overrides,
+  }
+}
+
+/** One entry of the approval queue: a pending Draft the caller may decide, unless overridden. */
+export function queueItemBody(
+  n: number,
+  overrides: Partial<{ canApprove: boolean; channel: string; draft: Record<string, unknown> }> = {}
+) {
+  const { draft, ...rest } = overrides
+  return {
+    draft: { ...draftBody(n), ...draft },
+    channel: 'email',
+    prospectId: hexId('prs', n),
+    ownerMembershipId: hexId('mem', 1),
+    canApprove: true,
+    ...rest,
+  }
+}
+
+/** The approval policy of one channel: every Draft needs approval, unless overridden. */
+export function policyBody(
+  channel: 'email' | 'linkedin' | 'chat',
+  rule: unknown = { mode: 'always' }
+) {
+  return { channel, rule, updatedAt: null, updatedByMembershipId: null }
+}
+
+/** A decision about a Draft: an approval, unless overridden. */
+export function decisionBody(n: number, overrides: Record<string, unknown> = {}) {
+  return {
+    id: hexId('dcs', n),
+    conversationId: hexId('cnv', n),
+    draftId: hexId('drf', n),
+    kind: 'approve',
+    decidedByMembershipId: hexId('mem', 1),
+    note: null,
+    acknowledgedUngrounded: false,
+    decidedAt: '2026-10-05T11:00:00Z',
     ...overrides,
   }
 }

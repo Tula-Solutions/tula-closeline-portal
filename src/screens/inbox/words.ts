@@ -1,6 +1,9 @@
 import type {
   ConversationController,
   ConversationState,
+  DecisionKind,
+  DraftHoldReason,
+  DraftStatus,
   InboxChannel,
   ReplyLabel,
 } from 'tula-closeline-contract'
@@ -41,4 +44,33 @@ export function writerWord(controller: ConversationController, repName: string |
     return 'The Agent'
   }
   return repName === undefined ? 'A Rep' : repName
+}
+
+/** Why a Draft waits for a person, in plain words. */
+export const HOLD_WORD: Record<DraftHoldReason, string> = {
+  policy: 'Your approval policy asks for a person to review it.',
+  ungrounded: 'It cites nothing from your Playbook.',
+  check_failed: 'One of its checks failed.',
+  escalated: 'The Prospect needs a person.',
+  first_message: 'It is the first message to this Prospect.',
+}
+
+/** The words for a decision recorded against a Draft. */
+export const DECISION_WORD: Record<DecisionKind, string> = {
+  approve: 'Approved',
+  edit_approve: 'Edited and approved',
+  reject: 'Rejected',
+  auto_release: 'Released by policy',
+  takeover: 'Rep took over',
+  hand_back: 'Handed back to the Agent',
+}
+
+/** The words for a Draft's status. */
+export const DRAFT_STATUS_WORD: Record<DraftStatus, string> = {
+  pending: 'Waiting for a decision',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  sent: 'Approved and sent',
+  superseded: 'Replaced by a newer Draft',
+  void: 'No longer needed',
 }

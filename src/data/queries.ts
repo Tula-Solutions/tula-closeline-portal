@@ -31,6 +31,7 @@ import {
 } from 'tula-closeline-contract'
 import type { AnalyticsFilter } from '~/api/analytics'
 import type { ApiKeysPage } from '~/api/api-keys'
+import type { ApprovalFilter, ApprovalQueuePage, DecisionsPage } from '~/api/approvals'
 import type { AuditFilter, AuditPage } from '~/api/audit'
 import type {
   ConsentEventsPage,
@@ -443,6 +444,89 @@ export function useConversationMessages(conversationId: string) {
     enabled: organizationId !== '',
   })
   return pagedState(query)
+}
+
+/** The Drafts waiting for a decision, oldest first, a page at a time; `enabled` false makes no request. */
+export function useApprovalQueue(filter: ApprovalFilter, enabled = true) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ApprovalQueuePage,
+    Error,
+    InfiniteData<ApprovalQueuePage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [
+      ...KEYS.inbox(organizationId),
+      'approvals',
+      filter.channel ?? '',
+      filter.conversationId ?? '',
+    ],
+    queryFn: ({ pageParam, signal }) =>
+      app.approvals.listApprovals({ ...filter, cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedStateBy(query, (item) => item.draft.id)
+}
+
+/** One Draft. */
+export function useDraft(draftId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'draft', draftId],
+    queryFn: ({ signal }) => app.approvals.getDraft(draftId, signal),
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The passages a Draft cites; a failure here leaves the Draft itself readable. */
+export function useDraftSources(draftId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'draft-sources', draftId],
+    queryFn: ({ signal }) => app.approvals.getDraftSources(draftId, signal),
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The decisions about one Draft, newest first; `enabled` is false for a role that may not read them (no request is made). */
+export function useDraftDecisions(draftId: string, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    DecisionsPage,
+    Error,
+    InfiniteData<DecisionsPage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.inbox(organizationId), 'decisions', draftId],
+    queryFn: ({ pageParam, signal }) =>
+      app.approvals.listDecisions(draftId, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** The approval policy of each channel; `enabled` is false for a role that may not read it (no request is made). */
+export function useApprovalPolicies(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'policies'],
+    queryFn: ({ signal }) => app.approvals.listPolicies(signal),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
 }
 
 /** The Playbook documents in one state (or, with none, every document that is not deleted), a page at a time. */

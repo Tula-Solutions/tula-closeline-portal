@@ -73,6 +73,9 @@ export const fingerprint = {
     JSON.stringify(['consent-wording', wordingId, body]),
   /** Adding an address to Suppression with this body (as JSON). */
   suppression: (body: string) => JSON.stringify(['suppression', body]),
+  /** Deciding the Draft `draftId`: `kind` is approve, edit-approve or reject, `body` the request as JSON text (so the same decision is the same intent). */
+  draftDecision: (draftId: string, kind: 'approve' | 'edit-approve' | 'reject', body: string) =>
+    JSON.stringify(['draft-decision', draftId, kind, body]),
   /** Adding `membershipId` to the Team `teamId`. */
   teamMember: (teamId: string, membershipId: string) =>
     JSON.stringify(['team-member', teamId, membershipId]),
