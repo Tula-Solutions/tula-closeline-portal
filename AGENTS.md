@@ -76,6 +76,10 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
   returned by create lives only in the dialog's component state: never stored, logged or put in a
   URL, and gone when the dialog closes. Key names are untrusted (`Untrusted`). Errors are worded by
   `presentApiKey` (`src/api/api-key-messages.ts`).
+- Inbox (`src/screens/inbox/`, core; routes `/inbox` and `/inbox/$conversationId`): any role; core limits a
+  Rep to their own Conversations, the screen sends no owner filter. Message bodies render as text only. The list
+  shows no Prospect names (no N+1); the Conversation view resolves the Prospect and, only for roles that may
+  list members, the Rep name (otherwise "A Rep").
 - Developers (`src/screens/DevelopersScreen.tsx`): renders the vendored public OpenAPI document
   (`openapi/public.openapi.json`, refreshed with `bun run vendor:public -- --from <hub clone>`) and
   calls no private route. Visible to every role.

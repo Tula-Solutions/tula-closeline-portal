@@ -13,6 +13,9 @@ const TONES: Record<string, Tone> = {
   transcribing: 'info',
   uploaded: 'info',
   awaiting_rep: 'warning',
+  agent: 'info',
+  awaiting_approval: 'warning',
+  escalated: 'danger',
   open: 'neutral',
   deleted: 'neutral',
 }

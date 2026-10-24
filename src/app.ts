@@ -6,6 +6,7 @@ import { type ConsentApi, createConsentApi } from '~/api/consent'
 import { type CoreApi, createCoreApi } from '~/api/core'
 import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
+import { createInboxApi, type InboxApi } from '~/api/inbox'
 import { createMarketingApi, type MarketingApi } from '~/api/marketing'
 import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
 import { createSalesHistoryApi, type SalesHistoryApi } from '~/api/sales-history'
@@ -25,6 +26,7 @@ export type App = {
   readonly playbook: PlaybookApi
   readonly voice: VoiceApi
   readonly apiKeys: ApiKeysApi
+  readonly inbox: InboxApi
   /** Contact Consent on a Prospect, and the Suppression list. */
   readonly consent: ConsentApi
   /** The public marketing route (the Demo Request form); sends no token. */
@@ -143,6 +145,7 @@ export function createApp(init: AppInit): App {
     playbook: createPlaybookApi(coreHttp),
     voice: createVoiceApi(coreHttp),
     apiKeys: createApiKeysApi(coreHttp),
+    inbox: createInboxApi(coreHttp),
     consent: createConsentApi(coreHttp),
     marketing: createMarketingApi(coreHttp),
     unsubscribe: createUnsubscribeApi(coreHttp),
