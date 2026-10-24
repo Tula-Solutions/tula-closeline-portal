@@ -54,6 +54,10 @@ export const fingerprint = {
     JSON.stringify(['call', name, size, modified, dealId, rep]),
   /** Adding a Line with this request body (as JSON): the same body is the same intent. */
   line: (body: string) => JSON.stringify(['line', body]),
+  /** Creating an API key with this request body (as JSON): the same name, scopes, ceiling and expiry are the same intent. */
+  apiKey: (body: string) => JSON.stringify(['api-key', body]),
+  /** Revoking the API key `apiKeyId`. */
+  apiKeyRevoke: (apiKeyId: string) => JSON.stringify(['api-key-revoke', apiKeyId]),
   /** Recording a grant on a Prospect with this body (as JSON): the same grant is the same intent. */
   consentGrant: (prospectId: string, body: string) =>
     JSON.stringify(['consent-grant', prospectId, body]),

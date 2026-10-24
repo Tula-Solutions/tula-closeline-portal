@@ -1,4 +1,5 @@
 import {
+  APIKEY_ADMIN_ROLES,
   CONSENT_ADMIN_ROLES,
   INVITABLE_ROLES,
   type InvitableRole,
@@ -32,6 +33,8 @@ export const can = {
   /** Owner and Admin create, rename and delete Teams and change who is in them. */
   manageTeams: (role: Role) => roleAtLeast(role, 'admin'),
   /** The roles the contract gives the Line routes (Owner and Admin) add, assign and release Lines. */
+  /** Creating, listing and revoking API keys. */
+  manageApiKeys: (role: Role) => APIKEY_ADMIN_ROLES.some((allowed) => allowed === role),
   manageLines: (role: Role) => VOICE_ADMIN_ROLES.some((allowed) => allowed === role),
   /** The roles the contract gives the Suppression routes (Owner and Admin) list, add and remove entries. */
   manageSuppression: (role: Role) => CONSENT_ADMIN_ROLES.some((allowed) => allowed === role),

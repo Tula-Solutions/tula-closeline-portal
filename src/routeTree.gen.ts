@@ -13,7 +13,9 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as SiteRouteImport } from './routes/_site'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppApiKeysRouteImport } from './routes/_app/api-keys'
 import { Route as AppConsentWordingsRouteImport } from './routes/_app/consent-wordings'
+import { Route as AppDevelopersRouteImport } from './routes/_app/developers'
 import { Route as AppInvitationsRouteImport } from './routes/_app/invitations'
 import { Route as AppLinesRouteImport } from './routes/_app/lines'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
@@ -65,9 +67,19 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppApiKeysRoute = AppApiKeysRouteImport.update({
+  id: '/api-keys',
+  path: '/api-keys',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConsentWordingsRoute = AppConsentWordingsRouteImport.update({
   id: '/consent-wordings',
   path: '/consent-wordings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDevelopersRoute = AppDevelopersRouteImport.update({
+  id: '/developers',
+  path: '/developers',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInvitationsRoute = AppInvitationsRouteImport.update({
@@ -245,7 +257,9 @@ const AppSalesHistoryImportsImportIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/api-keys': typeof AppApiKeysRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
+  '/developers': typeof AppDevelopersRoute
   '/invitations': typeof AppInvitationsRoute
   '/lines': typeof AppLinesRoute
   '/members': typeof AppMembersRoute
@@ -282,7 +296,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
+  '/api-keys': typeof AppApiKeysRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
+  '/developers': typeof AppDevelopersRoute
   '/invitations': typeof AppInvitationsRoute
   '/lines': typeof AppLinesRoute
   '/members': typeof AppMembersRoute
@@ -319,7 +335,9 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
   '/_site': typeof SiteRouteWithChildren
+  '/_app/api-keys': typeof AppApiKeysRoute
   '/_app/consent-wordings': typeof AppConsentWordingsRoute
+  '/_app/developers': typeof AppDevelopersRoute
   '/_app/invitations': typeof AppInvitationsRoute
   '/_app/lines': typeof AppLinesRoute
   '/_app/members': typeof AppMembersRoute
@@ -359,7 +377,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/api-keys'
     | '/consent-wordings'
+    | '/developers'
     | '/invitations'
     | '/lines'
     | '/members'
@@ -396,7 +416,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/api-keys'
     | '/consent-wordings'
+    | '/developers'
     | '/invitations'
     | '/lines'
     | '/members'
@@ -432,7 +454,9 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_public'
     | '/_site'
+    | '/_app/api-keys'
     | '/_app/consent-wordings'
+    | '/_app/developers'
     | '/_app/invitations'
     | '/_app/lines'
     | '/_app/members'
@@ -505,11 +529,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/api-keys': {
+      id: '/_app/api-keys'
+      path: '/api-keys'
+      fullPath: '/api-keys'
+      preLoaderRoute: typeof AppApiKeysRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/consent-wordings': {
       id: '/_app/consent-wordings'
       path: '/consent-wordings'
       fullPath: '/consent-wordings'
       preLoaderRoute: typeof AppConsentWordingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/developers': {
+      id: '/_app/developers'
+      path: '/developers'
+      fullPath: '/developers'
+      preLoaderRoute: typeof AppDevelopersRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/invitations': {
@@ -800,7 +838,9 @@ const AppProspectsImportsRouteWithChildren =
   AppProspectsImportsRoute._addFileChildren(AppProspectsImportsRouteChildren)
 
 interface AppRouteChildren {
+  AppApiKeysRoute: typeof AppApiKeysRoute
   AppConsentWordingsRoute: typeof AppConsentWordingsRoute
+  AppDevelopersRoute: typeof AppDevelopersRoute
   AppInvitationsRoute: typeof AppInvitationsRoute
   AppLinesRoute: typeof AppLinesRoute
   AppMembersRoute: typeof AppMembersRoute
@@ -816,7 +856,9 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppApiKeysRoute: AppApiKeysRoute,
   AppConsentWordingsRoute: AppConsentWordingsRoute,
+  AppDevelopersRoute: AppDevelopersRoute,
   AppInvitationsRoute: AppInvitationsRoute,
   AppLinesRoute: AppLinesRoute,
   AppMembersRoute: AppMembersRoute,
