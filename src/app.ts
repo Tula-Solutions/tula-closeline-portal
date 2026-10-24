@@ -8,6 +8,7 @@ import { type CoreApi, createCoreApi } from '~/api/core'
 import { createExportsApi, type ExportsApi } from '~/api/exports'
 import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
+import { createInboxApi, type InboxApi } from '~/api/inbox'
 import { createMarketingApi, type MarketingApi } from '~/api/marketing'
 import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
 import { createSalesHistoryApi, type SalesHistoryApi } from '~/api/sales-history'
@@ -27,6 +28,7 @@ export type App = {
   readonly playbook: PlaybookApi
   readonly voice: VoiceApi
   readonly apiKeys: ApiKeysApi
+  readonly inbox: InboxApi
   /** The audit log: events, the CSV and the hash-chain check. */
   readonly audit: AuditApi
   /** The Organization data export: request, watch, download. */
@@ -149,6 +151,7 @@ export function createApp(init: AppInit): App {
     playbook: createPlaybookApi(coreHttp),
     voice: createVoiceApi(coreHttp),
     apiKeys: createApiKeysApi(coreHttp),
+    inbox: createInboxApi(coreHttp),
     audit: createAuditApi(coreHttp),
     exports: createExportsApi(coreHttp),
     consent: createConsentApi(coreHttp),

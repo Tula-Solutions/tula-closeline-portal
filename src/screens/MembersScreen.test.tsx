@@ -347,6 +347,7 @@ describe('navigation', () => {
       [
         'Home',
         'Prospects',
+        'Inbox',
         'Members',
         'Invitations',
         'Teams',
@@ -366,6 +367,7 @@ describe('navigation', () => {
       [
         'Home',
         'Prospects',
+        'Inbox',
         'Members',
         'Invitations',
         'Teams',
@@ -385,6 +387,7 @@ describe('navigation', () => {
       [
         'Home',
         'Prospects',
+        'Inbox',
         'Members',
         'Teams',
         'Audit log',
@@ -393,7 +396,7 @@ describe('navigation', () => {
         'Playbook',
       ],
     ],
-    ['rep', ['Home', 'Prospects', 'Teams', 'Developers', 'Consent Wording', 'Playbook']],
+    ['rep', ['Home', 'Prospects', 'Inbox', 'Teams', 'Developers', 'Consent Wording', 'Playbook']],
   ] as const)('%s sees %j', async (role, links) => {
     visit(role, route('GET', MEMBERS, json(200, page([]))))
     const nav = await screen.findByRole('navigation', { name: 'Main' })
