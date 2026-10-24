@@ -24,6 +24,7 @@ import {
   type Role,
 } from 'tula-closeline-contract'
 import type { ApiKeysPage } from '~/api/api-keys'
+import type { AuditFilter, AuditPage } from '~/api/audit'
 import type {
   ConsentEventsPage,
   ConsentWordingsPage,
@@ -31,6 +32,7 @@ import type {
   SuppressionPage,
 } from '~/api/consent'
 import type { ProspectFilter } from '~/api/core'
+import type { ExportsPage } from '~/api/exports'
 import type { CallsPage } from '~/api/sales-history'
 import type { LinesPage } from '~/api/voice'
 import type { App } from '~/app'
@@ -57,6 +59,10 @@ export const KEYS = {
   prospectImports: (organizationId: string) => [organizationId, 'prospect-imports'] as const,
   /** Every cached list of Calls, whatever its filters. */
   calls: (organizationId: string) => [organizationId, 'calls'] as const,
+  /** Every cached list of audit events, whatever its filter. */
+  audit: (organizationId: string) => [organizationId, 'audit'] as const,
+  /** The export jobs of the Organization. */
+  exports: (organizationId: string) => [organizationId, 'exports'] as const,
   /** Every cached read about Prospects (lists and single Prospects): invalidate this after one changes. */
   prospects: (organizationId: string) => [organizationId, 'prospects'] as const,
   /** Every cached read about Prospect Companies. */
@@ -258,6 +264,56 @@ export function useApiKeys(enabled: boolean) {
     initialPageParam: undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** The audit events matching a filter, newest first and a page at a time. `enabled` is false for a role that may not read them. */
+export function useAuditEvents(filter: AuditFilter, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    AuditPage,
+    Error,
+    InfiniteData<AuditPage, string | undefined>,
+    readonly [string, string, string],
+    string | undefined
+  >({
+    queryKey: [...KEYS.audit(organizationId), JSON.stringify(filter)],
+    queryFn: ({ pageParam, signal }) =>
+      app.audit.listAuditEvents(filter, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** How often a list with an export in progress asks again, in milliseconds. */
+export const EXPORT_POLL_MS = 4000
+
+/** The export jobs, newest first; the list asks again every few seconds while any job is queued or running. */
+export function useExports(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ExportsPage,
+    Error,
+    InfiniteData<ExportsPage, string | undefined>,
+    readonly [string, string],
+    string | undefined
+  >({
+    queryKey: KEYS.exports(organizationId),
+    queryFn: ({ pageParam, signal }) => app.exports.listExports({ cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+    refetchInterval: (current) =>
+      current.state.data?.pages.some((page) =>
+        page.items.some((job) => job.state === 'queued' || job.state === 'running')
+      )
+        ? EXPORT_POLL_MS
+        : false,
   })
   return pagedState(query)
 }

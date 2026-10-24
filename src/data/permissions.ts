@@ -1,6 +1,9 @@
 import {
   APIKEY_ADMIN_ROLES,
+  AUDIT_ADMIN_ROLES,
+  AUDIT_READ_ROLES,
   CONSENT_ADMIN_ROLES,
+  EXPORT_ROLES,
   INVITABLE_ROLES,
   type InvitableRole,
   type Role,
@@ -36,6 +39,12 @@ export const can = {
   manageLines: (role: Role) => VOICE_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Creating, listing and revoking API keys. */
   manageApiKeys: (role: Role) => APIKEY_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** The roles the contract gives the audit read routes (Owner, Admin, Manager) see the audit log; a Manager sees only events about their Team's Prospects. */
+  viewAudit: (role: Role) => AUDIT_READ_ROLES.some((allowed) => allowed === role),
+  /** The roles the contract gives the audit CSV and verification routes (Owner, Admin). */
+  manageAudit: (role: Role) => AUDIT_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** The roles the contract gives the export routes (Owner, Admin) request and download an export. */
+  manageExports: (role: Role) => EXPORT_ROLES.some((allowed) => allowed === role),
   /** The roles the contract gives the Suppression routes (Owner and Admin) list, add and remove entries. */
   manageSuppression: (role: Role) => CONSENT_ADMIN_ROLES.some((allowed) => allowed === role),
   /** The roles the contract gives the Consent Wording write routes (Owner and Admin); every role reads them. */

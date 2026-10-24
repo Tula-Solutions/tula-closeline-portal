@@ -14,8 +14,10 @@ import { Route as PublicRouteImport } from './routes/_public'
 import { Route as SiteRouteImport } from './routes/_site'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppApiKeysRouteImport } from './routes/_app/api-keys'
+import { Route as AppAuditRouteImport } from './routes/_app/audit'
 import { Route as AppConsentWordingsRouteImport } from './routes/_app/consent-wordings'
 import { Route as AppDevelopersRouteImport } from './routes/_app/developers'
+import { Route as AppExportRouteImport } from './routes/_app/export'
 import { Route as AppInvitationsRouteImport } from './routes/_app/invitations'
 import { Route as AppLinesRouteImport } from './routes/_app/lines'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
@@ -72,6 +74,11 @@ const AppApiKeysRoute = AppApiKeysRouteImport.update({
   path: '/api-keys',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAuditRoute = AppAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppConsentWordingsRoute = AppConsentWordingsRouteImport.update({
   id: '/consent-wordings',
   path: '/consent-wordings',
@@ -80,6 +87,11 @@ const AppConsentWordingsRoute = AppConsentWordingsRouteImport.update({
 const AppDevelopersRoute = AppDevelopersRouteImport.update({
   id: '/developers',
   path: '/developers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExportRoute = AppExportRouteImport.update({
+  id: '/export',
+  path: '/export',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInvitationsRoute = AppInvitationsRouteImport.update({
@@ -258,8 +270,10 @@ const AppSalesHistoryImportsImportIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/api-keys': typeof AppApiKeysRoute
+  '/audit': typeof AppAuditRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
+  '/export': typeof AppExportRoute
   '/invitations': typeof AppInvitationsRoute
   '/lines': typeof AppLinesRoute
   '/members': typeof AppMembersRoute
@@ -297,8 +311,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/api-keys': typeof AppApiKeysRoute
+  '/audit': typeof AppAuditRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
+  '/export': typeof AppExportRoute
   '/invitations': typeof AppInvitationsRoute
   '/lines': typeof AppLinesRoute
   '/members': typeof AppMembersRoute
@@ -336,8 +352,10 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_site': typeof SiteRouteWithChildren
   '/_app/api-keys': typeof AppApiKeysRoute
+  '/_app/audit': typeof AppAuditRoute
   '/_app/consent-wordings': typeof AppConsentWordingsRoute
   '/_app/developers': typeof AppDevelopersRoute
+  '/_app/export': typeof AppExportRoute
   '/_app/invitations': typeof AppInvitationsRoute
   '/_app/lines': typeof AppLinesRoute
   '/_app/members': typeof AppMembersRoute
@@ -378,8 +396,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/api-keys'
+    | '/audit'
     | '/consent-wordings'
     | '/developers'
+    | '/export'
     | '/invitations'
     | '/lines'
     | '/members'
@@ -417,8 +437,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/api-keys'
+    | '/audit'
     | '/consent-wordings'
     | '/developers'
+    | '/export'
     | '/invitations'
     | '/lines'
     | '/members'
@@ -455,8 +477,10 @@ export interface FileRouteTypes {
     | '/_public'
     | '/_site'
     | '/_app/api-keys'
+    | '/_app/audit'
     | '/_app/consent-wordings'
     | '/_app/developers'
+    | '/_app/export'
     | '/_app/invitations'
     | '/_app/lines'
     | '/_app/members'
@@ -536,6 +560,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppApiKeysRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/audit': {
+      id: '/_app/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AppAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/consent-wordings': {
       id: '/_app/consent-wordings'
       path: '/consent-wordings'
@@ -548,6 +579,13 @@ declare module '@tanstack/react-router' {
       path: '/developers'
       fullPath: '/developers'
       preLoaderRoute: typeof AppDevelopersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/export': {
+      id: '/_app/export'
+      path: '/export'
+      fullPath: '/export'
+      preLoaderRoute: typeof AppExportRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/invitations': {
@@ -839,8 +877,10 @@ const AppProspectsImportsRouteWithChildren =
 
 interface AppRouteChildren {
   AppApiKeysRoute: typeof AppApiKeysRoute
+  AppAuditRoute: typeof AppAuditRoute
   AppConsentWordingsRoute: typeof AppConsentWordingsRoute
   AppDevelopersRoute: typeof AppDevelopersRoute
+  AppExportRoute: typeof AppExportRoute
   AppInvitationsRoute: typeof AppInvitationsRoute
   AppLinesRoute: typeof AppLinesRoute
   AppMembersRoute: typeof AppMembersRoute
@@ -857,8 +897,10 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppApiKeysRoute: AppApiKeysRoute,
+  AppAuditRoute: AppAuditRoute,
   AppConsentWordingsRoute: AppConsentWordingsRoute,
   AppDevelopersRoute: AppDevelopersRoute,
+  AppExportRoute: AppExportRoute,
   AppInvitationsRoute: AppInvitationsRoute,
   AppLinesRoute: AppLinesRoute,
   AppMembersRoute: AppMembersRoute,

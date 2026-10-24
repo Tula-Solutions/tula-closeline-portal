@@ -198,6 +198,8 @@ export function Shell() {
             <NavLink to='/teams'>Teams</NavLink>
             {can.manageLines(role) ? <NavLink to='/lines'>Lines</NavLink> : null}
             {can.manageApiKeys(role) ? <NavLink to='/api-keys'>API keys</NavLink> : null}
+            {can.viewAudit(role) ? <NavLink to='/audit'>Audit log</NavLink> : null}
+            {can.manageExports(role) ? <NavLink to='/export'>Data export</NavLink> : null}
             <NavLink to='/developers'>Developers</NavLink>
             <NavLink to='/consent-wordings'>Consent Wording</NavLink>
             {can.manageSuppression(role) ? <NavLink to='/suppression'>Suppression</NavLink> : null}
