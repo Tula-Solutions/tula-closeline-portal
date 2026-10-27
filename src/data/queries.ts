@@ -345,6 +345,18 @@ export function useAssessments(filter: AssessmentFilter, enabled: boolean) {
   return pagedState(query)
 }
 
+/** The Call turns around an assessed turn; `enabled` is false for a Draft, a role that may not review, or before it is asked for. Not retried: the screen offers Try again. */
+export function useAssessmentTranscript(assessmentId: string, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.assessments(organizationId), 'transcript', assessmentId],
+    queryFn: ({ signal }) => app.assessments.getTranscript(assessmentId, 3, signal),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+}
+
 /** The most pages of weekly rates one chart reads (100 weeks each), so a long range cannot loop. */
 const MAX_RATE_PAGES = 5
 

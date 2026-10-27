@@ -28,3 +28,23 @@ export function presentAssessment(error: unknown): ShownFailure {
   }
   return presentManage(error)
 }
+
+/**
+ * Words for a failed read of a Call's transcript, by the contract's code: a Draft or an unknown Call
+ * is the same not found, and voice being down is told apart from a slow answer.
+ */
+export function presentTranscript(error: unknown): ShownFailure {
+  if (error instanceof ApiError) {
+    switch (error.code) {
+      case ASSESSMENT_ERRORS['assessment.not_found'].code:
+        return { message: 'The transcript for this turn is not available. Reload the list.' }
+      case ERRORS['server.unavailable'].code:
+        return { message: 'The transcript could not be reached just now. Try again in a moment.' }
+      case ERRORS['server.timeout'].code:
+        return { message: 'The transcript took too long to load. Try again.' }
+      default:
+        break
+    }
+  }
+  return presentAssessment(error)
+}

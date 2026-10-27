@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { screen, waitFor, within } from '@testing-library/react'
 import axe from 'axe-core'
-import { ASSESSMENT_ERRORS, IDEMPOTENCY_KEY_HEADER } from 'tula-closeline-contract'
+import { ASSESSMENT_ERRORS, ERRORS, IDEMPOTENCY_KEY_HEADER } from 'tula-closeline-contract'
 import { draftBody, hexId, page } from '~/testing/core-bodies'
 import { type Call, failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
@@ -120,6 +120,19 @@ const draft: Handler = route(
   )
 )
 
+const turns = {
+  around: 4,
+  turns: [
+    { index: 3, role: 'prospect', text: 'We are already with a competitor.' },
+    { index: 4, role: 'agent', text: 'We will save you 40% for certain.' },
+    { index: 5, role: 'prospect', text: 'Send the details.' },
+  ],
+}
+
+function transcript(handler: (call: Call) => Response | Promise<Response>): Handler {
+  return route('GET', `${LIST}/${hexId('asm', 2)}/transcript`, handler)
+}
+
 let dark = false
 beforeEach(() => {
   dark = document.documentElement.classList.contains('dark')
@@ -167,11 +180,101 @@ describe('Assessments review', () => {
     })
   })
 
-  test('quotes the offending sentence of a Draft on request, and says why a Call turn has none', async () => {
+  test('quotes the offending sentence of a Draft on request', async () => {
     const portal = visit('owner', '/assessments', list, rates, draft)
     await portal.user.click(await screen.findByRole('button', { name: 'Quote the sentence' }))
     expect(await screen.findByText(/We guarantee a 40% saving\./)).toBeTruthy()
-    expect(screen.getByText(/transcript is not available here yet/)).toBeTruthy()
+    expect(screen.getByText(/Characters 22 to 48 of turn 5\./)).toBeTruthy()
+  })
+
+  test('reads the turns around a Call turn on request, in order, with the assessed one marked', async () => {
+    let asked: Call | undefined
+    const portal = visit(
+      'admin',
+      '/assessments',
+      list,
+      rates,
+      transcript((call) => {
+        asked = call
+        return json(200, turns)
+      })
+    )
+    await screen.findByText('Tone, minor.')
+    expect(asked).toBeUndefined()
+    await portal.user.click(screen.getByRole('button', { name: 'Read the turns around it' }))
+    const rows = within(
+      await screen.findByRole('list', { name: /Transcript around/ })
+    ).getAllByRole('listitem')
+    expect(rows.map((row) => row.textContent)).toEqual([
+      'Prospect, turn 4We are already with a competitor.',
+      'Agent, turn 5, the assessed turnWe will save you 40% for certain.',
+      'Prospect, turn 6Send the details.',
+    ])
+    expect(asked && query(asked).get('window')).toBe('3')
+    expect(asked?.url).not.toContain('competitor')
+  })
+
+  test.each([
+    [503, ERRORS['server.unavailable'].code, /could not be reached just now/],
+    [504, ERRORS['server.timeout'].code, /took too long/],
+    [404, ASSESSMENT_ERRORS['assessment.not_found'].code, /not available\. Reload/],
+  ] as const)(
+    'says in words what a %s transcript answer means, by code, and offers Try again',
+    async (status, code, words) => {
+      let broken = true
+      const portal = visit(
+        'owner',
+        '/assessments',
+        list,
+        rates,
+        transcript(() => (broken ? failure(status, code) : json(200, turns)))
+      )
+      await portal.user.click(
+        await screen.findByRole('button', { name: 'Read the turns around it' })
+      )
+      // A read is retried with a short real backoff before the failure is shown.
+      expect(await screen.findByText(words, undefined, { timeout: 4000 })).toBeTruthy()
+      broken = false
+      await portal.user.click(screen.getByRole('button', { name: 'Try again' }))
+      expect(await screen.findByText(/We will save you 40%/)).toBeTruthy()
+    }
+  )
+
+  test('shows a loading line while the turns are read', async () => {
+    const portal = visit(
+      'owner',
+      '/assessments',
+      list,
+      rates,
+      transcript(() => new Promise(() => {}))
+    )
+    await portal.user.click(await screen.findByRole('button', { name: 'Read the turns around it' }))
+    expect(await screen.findByText('Reading the transcript…')).toBeTruthy()
+  })
+
+  test('a Draft has no transcript button', async () => {
+    visit('owner', '/assessments', route('GET', LIST, json(200, page([assessment(1)]))), rates)
+    await screen.findByText('Unsupported claim, serious.')
+    expect(screen.queryByRole('button', { name: 'Read the turns around it' })).toBeNull()
+  })
+
+  test('the transcript passes axe in light and dark', async () => {
+    const portal = visit(
+      'owner',
+      '/assessments',
+      list,
+      rates,
+      transcript(() => json(200, turns))
+    )
+    await portal.user.click(await screen.findByRole('button', { name: 'Read the turns around it' }))
+    await screen.findByRole('list', { name: /Transcript around/ })
+    const run = async () =>
+      (
+        await axe.run(screen.getByRole('main'), { rules: { 'color-contrast': { enabled: false } } })
+      ).violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.html).join(' | ')}`)
+    expect(await run()).toEqual([])
+    document.documentElement.classList.add('dark')
+    expect(await run()).toEqual([])
   })
 
   test('puts the filters in the address and in the call', async () => {
