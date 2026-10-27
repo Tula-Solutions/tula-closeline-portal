@@ -350,7 +350,12 @@ const MAX_RATE_PAGES = 5
 
 /** The weekly failure rates over a range, oldest week first. Reads every page up to {@link MAX_RATE_PAGES}; `enabled` is false for a role that may not review them. */
 export function useAssessmentRates(
-  range: { readonly from: string; readonly to: string; readonly agentKind?: AgentKind | undefined },
+  range: {
+    readonly from: string
+    readonly to: string
+    readonly agentKind?: AgentKind | undefined
+    readonly groupBy?: 'category' | undefined
+  },
   enabled: boolean
 ) {
   const app = useApp()
@@ -368,6 +373,7 @@ export function useAssessmentRates(
       range.from,
       range.to,
       range.agentKind ?? '',
+      range.groupBy ?? '',
     ],
     queryFn: ({ pageParam, signal }) =>
       app.assessments.listRates(range, { cursor: pageParam, signal }),
@@ -384,6 +390,8 @@ export function useAssessmentRates(
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, pages])
   return {
     items: query.data?.pages.flatMap((page) => page.items) ?? [],
+    /** True when the page cap stopped the read with more weeks still to come. */
+    truncated: Boolean(hasNextPage) && pages >= MAX_RATE_PAGES,
     isPending: query.isPending,
     isError: query.isError,
     error: query.error,

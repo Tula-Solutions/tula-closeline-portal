@@ -6,6 +6,7 @@ import { can } from '~/data/permissions'
 import { useAssessmentRates, useAssessments } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { AssessmentEntry } from '~/screens/assessments/AssessmentEntry'
+import { CategoryRates } from '~/screens/assessments/CategoryRates'
 import { FailureRateChart } from '~/screens/assessments/FailureRateChart'
 import {
   type AssessmentSearch,
@@ -131,6 +132,10 @@ function Filters(props: {
 function Rates(props: { readonly search: AssessmentSearch }) {
   const range = rateRange(props.search, todayString())
   const rates = useAssessmentRates({ ...range, agentKind: props.search.agentKind }, true)
+  const byCategory = useAssessmentRates(
+    { ...range, agentKind: props.search.agentKind, groupBy: 'category' },
+    true
+  )
   return (
     <section aria-labelledby='rates-heading' className='mb-12'>
       <h2 id='rates-heading' className='m-0 border-t border-rule-strong pt-4'>
@@ -155,6 +160,38 @@ function Rates(props: { readonly search: AssessmentSearch }) {
         <p className='hint'>No output was assessed in these weeks.</p>
       ) : (
         <FailureRateChart items={rates.items} />
+      )}
+      <h3 id='category-rates-heading' className='mt-10 mb-1'>
+        By kind of finding
+      </h3>
+      <p className='hint mt-0 mb-4 max-w-[62ch]'>
+        The same weeks split by what the assessment found wrong. A dash means no rate is stated:
+        fewer than 20 records.
+      </p>
+      {byCategory.isPending ? (
+        <p role='status' className='hint'>
+          Loading the failure rate by kind of finding…
+        </p>
+      ) : byCategory.isError ? (
+        <>
+          <Banner kind='error'>{presentAssessment(byCategory.error).message}</Banner>
+          <button type='button' className='button button-quiet' onClick={byCategory.refetch}>
+            Try again
+          </button>
+        </>
+      ) : byCategory.items.length === 0 ? (
+        <p className='hint'>No output was assessed in these weeks.</p>
+      ) : (
+        <>
+          {byCategory.truncated ? (
+            <p role='status' className='hint mb-4'>
+              Showing weeks up to{' '}
+              {formatDateOnly([...byCategory.items.map((i) => i.weekStart)].sort().at(-1) ?? '')}.
+              Choose a shorter range to see later weeks.
+            </p>
+          ) : null}
+          <CategoryRates items={byCategory.items} />
+        </>
       )}
     </section>
   )
