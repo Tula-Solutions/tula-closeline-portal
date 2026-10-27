@@ -10,6 +10,7 @@ import { can } from '~/data/permissions'
 import { cn } from '~/lib/utils'
 import type { Role } from '~/session/session'
 import { Logo } from '~/ui/Logo'
+import { DUR, reveal } from '~/ui/motion'
 
 const ROLE_LABEL: Record<Role, string> = {
   owner: 'Owner',
@@ -53,6 +54,13 @@ export function Shell() {
   useEffect(() => {
     if (open) {
       closeRef.current?.focus()
+      // The links follow the drawer in, 20 ms apart.
+      reveal(asideRef.current?.querySelectorAll('nav a') ?? [], {
+        delay: 60,
+        step: 20,
+        rise: '0px',
+        duration: DUR.ui,
+      })
       return
     }
     if (returnFocus.current === 'toggle') {
@@ -133,7 +141,7 @@ export function Shell() {
       </a>
       <header
         inert={open}
-        className='sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3 md:hidden'
+        className='sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3 [view-transition-name:topbar] md:hidden'
       >
         <Button
           ref={toggleRef}
@@ -146,27 +154,33 @@ export function Shell() {
         >
           {open ? <X aria-hidden='true' /> : <Menu aria-hidden='true' />}
         </Button>
-        <span className='font-serif text-lg tracking-[-0.01em]'>Closeline</span>
+        <Logo className='w-[7.5rem]' />
       </header>
-      {open ? (
-        <button
-          type='button'
-          aria-label='Close the navigation backdrop'
-          tabIndex={-1}
-          className='fixed inset-0 z-40 bg-foreground/40 md:hidden'
-          onClick={() => close('toggle')}
-        />
-      ) : null}
+      {/* Kept mounted so it can fade out as well as in; closed, it is hidden and inert. */}
+      <button
+        type='button'
+        aria-label='Close the navigation backdrop'
+        aria-hidden={!open}
+        inert={!open}
+        tabIndex={-1}
+        className={cn(
+          'fixed inset-0 z-40 bg-[rgb(26_26_24/0.48)] transition-[opacity,visibility] md:hidden',
+          open
+            ? 'visible opacity-100 duration-200 ease-(--ease-out)'
+            : 'invisible opacity-0 duration-160 ease-(--ease-in)'
+        )}
+        onClick={() => close('toggle')}
+      />
       <aside
         ref={asideRef}
         id='app-sidebar'
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-4 border-r border-sidebar-border bg-sidebar py-6 pr-5 pl-3 text-sidebar-foreground shadow-elev-3 transition-[transform,visibility] duration-200 ease-snappy md:sticky md:top-0 md:z-auto md:h-dvh md:w-auto md:max-w-none md:translate-x-0 md:shadow-none md:visible',
+          'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col gap-4 border-r border-sidebar-border bg-sidebar py-6 pr-5 pl-3 text-sidebar-foreground shadow-elev-3 transition-[transform,visibility] duration-200 ease-snappy md:sticky md:top-0 md:z-auto md:h-dvh md:w-auto md:max-w-none md:translate-x-0 md:shadow-none md:visible md:[view-transition-name:sidebar]',
           open ? 'visible translate-x-0' : 'max-md:invisible max-md:-translate-x-full'
         )}
       >
         <div className='flex items-center justify-between pl-4'>
-          <Logo className='w-28' />
+          <Logo className='w-[7.5rem]' />
           <Button
             ref={closeRef}
             variant='ghost'
@@ -278,7 +292,7 @@ export function Shell() {
         inert={open}
         id='main'
         tabIndex={-1}
-        className='relative min-w-0 px-4 py-8 outline-hidden md:px-12 md:py-12 xl:px-16'
+        className='relative min-w-0 px-4 py-8 outline-hidden [view-transition-name:page] md:px-12 md:py-12 xl:px-16'
       >
         <div className='w-full max-w-[72rem]'>
           {/* Keyed by Organization: another Organization starts every screen fresh, with no state of the last. */}

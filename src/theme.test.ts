@@ -77,7 +77,7 @@ describe('theme tokens', () => {
   })
 
   test.each(themes)('a destructive text action is underlined at 3:1 or more (%s)', (_, t) => {
-    const alpha = Number(button.match(/decoration-destructive\/(\d+)/)?.[1] ?? 100) / 100
+    const alpha = Number(button.match(/var\(--destructive\)_(\d+)%/)?.[1] ?? 100) / 100
     const red = { ...parse(t['--destructive'] as string), a: alpha }
     expect(ratio(red, parse(t['--background'] as string))).toBeGreaterThanOrEqual(3)
   })
@@ -117,11 +117,77 @@ describe('focus and paper', () => {
     expect(found).toEqual([])
   })
 
-  test('the grain is the page background, not a layer over the content, and is off in dark and more contrast', () => {
+  test('the grain is the page background, not a layer over the content, and is off under more contrast', () => {
     expect(css).not.toContain('body::before')
     expect(light['--grain']).toContain('/paper-grain.svg')
-    expect(dark['--grain']).toBe('none')
+    expect(dark['--grain']).toContain('/paper-grain-dark.svg')
     expect(moreLight['--grain']).toBe('none')
+    expect(moreDark['--grain']).toBe('none')
     expect(css).toMatch(/body\s*\{[^}]*background-image:\s*var\(--grain\)/)
+  })
+})
+
+describe('links and placeholders', () => {
+  const styles = readFileSync(new URL('./styles.css', import.meta.url), 'utf8')
+  const rule = (selector: string) => {
+    const start = styles.indexOf(`${selector} {`)
+    return start === -1 ? '' : styles.slice(start, styles.indexOf('}', start))
+  }
+
+  test('an ink link is underlined at rest by its own layer, so it reads as a link before hover', () => {
+    const link = styles.slice(styles.indexOf('.ink-link,'), styles.indexOf('.ink-link:hover'))
+    expect(link).toMatch(/linear-gradient\(var\(--ink-rest, var\(--border-strong\)\)/)
+    expect(link).toMatch(/box-decoration-break: clone/)
+  })
+
+  test('forced colours fall back to a real underline', () => {
+    const forced = styles.slice(styles.indexOf('@media (forced-colors: active)'))
+    expect(forced).toMatch(/\.ink-link[\s\S]*?text-decoration: underline/)
+  })
+
+  test('a skeleton is a still fill at rest; the shimmer waits 150 ms and only runs for motion', () => {
+    expect(rule('  .skeleton')).not.toMatch(/animation/)
+    const motion = styles.slice(styles.indexOf('@media (prefers-reduced-motion: no-preference)'))
+    expect(motion).toMatch(/skeleton-wait 150ms[\s\S]*?shimmer 1\.4s linear 150ms infinite/)
+  })
+})
+
+describe('page transitions', () => {
+  test('run in sequence: the old page is gone before the new one starts to show', () => {
+    const old = css.match(/::view-transition-old\(page\) \{\s*animation: vt-out (\d+)ms/)
+    const next = css.match(
+      /::view-transition-new\(page\) \{\s*animation: vt-in (\d+)ms \S+ (\d+)ms/
+    )
+    const outMs = Number(old?.[1])
+    const delayMs = Number(next?.[2])
+    // The new page waits until the old one is nearly out (its last 20 ms are near-transparent).
+    expect(delayMs).toBeGreaterThanOrEqual(outMs - 20)
+    expect(outMs + Number(next?.[1])).toBeLessThanOrEqual(340)
+  })
+})
+
+describe('motion under reduced motion', () => {
+  const reduced = [...css.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/g)]
+    .map((match) => match[1])
+    .join('\n')
+
+  test('CSS animations and transitions collapse, delays included, so nothing waits hidden', () => {
+    expect(reduced).toMatch(/animation-duration:\s*0\.01ms/)
+    expect(reduced).toMatch(/animation-delay:\s*0ms/)
+    expect(reduced).toMatch(/transition-duration:\s*0\.01ms/)
+  })
+
+  test('every view-transition animation is declared only for people who did not ask for less motion', () => {
+    const outside = css.replace(
+      /@media \(prefers-reduced-motion: (?:reduce|no-preference)\) \{[\s\S]*?\n\}/g,
+      ''
+    )
+    expect(outside).not.toMatch(/::view-transition-/)
+  })
+
+  test('the view-transition pseudo-elements, which the universal rule misses, are stopped too', () => {
+    expect(reduced).toMatch(
+      /::view-transition-group\(\*\),\s*::view-transition-old\(\*\),\s*::view-transition-new\(\*\)\s*\{\s*animation:\s*none;/
+    )
   })
 })

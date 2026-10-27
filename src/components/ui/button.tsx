@@ -5,7 +5,7 @@ import { cn } from '~/lib/utils'
 
 /** The look of a button: one primary action per view, the rest quieter. */
 export const buttonVariants = cva(
-  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[4px] text-sm font-semibold whitespace-nowrap transition-[background-color,color,border-color,transform,text-decoration-color] duration-150 ease-snappy outline-hidden select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:translate-y-px aria-disabled:cursor-not-allowed aria-disabled:opacity-60 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-[4px] text-sm font-semibold whitespace-nowrap transition-[background-color,background-size,color,border-color,transform] duration-150 ease-snappy outline-hidden select-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] active:duration-80 active:ease-(--ease-out) aria-disabled:cursor-not-allowed aria-disabled:opacity-60 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -16,9 +16,9 @@ export const buttonVariants = cva(
         ghost: 'text-foreground hover:bg-accent',
         /** A quiet destructive action in a row (Remove, Delete): red text, underlined on hover. */
         'ghost-destructive':
-          'px-0 font-medium text-destructive underline decoration-destructive/70 underline-offset-4 hover:decoration-current',
+          'ink-link px-0 font-medium text-destructive [--ink-rest:color-mix(in_oklab,var(--destructive)_70%,transparent)]',
         /** A text action: ink, a hairline underline that darkens on hover. */
-        link: 'px-0 font-medium text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-current',
+        link: 'ink-link px-0 font-medium text-foreground',
       },
       size: {
         default: 'h-10 px-4 py-2 pointer-coarse:h-11 max-md:h-11',

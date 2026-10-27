@@ -11,6 +11,14 @@ export function When(props: { readonly iso: string }) {
   return <time dateTime={props.iso}>{formatWhen(props.iso)}</time>
 }
 
+const LOCAL_DAY = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
+
+/** A timestamp as its local day only, such as "Oct 14"; a value that is not a date is returned as it came. */
+export function formatDay(iso: string): string {
+  const time = Date.parse(iso)
+  return Number.isNaN(time) ? iso : LOCAL_DAY.format(time)
+}
+
 const DAY = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeZone: 'UTC' })
 
 const CALENDAR_DATE = /^(\d{4})-(\d{2})-(\d{2})$/

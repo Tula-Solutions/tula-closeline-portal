@@ -51,6 +51,8 @@ describe('the tokens live in memory only', () => {
     const used = files
       .filter((file) => pattern.test(file.text))
       .filter((file) => !(_name === 'localStorage' && file.path === 'ui/theme.ts'))
+      // The second: ui/motion.ts keeps one boolean in sessionStorage (the sign-in drawing has played).
+      .filter((file) => !(_name === 'sessionStorage' && file.path === 'ui/motion.ts'))
       .map((file) => file.path)
     expect(used).toEqual([])
   })
@@ -59,6 +61,16 @@ describe('the tokens live in memory only', () => {
     const theme = files.find((file) => file.path === 'ui/theme.ts')?.text ?? ''
     expect(theme).toMatch(/localStorage/)
     expect(theme).not.toMatch(/token|session|password|email/i)
+  })
+
+  test('the motion module keeps one boolean under one fixed key, and nothing about the person', () => {
+    const motion = files.find((file) => file.path === 'ui/motion.ts')?.text ?? ''
+    const writes = [...motion.matchAll(/sessionStorage\.setItem\(([^)]*)\)/g)].map(
+      (call) => call[1]
+    )
+    expect(writes).toEqual(["PLAYED_KEY, '1'"])
+    expect(motion).toMatch(/const PLAYED_KEY = 'closeline\.intro-played'/)
+    expect(motion).not.toMatch(/localStorage|[tT]oken|password|email|organization/i)
   })
 
   test('the refresh token appears nowhere in portal code', () => {

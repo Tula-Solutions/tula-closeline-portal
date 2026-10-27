@@ -152,7 +152,7 @@ export function CallUpload() {
           autoComplete='off'
           value={dealId}
           error={problems.dealId}
-          hint='A Call for a deal id Closeline has not seen creates an open Deal. The id is sent in the request body, never in the address.'
+          hint='A Call for a deal id Closeline has not seen creates an open Deal.'
           onChange={(event) => {
             setDealId(event.target.value)
             setProblems((now) => ({ ...now, dealId: undefined }))

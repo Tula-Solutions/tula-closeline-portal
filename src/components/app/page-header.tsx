@@ -20,7 +20,7 @@ export function PageHeader(props: {
     <header
       data-slot='page-header'
       className={cn(
-        'mb-12 flex flex-wrap items-end justify-between gap-x-8 gap-y-5 motion-safe:animate-rise',
+        'mb-12 flex flex-wrap items-end justify-between gap-x-8 gap-y-5',
         props.className
       )}
     >

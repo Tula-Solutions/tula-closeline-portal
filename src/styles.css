@@ -5,12 +5,13 @@
  *
  * The language is a ledger: content on the paper, hairline rules between things, a heavier rule
  * on top of a table or section, a serif for titles and figures, mono for labels and metadata.
- * Rhythm: 8 px base. Controls are 36 px tall (44 px on a coarse pointer), radius 4 px.
+ * Rhythm: 8 px base. Controls are 40 px tall (44 px on a coarse pointer), radius 4 px: the
+ * `.button` class and the Button component are one system at one height.
  */
 @layer components {
   :root {
     --gutter: 16px;
-    --control-h: 2.25rem;
+    --control-h: 2.5rem;
     --ease: cubic-bezier(0.2, 0, 0, 1);
   }
 
@@ -26,7 +27,7 @@
 
   body {
     margin: 0;
-    background: var(--background);
+    background-color: var(--background);
     color: var(--foreground);
     font: 1rem / 1.5 var(--font-sans);
     overflow-wrap: anywhere;
@@ -118,9 +119,9 @@
   .label-mono {
     color: var(--muted-foreground);
     font-family: var(--font-mono);
-    font-size: 0.6875rem;
+    font-size: 0.71875rem;
     font-weight: 500;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.07em;
     line-height: 1.4;
     text-transform: uppercase;
   }
@@ -170,28 +171,40 @@
     outline-offset: 1px;
   }
 
+  /*
+   * A file chooser is a ledger line, not a box: a heavy rule above, a hairline below, a quiet
+   * underlined "Choose" action and the chosen name in mono.
+   */
   input[type="file"] {
+    display: block;
+    width: 100%;
     max-width: 100%;
+    padding-block: 0.75rem;
+    border-block-start: 2px solid var(--rule-strong);
+    border-block-end: 1px solid var(--border);
     color: var(--muted-foreground);
-    font-size: 0.875rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
   }
 
   input[type="file"]::file-selector-button {
-    height: var(--control-h);
-    margin-right: 0.75rem;
-    padding: 0 0.875rem;
-    border: 1px solid var(--rule-strong);
-    border-radius: var(--radius);
+    margin-right: 1rem;
+    padding: 0;
+    border: 0;
     background: transparent;
     color: var(--foreground);
-    font: inherit;
+    font-family: var(--font-sans);
     font-size: 0.875rem;
     font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--border-strong);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
     cursor: pointer;
   }
 
   input[type="file"]::file-selector-button:hover {
-    background: var(--accent);
+    text-decoration-color: currentColor;
   }
 
   /* A checkbox is a small box beside its label, not a full-width text field. */
@@ -208,8 +221,8 @@
   textarea[aria-invalid="true"],
   select[aria-invalid="true"] {
     border-color: var(--destructive);
-    border-style: dashed;
-    border-width: 2px;
+    /* The heavier rule at the start is the cue that does not rely on colour. */
+    box-shadow: inset 2px 0 0 var(--danger);
   }
 
   .field-error {
@@ -229,7 +242,7 @@
     padding: 0 0.875rem;
     border: 1px solid transparent;
     border-radius: var(--radius);
-    background: var(--primary);
+    background-color: var(--primary);
     color: var(--primary-foreground);
     font: inherit;
     font-size: 0.875rem;
@@ -247,11 +260,13 @@
   }
 
   .button:hover {
-    background: color-mix(in oklab, var(--primary) 88%, var(--foreground));
+    background-color: color-mix(in oklab, var(--primary) 88%, var(--foreground));
   }
 
+  /* A press: 98 % in 80 ms, back in 160 ms. */
   .button:active {
-    transform: translateY(1px);
+    transform: scale(0.98);
+    transition-duration: var(--dur-press);
   }
 
   .button:focus-visible {
@@ -267,13 +282,13 @@
   .button-quiet,
   .button-secondary {
     border-color: var(--rule-strong);
-    background: transparent;
+    background-color: transparent;
     color: var(--foreground);
   }
 
   .button-quiet:hover,
   .button-secondary:hover {
-    background: var(--accent);
+    background-color: var(--accent);
   }
 
   .link {
@@ -283,14 +298,79 @@
     color: var(--foreground);
     font: inherit;
     font-weight: 500;
-    text-decoration: underline;
-    text-decoration-color: var(--border-strong);
-    text-underline-offset: 0.25em;
     cursor: pointer;
   }
 
-  .link:hover {
-    text-decoration-color: currentColor;
+  /*
+   * In a ledger row or a list item's actions, a quiet action is set as text, as Remove is: no box,
+   * flush with the right edge, its underline just under the words (the button keeps its height).
+   */
+  :is(td, .row-actions) .button-quiet {
+    padding-inline: 0;
+    border-color: transparent;
+    background-color: transparent;
+    --ink-y: calc(50% + 0.8em);
+    font-weight: 500;
+  }
+
+  :is(td, .row-actions) .button-quiet:hover {
+    background-color: transparent;
+  }
+
+  /*
+   * A link set in ink. Its underline is two layers: a hairline in --border-strong across the whole
+   * word at rest (3:1, the link's cue), and an ink line that draws across on hover or focus (220 ms)
+   * and retracts when the pointer leaves (160 ms). `clone` repeats both on every line of a wrapped
+   * link, and its focus ring with them. --ink-rest swaps the resting colour (a destructive action).
+   */
+  .ink-link,
+  .link,
+  a:not([class]),
+  :is(td, .row-actions) .button-quiet {
+    text-decoration: none;
+    background-image:
+      linear-gradient(currentColor, currentColor),
+      linear-gradient(var(--ink-rest, var(--border-strong)), var(--ink-rest, var(--border-strong)));
+    background-position:
+      0 var(--ink-y, 100%),
+      0 var(--ink-y, 100%);
+    background-repeat: no-repeat;
+    background-size:
+      0% 1px,
+      100% 1px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    transition: background-size 160ms var(--ease-in);
+  }
+
+  .ink-link:hover,
+  .ink-link:focus-visible,
+  .link:hover,
+  .link:focus-visible,
+  a:not([class]):hover,
+  a:not([class]):focus-visible,
+  :is(td, .row-actions) .button-quiet:hover,
+  .ink-hover:hover .ink-link,
+  .ink-hover:focus-visible .ink-link {
+    background-size:
+      100% 1px,
+      100% 1px;
+    transition: background-size 220ms var(--ease-out);
+  }
+
+  /* A text-styled button keeps its height; its underline sits just under the words. */
+  [data-slot="button"].ink-link {
+    --ink-y: calc(50% + 0.8em);
+  }
+
+  /* Forced colours drop background images: the underline comes back as a real one. */
+  @media (forced-colors: active) {
+    .ink-link,
+    .link,
+    a:not([class]),
+    :is(td, .row-actions) .button-quiet {
+      text-decoration: underline;
+    }
   }
 
   .actions {
@@ -394,11 +474,35 @@
   }
 
   tbody tr {
-    transition: background-color 150ms var(--ease);
+    transition:
+      background-color var(--dur-hover) var(--ease-out),
+      box-shadow var(--dur-hover) var(--ease-out);
   }
 
+  /* A row under the pointer takes a 4 % ink tint and a 2 px ink rule at its start. */
   tbody tr:hover {
-    background: color-mix(in oklab, var(--foreground) 3%, transparent);
+    background-color: color-mix(in oklab, var(--foreground) 4%, transparent);
+    box-shadow: inset 2px 0 0 var(--foreground);
+  }
+
+  /*
+   * A row with one destination is one link: its .row-link stretches a box over the whole row, and
+   * any other control in the row sits above that box so it still takes its own clicks.
+   */
+  tr:has(.row-link) {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .row-link::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+  }
+
+  tr:has(.row-link) :is(a, button, select, input, label):not(.row-link) {
+    position: relative;
+    z-index: 1;
   }
 
   tbody th {
@@ -414,7 +518,8 @@
     white-space: nowrap;
   }
 
-  td time {
+  td time,
+  tbody th time {
     color: var(--muted-foreground);
     font-family: var(--font-mono);
     font-size: 0.75rem;
@@ -454,35 +559,72 @@
     color: var(--warning);
   }
 
-  /* A drop target keeps the convention people know: a dashed edge, here a quiet one. */
+  /*
+   * A drop target is a ledger "drop row": a heavy rule above and a hairline below, with no box.
+   * When a file is dragged over it a cobalt rule draws across the top in 200 ms and the row takes
+   * a faint cobalt wash, so the change is not carried by movement alone.
+   */
   .drop-area {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     min-width: 0;
     justify-items: start;
     gap: 0.5rem;
     margin: 0 0 1rem;
-    padding: 1.5rem;
-    border: 1px dashed var(--input);
-    border-radius: var(--radius);
-    background: transparent;
-    transition:
-      background-color 150ms var(--ease),
-      border-color 150ms var(--ease);
+    padding: 1rem 0;
+    border: 0;
+    border-block-start: 2px solid var(--rule-strong);
+    border-block-end: 1px solid var(--border);
+    border-radius: 0;
+    background-color: transparent;
+    transition: background-color var(--dur-hover) var(--ease-out);
+  }
+
+  .drop-area::after {
+    position: absolute;
+    inset-inline: 0;
+    top: -2px;
+    height: 2px;
+    background: var(--primary);
+    content: "";
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 200ms var(--ease-out);
   }
 
   .drop-area-over {
-    border-color: var(--foreground);
-    background: color-mix(in oklab, var(--foreground) 4%, transparent);
+    background-color: color-mix(in oklab, var(--primary) 5%, transparent);
+  }
+
+  .drop-area-over::after {
+    transform: scaleX(1);
+  }
+
+  /* Inside a drop row the chooser is just its button and name: the row draws the rules. */
+  .drop-area input[type="file"] {
+    padding-block: 0;
+    border: 0;
   }
 
   /* A confirmation after an action: a line of text with a success mark, not a coloured slab. */
   .notice {
+    position: relative;
     padding: 0.5rem 0 0.5rem 0.875rem;
-    border-inline-start: 2px solid var(--success);
     color: var(--success);
     font-size: 0.875rem;
     font-weight: 500;
+  }
+
+  /* The notice's rule is its own box, so it can grow from the top as the notice arrives. */
+  .notice::before {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 2px;
+    background: var(--success);
+    content: "";
+    transform-origin: top;
   }
 
   .notice:empty {
@@ -892,33 +1034,10 @@
   a:not([class]) {
     color: var(--foreground);
     font-weight: 500;
-    text-decoration: underline;
-    text-decoration-color: var(--border-strong);
-  }
-
-  a:not([class]):hover {
-    text-decoration-color: currentColor;
   }
 
   td > .button {
     margin-inline-end: 0.5rem;
-  }
-
-  /* In a ledger row or a list item's actions, a quiet action is set as text, as Remove is. */
-  td .button-quiet,
-  .row-actions .button-quiet {
-    padding-inline: 0.25rem;
-    border-color: transparent;
-    font-weight: 500;
-    text-decoration: underline;
-    text-decoration-color: var(--border-strong);
-    text-underline-offset: 4px;
-  }
-
-  td .button-quiet:hover,
-  .row-actions .button-quiet:hover {
-    background: transparent;
-    text-decoration-color: currentColor;
   }
 
   /* Below the md width a stacking ledger reads row by row: each row is a ruled block of its cells, in order. */
@@ -954,23 +1073,171 @@
     .ledger-stack .ledger-detail {
       display: none;
     }
+    /* A stacked cell names its column, since the header row is gone. */
+    .ledger-stack td[data-label]::before {
+      display: block;
+      margin-block-end: 0.125rem;
+      color: var(--muted-foreground);
+      content: attr(data-label);
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .ledger-stack td[data-label] {
+      grid-column: auto;
+    }
+  }
+
+  /*
+   * A placeholder shaped like what is loading. It shows nothing for its first 150 ms, so a fast
+   * answer never flashes grey, then a slow shimmer passes across it. Under reduced motion it is a
+   * still, muted fill.
+   */
+  .skeleton {
+    border-radius: 2px;
+    background-color: var(--muted);
+  }
+
+  /*
+   * A search's words in a result: a cobalt wash behind the text (a background layer, so it can
+   * sweep in), the text keeping its own colour. Forced colours use the system's Mark colours.
+   */
+  mark {
+    padding-inline: 0.08em;
+    border-radius: 2px;
+    background-color: transparent;
+    background-image: linear-gradient(
+      color-mix(in oklab, var(--primary) 18%, transparent),
+      color-mix(in oklab, var(--primary) 18%, transparent)
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    color: inherit;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  @media (forced-colors: active) {
+    mark {
+      background-color: Mark;
+      color: MarkText;
+    }
+  }
+
+  /* The check of a saved button: a stroke of length 1, drawn by moving its dash. */
+  .check-draw path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
   }
 
   @media (prefers-reduced-motion: no-preference) {
+    /* A dot whose work is under way breathes, slowly enough not to pull the eye. */
+    .status-busy {
+      animation: breathe 1.8s var(--ease-move) infinite;
+    }
+
+    mark {
+      animation: mark-sweep 400ms var(--ease-out) 200ms backwards;
+    }
+
+    .check-draw path {
+      animation: draw 260ms var(--ease-out) 60ms both;
+    }
+
     .button,
     input,
     textarea,
     select {
       transition:
-        opacity 150ms var(--ease),
-        border-color 150ms var(--ease),
-        background-color 150ms var(--ease),
-        transform 150ms var(--ease);
+        opacity var(--dur-hover) var(--ease-out),
+        border-color var(--dur-hover) var(--ease-out),
+        background-color var(--dur-hover) var(--ease-out),
+        background-size 160ms var(--ease-in),
+        transform 160ms var(--ease-out);
+    }
+
+    .skeleton {
+      background-image: linear-gradient(
+        90deg,
+        var(--muted) 0 40%,
+        color-mix(in oklab, var(--muted) 55%, var(--background)) 50%,
+        var(--muted) 60% 100%
+      );
+      background-size: 250% 100%;
+      animation:
+        skeleton-wait 150ms step-end backwards,
+        shimmer 1.4s linear 150ms infinite;
+    }
+
+    /* The rule grows down from the top, then the words fade in. */
+    .notice:not(:empty)::before {
+      animation: rule-down 140ms var(--ease-out) both;
     }
 
     .notice:not(:empty) {
-      animation: rise 200ms var(--ease) both;
+      animation: fade-text var(--dur-ui) var(--ease-out) 60ms both;
     }
+
+    /* Focus arrives a little wide and settles onto the control. */
+    .button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible,
+    [tabindex="-1"]:focus-visible {
+      animation: focus-settle var(--dur-hover) var(--ease-out);
+    }
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+
+@keyframes mark-sweep {
+  from {
+    background-size: 0% 100%;
+  }
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+@keyframes skeleton-wait {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rule-down {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+@keyframes fade-text {
+  from {
+    color: transparent;
+  }
+}
+
+@keyframes focus-settle {
+  from {
+    outline-offset: 4px;
   }
 }
 
