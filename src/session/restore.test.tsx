@@ -36,13 +36,14 @@ describe('restoring the session on load', () => {
     ).toBe('Bearer restored')
   })
 
-  test('a 401 is signed out: the sign-in screen, with no "session ended" notice', async () => {
+  test('a 401 is signed out: the public home page, with no "session ended" notice', async () => {
     const portal = renderPortal({
       url: '/',
       restore: true,
       handlers: [route('POST', REFRESH, failure(401, AUTH_ERRORS['session.invalid_token'].code))],
     })
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toBeTruthy()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(screen.queryByText('Your session has ended. Sign in again.')).toBeNull()
     expect(portal.reports).toEqual([])
   })

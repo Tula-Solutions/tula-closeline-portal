@@ -4,6 +4,7 @@ import { ERRORS, MAX_DOCUMENT_BYTES, PLAYBOOK_ERRORS } from 'tula-closeline-cont
 import { documentBody, page } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal, waitUntilGone } from '~/testing/render'
+import { optionsOf, choose as pick } from '~/testing/select'
 
 const DOCS = '/v1/playbook/documents'
 const IDEMPOTENCY = 'idempotency-key'
@@ -186,11 +187,7 @@ describe('Playbook documents: the list', () => {
     ])
     await screen.findByText('Fine.pdf')
     const filter = screen.getByLabelText('Show')
-    expect(
-      within(filter)
-        .getAllByRole('option')
-        .map((option) => option.textContent)
-    ).toEqual([
+    expect((await optionsOf(portal.user, filter)).map((option) => option.text)).toEqual([
       'All current documents',
       'Uploaded',
       'Processing',
@@ -198,7 +195,7 @@ describe('Playbook documents: the list', () => {
       'Failed',
       'Deleted (can be restored)',
     ])
-    await portal.user.selectOptions(filter, 'failed')
+    await pick(portal.user, filter, 'failed')
     await screen.findByText('Broken.pdf')
     expect(screen.queryByText('Fine.pdf')).toBeNull()
   })
@@ -324,6 +321,8 @@ describe('Playbook documents: every answer to an upload', () => {
     ],
     [403, ERRORS['auth.forbidden'].code, /role does not allow/],
     [400, ERRORS['request.invalid'].code, /could not read that file/],
+    // Retry follows the rate.limited code, not a 429 status on its own.
+    [429, ERRORS['request.invalid'].code, /could not read that file/],
   ] as const)(
     '%s %s is explained and offers no retry of the same bytes',
     async (status, code, words) => {
@@ -545,7 +544,7 @@ describe('Playbook documents: delete and restore', () => {
       ),
     ])
     await screen.findByLabelText('Show')
-    await portal.user.selectOptions(screen.getByLabelText('Show'), 'deleted')
+    await pick(portal.user, screen.getByLabelText('Show'), 'deleted')
     const row = (await screen.findByText('Pricing.pdf')).closest('tr') as HTMLElement
     expect(row.textContent).toMatch(/Restorable until .*2026/)
     await portal.user.click(within(row).getByRole('button', { name: 'Restore Pricing.pdf' }))
@@ -567,7 +566,7 @@ describe('Playbook documents: delete and restore', () => {
       ),
     ])
     await screen.findByLabelText('Show')
-    await portal.user.selectOptions(screen.getByLabelText('Show'), 'deleted')
+    await pick(portal.user, screen.getByLabelText('Show'), 'deleted')
     await portal.user.click(await screen.findByRole('button', { name: 'Restore Pricing.pdf' }))
     expect((await screen.findByRole('alert')).textContent).toMatch(/cannot be restored.*upload/i)
   })
@@ -586,7 +585,7 @@ describe('Playbook documents: delete and restore', () => {
       ),
     ])
     await screen.findByLabelText('Show')
-    await portal.user.selectOptions(screen.getByLabelText('Show'), 'deleted')
+    await pick(portal.user, screen.getByLabelText('Show'), 'deleted')
     await portal.user.click(await screen.findByRole('button', { name: 'Restore Pricing.pdf' }))
     expect((await screen.findByRole('alert')).textContent).toContain('no longer exists')
   })
@@ -600,7 +599,7 @@ describe('Playbook documents: delete and restore', () => {
       ),
     ])
     await screen.findByLabelText('Show')
-    await portal.user.selectOptions(screen.getByLabelText('Show'), 'deleted')
+    await pick(portal.user, screen.getByLabelText('Show'), 'deleted')
     await screen.findByText('Pricing.pdf')
     expect(screen.queryByRole('button', { name: /Restore/ })).toBeNull()
   })
@@ -906,7 +905,7 @@ describe('Playbook documents: only the documented success codes count', () => {
       ),
     ])
     await screen.findByLabelText('Show')
-    await portal.user.selectOptions(screen.getByLabelText('Show'), 'deleted')
+    await pick(portal.user, screen.getByLabelText('Show'), 'deleted')
     await portal.user.click(await screen.findByRole('button', { name: 'Restore Pricing.pdf' }))
     expect((await screen.findByRole('alert')).textContent).toContain('could not read')
   })

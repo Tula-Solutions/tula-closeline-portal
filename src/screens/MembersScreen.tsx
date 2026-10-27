@@ -8,7 +8,7 @@ import { PageHeader } from '~/components/app/page-header'
 import { RoleBadge } from '~/components/app/role-badge'
 import { Monogram } from '~/components/ui/avatar'
 import { Button } from '~/components/ui/button'
-import { NativeSelect } from '~/components/ui/native-select'
+import { Select } from '~/components/ui/select'
 import { assignableRoles, can, canRemoveMember, ROLE_LABEL } from '~/data/permissions'
 import { refresh, useMembers } from '~/data/queries'
 import { useRole } from '~/data/session-role'
@@ -119,7 +119,7 @@ function MemberRow(props: {
     setSelected(member.role)
   }
   const [error, setError] = useState<string | null>(null)
-  const select = useRef<HTMLSelectElement>(null)
+  const select = useRef<HTMLButtonElement>(null)
   const row = useRef<HTMLTableRowElement>(null)
   const errorId = `${member.id}-error`
   const choices = assignableRoles(viewerRole, member.role)
@@ -187,21 +187,16 @@ function MemberRow(props: {
               <label className='sr-only' htmlFor={`${member.id}-role`}>
                 Role for {label}
               </label>
-              <NativeSelect
+              <Select
                 id={`${member.id}-role`}
-                ref={select}
+                triggerRef={select}
                 controlSize='inline'
                 className='min-w-[6.5rem]'
                 value={selected}
-                aria-describedby={error ? errorId : undefined}
-                onChange={(event) => setSelected(event.target.value as Role)}
-              >
-                {choices.map((choice) => (
-                  <option key={choice} value={choice}>
-                    {ROLE_LABEL[choice]}
-                  </option>
-                ))}
-              </NativeSelect>
+                options={choices.map((choice) => ({ value: choice, text: ROLE_LABEL[choice] }))}
+                {...(error ? { 'aria-describedby': errorId } : {})}
+                onValueChange={(next) => setSelected(next as Role)}
+              />
               {selected !== member.role ? (
                 <Button
                   type='button'

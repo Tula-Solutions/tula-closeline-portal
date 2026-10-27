@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { AUTH_ERRORS, ERRORS } from 'tula-closeline-contract'
-import { ApiError, CLIENT_ERRORS, isTransient, parseErrorResponse } from '~/api/errors'
+import {
+  ApiError,
+  CLIENT_ERRORS,
+  isClientFault,
+  isTransient,
+  isUnauthenticated,
+  parseErrorResponse,
+} from '~/api/errors'
 import { failure, json } from '~/testing/fixtures'
 
 describe('parseErrorResponse', () => {
@@ -62,6 +69,9 @@ describe('isTransient', () => {
     [0, CLIENT_ERRORS.timeout, true],
     [0, CLIENT_ERRORS.network, true],
     [502, 'server.internal', true],
+    [503, 'booking.calendar_unavailable', true],
+    [200, ERRORS['server.unavailable'].code, true],
+    [200, ERRORS['auth.unavailable'].code, true],
     [503, 'server.unavailable', true],
     [504, 'server.timeout', true],
     [500, 'server.internal', false],
@@ -76,5 +86,33 @@ describe('isTransient', () => {
 
   test('an error that is not an ApiError is not transient', () => {
     expect(isTransient(new Error('x'))).toBe(false)
+  })
+})
+
+describe('isUnauthenticated and isClientFault branch on the code', () => {
+  test.each([
+    [ERRORS['auth.unauthenticated'].code, true],
+    [ERRORS['auth.token_expired'].code, true],
+    [AUTH_ERRORS['session.reuse_detected'].code, true],
+    [ERRORS['auth.forbidden'].code, false],
+    [ERRORS['rate.limited'].code, false],
+  ])('%s unauthenticated -> %p whatever the status', (code, expected) => {
+    expect(isUnauthenticated(new ApiError({ code, status: 400 }))).toBe(expected)
+  })
+
+  test.each([
+    [ERRORS['auth.forbidden'].code, 200, true],
+    [ERRORS['request.invalid'].code, 200, true],
+    [ERRORS['auth.unauthenticated'].code, 401, false],
+    [ERRORS['rate.limited'].code, 429, false],
+    [ERRORS['server.unavailable'].code, 403, false],
+    [AUTH_ERRORS['auth.invalid_credentials'].code, 401, false],
+    ['some.unlisted_code', 403, true],
+    [CLIENT_ERRORS.badResponse, 403, true],
+    [CLIENT_ERRORS.badResponse, 502, false],
+    [CLIENT_ERRORS.badResponse, 429, false],
+    [CLIENT_ERRORS.network, 0, false],
+  ])('%s at %d is a client fault -> %p', (code, status, expected) => {
+    expect(isClientFault(new ApiError({ code, status }))).toBe(expected)
   })
 })

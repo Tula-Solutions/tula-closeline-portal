@@ -1,11 +1,22 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { type RightsWording, rightsWordingFor } from 'tula-closeline-contract'
+import { type AnalyticsApi, createAnalyticsApi } from '~/api/analytics'
+import { type ApiKeysApi, createApiKeysApi } from '~/api/api-keys'
+import { type ApprovalsApi, createApprovalsApi } from '~/api/approvals'
+import { type AuditApi, createAuditApi } from '~/api/audit'
 import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
+import { type ConsentApi, createConsentApi } from '~/api/consent'
 import { type CoreApi, createCoreApi } from '~/api/core'
+import { createEscalationApi, type EscalationApi } from '~/api/escalation'
+import { createExportsApi, type ExportsApi } from '~/api/exports'
 import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
+import { createInboxApi, type InboxApi } from '~/api/inbox'
+import { createMarketingApi, type MarketingApi } from '~/api/marketing'
 import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
 import { createSalesHistoryApi, type SalesHistoryApi } from '~/api/sales-history'
+import { createUnsubscribeApi, type UnsubscribeApi } from '~/api/unsubscribe'
+import { createVoiceApi, type VoiceApi } from '~/api/voice'
 import { createPendingCall, type PendingCallHolder } from '~/data/pending-call'
 import type { Env } from '~/env'
 import { createInvitationHolder, type InvitationHolder } from '~/invitation'
@@ -18,6 +29,23 @@ export type App = {
   readonly auth: AuthApi
   readonly core: CoreApi
   readonly playbook: PlaybookApi
+  readonly voice: VoiceApi
+  readonly apiKeys: ApiKeysApi
+  readonly inbox: InboxApi
+  readonly approvals: ApprovalsApi
+  readonly escalation: EscalationApi
+  /** The analytics dashboards: series, comparison tables and their CSV. */
+  readonly analytics: AnalyticsApi
+  /** The audit log: events, the CSV and the hash-chain check. */
+  readonly audit: AuditApi
+  /** The Organization data export: request, watch, download. */
+  readonly exports: ExportsApi
+  /** Contact Consent on a Prospect, and the Suppression list. */
+  readonly consent: ConsentApi
+  /** The public marketing route (the Demo Request form); sends no token. */
+  readonly marketing: MarketingApi
+  /** The public unsubscribe routes (a link from a message); send no token. */
+  readonly unsubscribe: UnsubscribeApi
   readonly salesHistory: SalesHistoryApi
   /** The Transcript chosen but not yet sent, held in memory across the rights confirmation. */
   readonly pendingCall: PendingCallHolder
@@ -58,7 +86,7 @@ export type AppInit = {
   readonly rightsWording?: (version: number) => RightsWording | undefined
 }
 
-/** Builds the app: HTTP clients for auth, core and playbook, the session, the query cache and the reporter. */
+/** Builds the app: HTTP clients for auth, core, playbook and voice, the session, the query cache and the reporter. */
 export function createApp(init: AppInit): App {
   const shared = {
     ...(init.fetch ? { fetch: init.fetch } : {}),
@@ -128,6 +156,17 @@ export function createApp(init: AppInit): App {
     auth,
     core: createCoreApi(coreHttp),
     playbook: createPlaybookApi(coreHttp),
+    voice: createVoiceApi(coreHttp),
+    apiKeys: createApiKeysApi(coreHttp),
+    inbox: createInboxApi(coreHttp),
+    approvals: createApprovalsApi(coreHttp),
+    escalation: createEscalationApi(coreHttp),
+    analytics: createAnalyticsApi(coreHttp),
+    audit: createAuditApi(coreHttp),
+    exports: createExportsApi(coreHttp),
+    consent: createConsentApi(coreHttp),
+    marketing: createMarketingApi(coreHttp),
+    unsubscribe: createUnsubscribeApi(coreHttp),
     salesHistory: createSalesHistoryApi(coreHttp, init.reporter.report),
     sleep,
     assign: init.assign ?? ((url) => window.location.assign(url)),

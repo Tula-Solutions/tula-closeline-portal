@@ -13,8 +13,8 @@ const SIGN_OUT = '/v1/client/sessions/sign-out'
 const REFRESH = '/v1/client/sessions/refresh'
 
 describe('who can see what', () => {
-  test('a visitor who is not signed in is sent from the dashboard to sign-in', async () => {
-    renderPortal({ url: '/' })
+  test('a visitor who is not signed in is sent from a dashboard page to sign-in', async () => {
+    renderPortal({ url: '/playbook' })
     expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
   })
 
@@ -33,6 +33,14 @@ describe('who can see what', () => {
 })
 
 describe('the signed-in shell', () => {
+  test('the compact top bar is a banner landmark, so no text sits outside a landmark', async () => {
+    renderPortal({ url: '/', signedIn: true })
+    await screen.findByRole('heading', { name: 'Home' })
+    const banner = document.querySelector('header')
+    expect(banner?.querySelector('[role="img"][aria-label="Tula Solution"]')).not.toBeNull()
+    expect(banner?.querySelector('button[aria-label="Navigation menu"]')).not.toBeNull()
+  })
+
   test('shows the logo, the Organization name, the role, a sign-out control and the home page', async () => {
     renderPortal({ url: '/', signedIn: tokens({ organization: { id: 'org_1', role: 'manager' } }) })
     expect(await screen.findByText('Northline')).toBeTruthy()
@@ -101,7 +109,7 @@ describe('the signed-in shell', () => {
     expect(portal.reports).toEqual([])
   })
 
-  test('signing out ends the session at the service, forgets what was loaded, and returns to sign-in', async () => {
+  test('signing out ends the session at the service, forgets what was loaded, and returns to the public home page', async () => {
     const portal = renderPortal({
       url: '/',
       signedIn: true,
@@ -110,7 +118,9 @@ describe('the signed-in shell', () => {
     await screen.findByText('Northline')
     expect(portal.app.queryClient.getQueryData(['organization', 'org_1'])).toBeDefined()
     await portal.user.click(screen.getByRole('button', { name: 'Sign out' }))
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
+    // Signing out from Home lands on the public home page, with a way back in.
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toBeTruthy()
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('balance')
     expect(portal.calls.find((call) => call.path === SIGN_OUT)?.body).toBeUndefined()
     expect(portal.app.queryClient.getQueryData(['organization', 'org_1'])).toBeUndefined()
     expect(portal.app.session.getSnapshot()).toEqual({ status: 'signed_out', ended: false })
@@ -129,7 +139,7 @@ describe('the signed-in shell', () => {
     })
     await screen.findByText('Northline')
     await portal.user.click(screen.getByRole('button', { name: 'Sign out' }))
-    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeTruthy()
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toBeTruthy()
   })
 })
 

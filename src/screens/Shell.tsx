@@ -139,7 +139,7 @@ export function Shell() {
       >
         Skip to content
       </a>
-      <div
+      <header
         inert={open}
         className='sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background px-3 [view-transition-name:topbar] md:hidden'
       >
@@ -155,7 +155,7 @@ export function Shell() {
           {open ? <X aria-hidden='true' /> : <Menu aria-hidden='true' />}
         </Button>
         <Logo className='w-[7.5rem]' />
-      </div>
+      </header>
       {/* Kept mounted so it can fade out as well as in; closed, it is hidden and inert. */}
       <button
         type='button'
@@ -204,11 +204,38 @@ export function Shell() {
             <NavLink to='/' exact>
               Home
             </NavLink>
+            <NavLink to='/prospects'>Prospects</NavLink>
+            <NavLink to='/inbox' exact>
+              Inbox
+            </NavLink>
+            <NavLink to='/inbox/approvals'>Approvals</NavLink>
+            {can.manageApprovalPolicy(role) ? (
+              <NavLink to='/inbox/policy'>Approval policy</NavLink>
+            ) : null}
+            {can.manageEscalationRules(role) ? (
+              <NavLink to='/inbox/escalation'>Escalation rules</NavLink>
+            ) : null}
           </div>
           <NavGroup id='organization' label='Organization'>
             {can.viewMembers(role) ? <NavLink to='/members'>Members</NavLink> : null}
             {can.manageInvitations(role) ? <NavLink to='/invitations'>Invitations</NavLink> : null}
             <NavLink to='/teams'>Teams</NavLink>
+            {can.manageLines(role) ? <NavLink to='/lines'>Lines</NavLink> : null}
+            {can.manageApiKeys(role) ? <NavLink to='/api-keys'>API keys</NavLink> : null}
+            {can.viewAudit(role) ? <NavLink to='/audit'>Audit log</NavLink> : null}
+            {can.manageExports(role) ? <NavLink to='/export'>Data export</NavLink> : null}
+            <NavLink to='/developers'>Developers</NavLink>
+            <NavLink to='/consent-wordings'>Consent Wording</NavLink>
+            {can.manageSuppression(role) ? <NavLink to='/suppression'>Suppression</NavLink> : null}
+          </NavGroup>
+          <NavGroup id='analytics' label='Analytics'>
+            <NavLink to='/analytics' exact>
+              Overview
+            </NavLink>
+            {can.compareCampaigns(role) ? (
+              <NavLink to='/analytics/campaigns'>Campaigns</NavLink>
+            ) : null}
+            <NavLink to='/analytics/reps'>{role === 'rep' ? 'Your numbers' : 'Reps'}</NavLink>
           </NavGroup>
           <NavGroup id='knowledge' label='Knowledge'>
             <NavLink to='/playbook'>Playbook</NavLink>
@@ -219,6 +246,9 @@ export function Shell() {
                 </SubNavLink>
                 {can.searchDocuments(role) ? (
                   <SubNavLink to='/playbook/search'>Search</SubNavLink>
+                ) : null}
+                {can.managePlaybook(role) ? (
+                  <SubNavLink to='/playbook/suggestions'>Suggestions</SubNavLink>
                 ) : null}
               </nav>
             ) : null}

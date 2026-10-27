@@ -1,25 +1,50 @@
 import {
+  type CreateProspectCompanyRequest,
+  type CreateProspectRequest,
+  createProspectCompanyRequestSchema,
+  createProspectRequestSchema,
   IDEMPOTENCY_KEY_HEADER,
   type InvitableRole,
   type Invitation,
   invitationSchema,
   type ListInvitationsResponse,
   type ListMembersResponse,
+  type ListProspectCompaniesResponse,
+  type ListProspectImportRowsResponse,
+  type ListProspectImportsResponse,
+  type ListProspectsResponse,
   type ListTeamsResponse,
   listInvitationsResponseSchema,
   listMembersResponseSchema,
+  listProspectCompaniesResponseSchema,
+  listProspectImportRowsResponseSchema,
+  listProspectImportsResponseSchema,
+  listProspectsResponseSchema,
   listTeamsResponseSchema,
   type Member,
   memberSchema,
   type Organization,
   organizationSchema,
+  PROSPECT_IMPORT_FILE_FIELD,
+  type Prospect,
+  type ProspectCompany,
+  type ProspectImport,
+  type ProspectImportRowResult,
+  prospectCompanySchema,
+  prospectImportSchema,
+  prospectSchema,
   type Role,
   type Team,
   type TeamMember,
   teamMemberSchema,
   teamSchema,
+  type UpdateProspectRequest,
+  updateProspectRequestSchema,
 } from 'tula-closeline-contract'
 import type { HttpClient } from '~/api/http'
+
+/** A file upload may take longer than a read: two minutes (as the playbook uploads). */
+const IMPORT_UPLOAD_TIMEOUT_MS = 120_000
 
 /** The page size every list asks for; the server allows up to 100. */
 export const PAGE_SIZE = 25
@@ -31,12 +56,27 @@ export type PageRequest = {
   readonly signal?: AbortSignal
 }
 
+/** What a page of Prospects may be narrowed by; each is sent only when set. */
+export type ProspectFilter = {
+  readonly q?: string | undefined
+  readonly status?: 'active' | 'archived' | undefined
+  readonly source?: string | undefined
+  readonly ownerMembershipId?: string | undefined
+  readonly companyId?: string | undefined
+}
+
 /** The core service routes the portal uses. */
 export type CoreApi = {
   /** Reads the caller's Organization (a read, so it is retried). */
   getOrganization(signal?: AbortSignal): Promise<Organization>
-  /** One page of members (Owner, Admin, Manager). */
-  listMembers(page: PageRequest): Promise<ListMembersResponse>
+  /** One page of members, optionally narrowed by a case-insensitive name search, a role, or up to 100 ids. */
+  listMembers(
+    page: PageRequest & {
+      readonly q?: string | undefined
+      readonly role?: Role | undefined
+      readonly ids?: readonly string[] | undefined
+    }
+  ): Promise<ListMembersResponse>
   /** Changes a member's role (Owner: any; Admin: Manager and Rep only). */
   changeMemberRole(membershipId: string, role: Role): Promise<Member>
   /** Removes a member from the Organization. */
@@ -62,6 +102,45 @@ export type CoreApi = {
   addTeamMember(teamId: string, membershipId: string, idempotencyKey: string): Promise<TeamMember>
   /** Removes a member from a Team; the key makes a repeat of the same request answer as the first did, and core refuses a member who is not in the Team as a missing member. */
   removeTeamMember(teamId: string, membershipId: string, idempotencyKey: string): Promise<void>
+  /** One page of the Prospects the caller may see (core decides by role), newest first, or in id order when `q` is set; a page may be short, even empty, while a cursor is present. */
+  listProspects(page: PageRequest & ProspectFilter): Promise<ListProspectsResponse>
+  /** One page of Prospect imports, newest first. */
+  listProspectImports(page: PageRequest): Promise<ListProspectImportsResponse>
+  /** One Prospect import with its state and counts. */
+  getProspectImport(importId: string, signal?: AbortSignal): Promise<ProspectImport>
+  /** One page of an import's report, in CSV order; with a `result` only rows that ended so. */
+  listProspectImportRows(
+    importId: string,
+    page: PageRequest & { readonly result?: ProspectImportRowResult | undefined }
+  ): Promise<ListProspectImportRowsResponse>
+  /** Uploads a CSV of Prospects; the key makes a repeat of the same request answer with the stored import. */
+  uploadProspectImport(
+    file: File,
+    idempotencyKey: string,
+    signal?: AbortSignal
+  ): Promise<ProspectImport>
+  /** The import's report exactly as core writes it (CSV text: row number, result, reason and Prospect id, no cell content). */
+  getProspectImportReport(importId: string, signal?: AbortSignal): Promise<string>
+  /** One Prospect with the Source and time of each field. */
+  getProspect(prospectId: string, signal?: AbortSignal): Promise<Prospect>
+  /** Creates a Prospect by hand; the key makes a repeat of the same request create it once. */
+  createProspect(body: CreateProspectRequest, idempotencyKey: string): Promise<Prospect>
+  /** Changes a Prospect; only the fields in the body change, and null clears one. */
+  updateProspect(prospectId: string, body: UpdateProspectRequest): Promise<Prospect>
+  /** One page of Prospect Companies, optionally narrowed by a name search or by up to `MAX_PROSPECT_COMPANY_IDS` ids. */
+  listProspectCompanies(
+    page: PageRequest & {
+      readonly q?: string | undefined
+      readonly ids?: readonly string[] | undefined
+    }
+  ): Promise<ListProspectCompaniesResponse>
+  /** One Prospect Company. */
+  getProspectCompany(companyId: string, signal?: AbortSignal): Promise<ProspectCompany>
+  /** Creates a Prospect Company; the key makes a repeat of the same request create it once. */
+  createProspectCompany(
+    body: CreateProspectCompanyRequest,
+    idempotencyKey: string
+  ): Promise<ProspectCompany>
 }
 
 const segment = encodeURIComponent
@@ -80,7 +159,12 @@ export function createCoreApi(http: HttpClient): CoreApi {
     listMembers: (page) =>
       http.request({
         path: '/v1/members',
-        query: query(page),
+        query: {
+          ...query(page),
+          q: page.q,
+          role: page.role,
+          ids: page.ids === undefined ? undefined : page.ids.join(','),
+        },
         auth: true,
         ...(page.signal ? { signal: page.signal } : {}),
         parse: (json) => listMembersResponseSchema.parse(json),
@@ -168,6 +252,130 @@ export function createCoreApi(http: HttpClient): CoreApi {
         path: `/v1/teams/${segment(teamId)}/members/${segment(membershipId)}`,
         headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
         auth: true,
+      }),
+    listProspects: (page) =>
+      http.request({
+        path: '/v1/prospects',
+        query: {
+          ...query(page),
+          q: page.q,
+          status: page.status,
+          source: page.source,
+          ownerMembershipId: page.ownerMembershipId,
+          companyId: page.companyId,
+        },
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => listProspectsResponseSchema.parse(json),
+      }),
+    listProspectImports: (page) =>
+      http.request({
+        path: '/v1/prospect-imports',
+        query: query(page),
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => listProspectImportsResponseSchema.parse(json),
+      }),
+    getProspectImport: (importId, signal) =>
+      http.request({
+        path: `/v1/prospect-imports/${segment(importId)}`,
+        auth: true,
+        ...(signal ? { signal } : {}),
+        parse: (json) => prospectImportSchema.parse(json),
+      }),
+    listProspectImportRows: (importId, page) =>
+      http.request({
+        path: `/v1/prospect-imports/${segment(importId)}/rows`,
+        query: { ...query(page), result: page.result },
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => listProspectImportRowsResponseSchema.parse(json),
+      }),
+    uploadProspectImport: (file, idempotencyKey, signal) => {
+      const form = new FormData()
+      form.set(PROSPECT_IMPORT_FILE_FIELD, file, file.name)
+      return http.request({
+        method: 'POST',
+        path: '/v1/prospect-imports',
+        body: form,
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        timeoutMs: IMPORT_UPLOAD_TIMEOUT_MS,
+        auth: true,
+        ...(signal ? { signal } : {}),
+        parse: (json, status) => {
+          if (status !== 202) {
+            throw new Error('unexpected status')
+          }
+          return prospectImportSchema.parse(json)
+        },
+      })
+    },
+    getProspectImportReport: (importId, signal) =>
+      http.request({
+        path: `/v1/prospect-imports/${segment(importId)}/report.csv`,
+        headers: { accept: 'text/csv' },
+        text: true,
+        timeoutMs: IMPORT_UPLOAD_TIMEOUT_MS,
+        auth: true,
+        ...(signal ? { signal } : {}),
+        parse: (text) => {
+          if (typeof text !== 'string') {
+            throw new Error('not text')
+          }
+          return text
+        },
+      }),
+    getProspect: (prospectId, signal) =>
+      http.request({
+        path: `/v1/prospects/${segment(prospectId)}`,
+        auth: true,
+        signal,
+        parse: (json) => prospectSchema.parse(json),
+      }),
+    createProspect: (body, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: '/v1/prospects',
+        body: createProspectRequestSchema.parse(body),
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json) => prospectSchema.parse(json),
+      }),
+    updateProspect: (prospectId, body) =>
+      http.request({
+        method: 'PATCH',
+        path: `/v1/prospects/${segment(prospectId)}`,
+        body: updateProspectRequestSchema.parse(body),
+        auth: true,
+        parse: (json) => prospectSchema.parse(json),
+      }),
+    listProspectCompanies: (page) =>
+      http.request({
+        path: '/v1/prospect-companies',
+        query: {
+          ...query(page),
+          q: page.q,
+          ids: page.ids && page.ids.length > 0 ? page.ids.join(',') : undefined,
+        },
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => listProspectCompaniesResponseSchema.parse(json),
+      }),
+    getProspectCompany: (companyId, signal) =>
+      http.request({
+        path: `/v1/prospect-companies/${segment(companyId)}`,
+        auth: true,
+        signal,
+        parse: (json) => prospectCompanySchema.parse(json),
+      }),
+    createProspectCompany: (body, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: '/v1/prospect-companies',
+        body: createProspectCompanyRequestSchema.parse(body),
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json) => prospectCompanySchema.parse(json),
       }),
   }
 }

@@ -3,6 +3,7 @@ import { act, screen, waitFor, within } from '@testing-library/react'
 import { hexId } from '~/testing/core-bodies'
 import { failure, json, route, tokens } from '~/testing/fixtures'
 import { visit } from '~/testing/sales'
+import { choose } from '~/testing/select'
 
 const SEARCH = '/v1/playbook/search/documents'
 const URL = '/playbook/search'
@@ -123,7 +124,7 @@ describe('search over Documents: the answer', () => {
     expect(screen.queryByRole('list', { name: 'Matching Document text' })).toBeNull()
     await portal.user.click(screen.getByRole('button', { name: 'Search' }))
     await screen.findByRole('list', { name: 'Matching Document text' })
-    await portal.user.selectOptions(screen.getByLabelText('Number of results'), '10')
+    await choose(portal.user, screen.getByLabelText('Number of results'), '10')
     expect(screen.queryByRole('list', { name: 'Matching Document text' })).toBeNull()
   })
 

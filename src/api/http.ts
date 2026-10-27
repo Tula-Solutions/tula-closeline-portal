@@ -1,5 +1,12 @@
 import { ERRORS } from 'tula-closeline-contract'
-import { ApiError, CLIENT_ERRORS, clientError, isTransient, parseErrorResponse } from '~/api/errors'
+import {
+  ApiError,
+  CLIENT_ERRORS,
+  clientError,
+  isTransient,
+  isUnauthenticated,
+  parseErrorResponse,
+} from '~/api/errors'
 
 /** The session as the HTTP client sees it: a token to send, a way to renew it, and a way to end it. */
 export type Authorizer = {
@@ -130,8 +137,10 @@ export type RequestOptions<T> = {
   readonly onUploadProgress?: UploadProgress
   readonly auth?: boolean
   readonly signal?: AbortSignal
+  /** The answer is plain text (a CSV), not JSON: it is read as text and handed to `parse` as a string. */
+  readonly text?: boolean
   /** Checks and narrows the JSON answer (and sees the status, for a route with two success codes); a throw becomes `client.bad_response`. */
-  readonly parse?: (json: unknown, status: number) => T
+  readonly parse?: (json: unknown, status: number, headers: Headers) => T
 }
 
 /** A thin typed client over fetch. */
@@ -222,9 +231,9 @@ export function createHttpClient(config: HttpConfig): HttpClient {
       if (response.status === 204) {
         return undefined as T
       }
-      const json: unknown = await response.json()
+      const json: unknown = options.text ? await response.text() : await response.json()
       try {
-        return options.parse ? options.parse(json, response.status) : (json as T)
+        return options.parse ? options.parse(json, response.status, response.headers) : (json as T)
       } catch {
         throw clientError(CLIENT_ERRORS.badResponse, response.status)
       }
@@ -259,7 +268,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
     try {
       result = await attempt(options, token)
     } catch (error) {
-      if (!(error instanceof ApiError) || error.status !== 401) {
+      if (!isUnauthenticated(error)) {
         throw error
       }
       if (!sameSession()) {
@@ -279,7 +288,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
         }
         return second
       } catch (second) {
-        if (second instanceof ApiError && second.status === 401 && sameSession()) {
+        if (isUnauthenticated(second) && sameSession()) {
           authorizer.rejected(renewed)
         }
         throw second

@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import { devProxy, parseProxyTargets } from './src/api/service-routes.ts'
 import { buildCsp, buildHeaders } from './src/csp.ts'
+import { parseAllowedHosts } from './src/dev-hosts.ts'
 import { parseEnv } from './src/env.ts'
 
 /** Puts the Content-Security-Policy in index.html and writes the same policy as a `_headers` file. */
@@ -41,7 +42,12 @@ export default defineConfig(({ command, mode }) => {
       ? undefined
       : devProxy(
           parseProxyTargets({
-            ...loadEnv(mode, process.cwd(), ['AUTH_PROXY_', 'CORE_PROXY_', 'PLAYBOOK_PROXY_']),
+            ...loadEnv(mode, process.cwd(), [
+              'AUTH_PROXY_',
+              'CORE_PROXY_',
+              'PLAYBOOK_PROXY_',
+              'VOICE_PROXY_',
+            ]),
             ...process.env,
           })
         )
@@ -53,8 +59,13 @@ export default defineConfig(({ command, mode }) => {
       ...(command === 'build' ? [securityHeaders(raw)] : []),
     ],
     resolve: { alias: { '~': new URL('./src', import.meta.url).pathname } },
-    // Same origin: no CORS headers, from this server or the services.
-    server: { proxy, cors: false },
+    // Same origin: no CORS headers, from this server or the services. `allowedHosts` adds exact
+    // hosts (a tunnel) to Vite's default; unset keeps the default.
+    server: {
+      proxy,
+      cors: false,
+      allowedHosts: parseAllowedHosts(process.env.PORTAL_DEV_ALLOWED_HOSTS),
+    },
     preview: { proxy },
     build: { chunkSizeWarningLimit: 600, outDir: 'out', sourcemap: 'hidden', assetsInlineLimit: 0 },
   }

@@ -7,7 +7,7 @@
  */
 
 /** A service the browser reaches through the portal's origin. */
-export type Service = 'auth' | 'core' | 'playbook'
+export type Service = 'auth' | 'core' | 'playbook' | 'voice'
 
 /** One path prefix and the service that serves everything under it (the prefix itself, or `prefix/...`). */
 export type ServiceRoute = { readonly prefix: string; readonly service: Service }
@@ -15,22 +15,56 @@ export type ServiceRoute = { readonly prefix: string; readonly service: Service 
 /** The routing table: path prefix to service, forwarded unchanged. */
 export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/client', service: 'auth' },
+  { prefix: '/v1/token', service: 'auth' },
   { prefix: '/v1/organization', service: 'core' },
   { prefix: '/v1/members', service: 'core' },
   { prefix: '/v1/invitations', service: 'core' },
   { prefix: '/v1/teams', service: 'core' },
+  { prefix: '/v1/marketing', service: 'core' },
+  { prefix: '/v1/prospects', service: 'core' },
+  { prefix: '/v1/prospect-companies', service: 'core' },
+  { prefix: '/v1/prospect-imports', service: 'core' },
+  { prefix: '/v1/suppression-entries', service: 'core' },
+  { prefix: '/v1/contact-checks', service: 'core' },
+  { prefix: '/v1/consent-wordings', service: 'core' },
+  { prefix: '/v1/consent-forms', service: 'core' },
+  { prefix: '/v1/public', service: 'core' },
+  { prefix: '/v1/crm', service: 'core' },
+  { prefix: '/v1/api-keys', service: 'core' },
+  { prefix: '/v1/conversations', service: 'core' },
+  { prefix: '/v1/approvals', service: 'core' },
+  { prefix: '/v1/drafts', service: 'core' },
+  { prefix: '/v1/decisions', service: 'core' },
+  { prefix: '/v1/approval-policies', service: 'core' },
+  { prefix: '/v1/escalation-rules', service: 'core' },
+  { prefix: '/v1/agent-instructions', service: 'core' },
+  { prefix: '/v1/audit-events', service: 'core' },
+  { prefix: '/v1/audit-csv', service: 'core' },
+  { prefix: '/v1/exports', service: 'core' },
+  { prefix: '/v1/audit-verification', service: 'core' },
+  { prefix: '/v1/analytics', service: 'core' },
+  { prefix: '/v1/agent-controls', service: 'core' },
+  { prefix: '/v1/assessments', service: 'core' },
+  { prefix: '/v1/assessment-rates', service: 'core' },
   { prefix: '/v1/playbook', service: 'playbook' },
+  { prefix: '/v1/lines', service: 'voice' },
+  { prefix: '/v1/agent', service: 'voice' },
+  { prefix: '/v1/calls', service: 'voice' },
+  { prefix: '/v1/softphone', service: 'voice' },
 ]
 
 /**
  * Paths no browser needs and the table leaves out: `/healthz` and `/readyz` are served by both
  * services (a collision, so a probe must address a service directly), and `/.well-known/jwks.json`
- * is auth's key set, fetched service to service. Anything under `/internal` is never routed.
+ * is auth's key set, fetched service to service, and `/webhooks/twilio/*` is called by Twilio on
+ * voice directly. Anything under `/internal` is never routed.
  */
 export const NOT_ROUTED_FROM_BROWSER: readonly string[] = [
   '/healthz',
   '/readyz',
   '/.well-known/jwks.json',
+  '/webhooks/twilio/recording',
+  '/webhooks/twilio/status',
 ]
 
 /** Dot segments, doubled slashes and encoded dots or slashes in a path: never routed, so `/v1/client/../internal/...` cannot slip past the prefix. */
@@ -54,12 +88,14 @@ export type ProxyTargets = {
   readonly auth: string
   readonly core: string
   readonly playbook: string
+  readonly voice: string
 }
 
 const DEFAULT_TARGETS: ProxyTargets = {
   auth: 'http://127.0.0.1:3001',
   core: 'http://127.0.0.1:3002',
   playbook: 'http://127.0.0.1:3003',
+  voice: 'http://127.0.0.1:3004',
 }
 
 function originOnly(name: string, value: string): string {
@@ -82,7 +118,7 @@ function originOnly(name: string, value: string): string {
   return url.origin
 }
 
-/** Reads `AUTH_PROXY_TARGET`, `CORE_PROXY_TARGET` and `PLAYBOOK_PROXY_TARGET` (dev server settings, not `VITE_*`), or throws naming the bad one. */
+/** Reads `AUTH_PROXY_TARGET`, `CORE_PROXY_TARGET`, `PLAYBOOK_PROXY_TARGET` and `VOICE_PROXY_TARGET` (dev server settings, not `VITE_*`), or throws naming the bad one. */
 export function parseProxyTargets(raw: Readonly<Record<string, string | undefined>>): ProxyTargets {
   const read = (name: string, fallback: string) => {
     const value = raw[name]?.trim()
@@ -92,6 +128,7 @@ export function parseProxyTargets(raw: Readonly<Record<string, string | undefine
     auth: read('AUTH_PROXY_TARGET', DEFAULT_TARGETS.auth),
     core: read('CORE_PROXY_TARGET', DEFAULT_TARGETS.core),
     playbook: read('PLAYBOOK_PROXY_TARGET', DEFAULT_TARGETS.playbook),
+    voice: read('VOICE_PROXY_TARGET', DEFAULT_TARGETS.voice),
   }
 }
 

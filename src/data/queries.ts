@@ -1,21 +1,55 @@
-import { type InfiniteData, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { type InfiniteData, useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import {
+  type AnalyticsGroupBy,
+  type AnalyticsMetric,
   type CallState,
+  type CitationRef,
+  type Conversation,
   type Deal,
   type DocumentState,
+  type GetSeriesResponse,
   type ListDealImportRowsResponse,
   type ListDealImportsResponse,
   type ListDealsResponse,
   type ListDocumentsResponse,
   type ListInvitationsResponse,
   type ListMembersResponse,
+  type ListProspectCompaniesResponse,
+  type ListProspectImportRowsResponse,
+  type ListProspectImportsResponse,
+  type ListProspectsResponse,
   type ListTeamsResponse,
+  MAX_MEMBER_IDS,
+  MAX_MEMBER_QUERY_LENGTH,
   MAX_PAGE_SIZE,
+  MAX_PROSPECT_COMPANY_IDS,
   type Outcome,
+  type ProspectImportRowResult,
+  prospectCompanyIdSchema,
+  type Role,
+  type SuggestionStatus,
+  type TableRow,
 } from 'tula-closeline-contract'
+import type { AnalyticsFilter } from '~/api/analytics'
+import type { ApiKeysPage } from '~/api/api-keys'
+import type { ApprovalFilter, ApprovalQueuePage, DecisionsPage } from '~/api/approvals'
+import type { AuditFilter, AuditPage } from '~/api/audit'
+import type {
+  ConsentEventsPage,
+  ConsentWordingsPage,
+  SuppressionFilter,
+  SuppressionPage,
+} from '~/api/consent'
+import type { ProspectFilter } from '~/api/core'
+import type { ExportsPage } from '~/api/exports'
+import type { ConversationFilter, ConversationsPage, MessagesPage } from '~/api/inbox'
+import type { SuggestionsPage } from '~/api/playbook'
 import type { CallsPage } from '~/api/sales-history'
+import type { LinesPage } from '~/api/voice'
 import type { App } from '~/app'
 import { useApp, useSessionState } from '~/app-context'
+import { companyName } from '~/data/prospects'
 import type { PagedState } from '~/ui/Paged'
 
 /** Query keys, one place so a mutation can refresh exactly what it changed. */
@@ -23,14 +57,40 @@ export const KEYS = {
   members: (organizationId: string) => [organizationId, 'members'] as const,
   invitations: (organizationId: string) => [organizationId, 'invitations'] as const,
   teams: (organizationId: string) => [organizationId, 'teams'] as const,
+  /** The Lines of the Organization (voice service). */
+  lines: (organizationId: string) => [organizationId, 'lines'] as const,
+  /** Every cached read about the inbox (Conversation lists, single Conversations and their Messages). */
+  inbox: (organizationId: string) => [organizationId, 'inbox'] as const,
+  /** The API keys of the Organization (core). */
+  apiKeys: (organizationId: string) => [organizationId, 'api-keys'] as const,
   /** Every list of documents of the Organization, whatever its state filter: invalidate this to refresh them all. */
   documents: (organizationId: string) => [organizationId, 'documents'] as const,
+  /** Every cached read about Suggestions (lists in each status): invalidate this after one is decided. */
+  suggestions: (organizationId: string) => [organizationId, 'suggestions'] as const,
+  /** The learning setting of the Playbook. */
+  learning: (organizationId: string) => [organizationId, 'learning'] as const,
   /** Every cached read about Deals (lists and single Deals): invalidate this after an Outcome changes. */
   deals: (organizationId: string) => [organizationId, 'deals'] as const,
   /** Every cached read about Deal imports (lists, single imports and reports). */
   dealImports: (organizationId: string) => [organizationId, 'deal-imports'] as const,
+  /** Every cached read about Prospect imports (lists, single imports and reports). */
+  prospectImports: (organizationId: string) => [organizationId, 'prospect-imports'] as const,
   /** Every cached list of Calls, whatever its filters. */
   calls: (organizationId: string) => [organizationId, 'calls'] as const,
+  /** Every cached analytics read (series and tables), whatever its range or filters. */
+  analytics: (organizationId: string) => [organizationId, 'analytics'] as const,
+  /** Every cached list of audit events, whatever its filter. */
+  audit: (organizationId: string) => [organizationId, 'audit'] as const,
+  /** The export jobs of the Organization. */
+  exports: (organizationId: string) => [organizationId, 'exports'] as const,
+  /** Every cached read about Prospects (lists and single Prospects): invalidate this after one changes. */
+  prospects: (organizationId: string) => [organizationId, 'prospects'] as const,
+  /** Every cached read about Prospect Companies. */
+  prospectCompanies: (organizationId: string) => [organizationId, 'prospect-companies'] as const,
+  /** Every cached read about Contact Consent (a Prospect's states, ledger and the Consent Wordings). */
+  consent: (organizationId: string) => [organizationId, 'consent'] as const,
+  /** Every cached list of Suppression entries, whatever its filters. */
+  suppression: (organizationId: string) => [organizationId, 'suppression'] as const,
   /** The rights confirmation. */
   rights: (organizationId: string) => [organizationId, 'rights'] as const,
 }
@@ -156,6 +216,371 @@ export function useTeams() {
   return pagedState(query)
 }
 
+/**
+ * Teams for a choice: pages are read one after another up to `MEMBER_OPTION_PAGES`, so a later
+ * Team can be picked too. No request is made unless `enabled`.
+ */
+export function useTeamOptions(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListTeamsResponse,
+    Error,
+    InfiniteData<ListTeamsResponse, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.teams(organizationId), 'options'],
+    queryFn: ({ pageParam, signal }) =>
+      app.core.listTeams({ cursor: pageParam, limit: MAX_PAGE_SIZE, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, isError } = query
+  const pageCount = query.data?.pages.length ?? 0
+  // pageCount is a dependency so each arrived page asks for the next one.
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage && !isError && pageCount < MEMBER_OPTION_PAGES) {
+      void fetchNextPage()
+    }
+  }, [hasNextPage, isFetchingNextPage, isError, fetchNextPage, pageCount])
+  return { items: (query.data?.pages ?? []).flatMap((page) => page.items) }
+}
+
+/** The Lines, a page at a time. `enabled` is false for a role that may not manage them (no request is made). */
+export function useLines(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    LinesPage,
+    Error,
+    InfiniteData<LinesPage, string | undefined>,
+    readonly [string, string],
+    string | undefined
+  >({
+    queryKey: KEYS.lines(organizationId),
+    queryFn: ({ pageParam, signal }) => app.voice.listLines({ cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** The API keys, a page at a time. `enabled` is false for a role that may not manage them (no request is made). */
+export function useApiKeys(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ApiKeysPage,
+    Error,
+    InfiniteData<ApiKeysPage, string | undefined>,
+    readonly [string, string],
+    string | undefined
+  >({
+    queryKey: KEYS.apiKeys(organizationId),
+    queryFn: ({ pageParam, signal }) => app.apiKeys.listApiKeys({ cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** The audit events matching a filter, newest first and a page at a time. `enabled` is false for a role that may not read them. */
+export function useAuditEvents(filter: AuditFilter, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    AuditPage,
+    Error,
+    InfiniteData<AuditPage, string | undefined>,
+    readonly [string, string, string],
+    string | undefined
+  >({
+    queryKey: [...KEYS.audit(organizationId), JSON.stringify(filter)],
+    queryFn: ({ pageParam, signal }) =>
+      app.audit.listAuditEvents(filter, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** One analytics metric by day over the range, ungrouped or one line per group. `enabled` is false for a view the role does not have. */
+export function useAnalyticsSeries(
+  filter: AnalyticsFilter,
+  metric: AnalyticsMetric,
+  groupBy: AnalyticsGroupBy | undefined,
+  enabled: boolean
+) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery<GetSeriesResponse>({
+    queryKey: [
+      ...KEYS.analytics(organizationId),
+      'series',
+      metric,
+      groupBy ?? '',
+      JSON.stringify(filter),
+    ],
+    queryFn: ({ signal }) => app.analytics.getSeries(filter, metric, groupBy, signal),
+    enabled: enabled && organizationId !== '',
+  })
+}
+
+/** The comparison table grouped by `groupBy`, a page of groups at a time. `enabled` is false for a view the role does not have. */
+export function useAnalyticsTable(
+  filter: AnalyticsFilter,
+  groupBy: AnalyticsGroupBy,
+  enabled: boolean
+) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    { readonly items: readonly TableRow[]; readonly nextCursor: string | null },
+    Error,
+    InfiniteData<
+      { readonly items: readonly TableRow[]; readonly nextCursor: string | null },
+      string | undefined
+    >,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.analytics(organizationId), 'table', groupBy, JSON.stringify(filter)],
+    queryFn: ({ pageParam, signal }) =>
+      app.analytics.listTable(filter, groupBy, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedStateBy(query, (row) => row.group)
+}
+
+/** The Conversations the caller may see, latest activity first, a page at a time and narrowed by the filter. */
+export function useConversations(filter: ConversationFilter) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ConversationsPage,
+    Error,
+    InfiniteData<ConversationsPage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [
+      ...KEYS.inbox(organizationId),
+      'list',
+      filter.channel ?? '',
+      filter.state ?? '',
+      filter.label ?? '',
+    ],
+    queryFn: ({ pageParam, signal }) =>
+      app.inbox.listConversations({ ...filter, cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** How often a list with an export in progress asks again, in milliseconds. */
+export const EXPORT_POLL_MS = 4000
+
+/** The export jobs, newest first; the list asks again every few seconds while any job is queued or running. */
+export function useExports(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ExportsPage,
+    Error,
+    InfiniteData<ExportsPage, string | undefined>,
+    readonly [string, string],
+    string | undefined
+  >({
+    queryKey: KEYS.exports(organizationId),
+    queryFn: ({ pageParam, signal }) => app.exports.listExports({ cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+    refetchInterval: (current) =>
+      current.state.data?.pages.some((page) =>
+        page.items.some((job) => job.state === 'queued' || job.state === 'running')
+      )
+        ? EXPORT_POLL_MS
+        : false,
+  })
+  return pagedState(query)
+}
+
+/** One Conversation. */
+export function useConversation(conversationId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'one', conversationId],
+    queryFn: ({ signal }) => app.inbox.getConversation(conversationId, signal),
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The most escalated Conversations the badge counts; a longer list shows as "more than" this. */
+export const ESCALATED_COUNT_LIMIT = 100
+
+/**
+ * How many Conversations wait for a person, among those core lets the caller see (a Rep sees only
+ * their own, so for a Rep this is their escalations). One page of at most `ESCALATED_COUNT_LIMIT`;
+ * `more` is true when there are further pages.
+ */
+export function useEscalatedCount() {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'escalated-count'],
+    queryFn: async ({ signal }) => {
+      const page = await app.inbox.listConversations({
+        state: 'escalated',
+        limit: ESCALATED_COUNT_LIMIT,
+        signal,
+      })
+      return { count: page.items.length, more: page.nextCursor !== null }
+    },
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The escalation rules in trigger order (Owner, Admin); `enabled` is false for anyone else, so no request is made. */
+export function useEscalationRules(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'escalation-rules'],
+    queryFn: ({ signal }) => app.escalation.listRules({ signal }),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+}
+
+/** Puts a Conversation core just answered into the cache, so the next render shows it, then refetches the inbox reads. */
+export function storeConversation(app: App, conversation: Conversation): Promise<void> {
+  const snapshot = app.session.getSnapshot()
+  if (snapshot.status === 'signed_in') {
+    app.queryClient.setQueryData(
+      [...KEYS.inbox(snapshot.organization.id), 'one', conversation.id],
+      conversation
+    )
+  }
+  return refresh(app, 'inbox')
+}
+
+/** The Messages of one Conversation, oldest first, a page at a time. */
+export function useConversationMessages(conversationId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    MessagesPage,
+    Error,
+    InfiniteData<MessagesPage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.inbox(organizationId), 'messages', conversationId],
+    queryFn: ({ pageParam, signal }) =>
+      app.inbox.listMessages(conversationId, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** The Drafts waiting for a decision, oldest first, a page at a time; `enabled` false makes no request. */
+export function useApprovalQueue(filter: ApprovalFilter, enabled = true) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ApprovalQueuePage,
+    Error,
+    InfiniteData<ApprovalQueuePage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [
+      ...KEYS.inbox(organizationId),
+      'approvals',
+      filter.channel ?? '',
+      filter.conversationId ?? '',
+    ],
+    queryFn: ({ pageParam, signal }) =>
+      app.approvals.listApprovals({ ...filter, cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedStateBy(query, (item) => item.draft.id)
+}
+
+/** One Draft. */
+export function useDraft(draftId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'draft', draftId],
+    queryFn: ({ signal }) => app.approvals.getDraft(draftId, signal),
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The passages a Draft cites; a failure here leaves the Draft itself readable. */
+export function useDraftSources(draftId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'draft-sources', draftId],
+    queryFn: ({ signal }) => app.approvals.getDraftSources(draftId, signal),
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The decisions about one Draft, newest first; `enabled` is false for a role that may not read them (no request is made). */
+export function useDraftDecisions(draftId: string, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    DecisionsPage,
+    Error,
+    InfiniteData<DecisionsPage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.inbox(organizationId), 'decisions', draftId],
+    queryFn: ({ pageParam, signal }) =>
+      app.approvals.listDecisions(draftId, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** The approval policy of each channel; `enabled` is false for a role that may not read it (no request is made). */
+export function useApprovalPolicies(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'policies'],
+    queryFn: ({ signal }) => app.approvals.listPolicies(signal),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+}
+
 /** The Playbook documents in one state (or, with none, every document that is not deleted), a page at a time. */
 export function useDocuments(state: DocumentState | undefined) {
   const app = useApp()
@@ -175,6 +600,49 @@ export function useDocuments(state: DocumentState | undefined) {
     enabled: organizationId !== '',
   })
   return { ...pagedState(query), refetch: () => query.refetch() }
+}
+
+/** The Suggestions in one status, newest first, a page at a time; `enabled` is false for a role that may not list them (no request is made). */
+export function useSuggestions(status: SuggestionStatus, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    SuggestionsPage,
+    Error,
+    InfiniteData<SuggestionsPage, string | undefined>,
+    readonly [string, string, string],
+    string | undefined
+  >({
+    queryKey: [...KEYS.suggestions(organizationId), status],
+    queryFn: ({ pageParam, signal }) =>
+      app.playbook.listSuggestions({ cursor: pageParam, status, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return { ...pagedState(query), refetch: () => query.refetch() }
+}
+
+/** Whether learning from Agent Moments is on (Owner, Admin); no request unless `enabled`. */
+export function useLearningSettings(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: KEYS.learning(organizationId),
+    queryFn: ({ signal }) => app.playbook.getLearningSettings(signal),
+    enabled: enabled && organizationId !== '',
+  })
+}
+
+/** The text of the Moments a Suggestion cites; read only once `enabled` (the person opened a citation). */
+export function useResolvedCitations(refs: readonly CitationRef[], enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.suggestions(organizationId), 'citations', JSON.stringify(refs)],
+    queryFn: ({ signal }) => app.playbook.resolveCitations(refs, signal),
+    enabled: enabled && refs.length > 0 && organizationId !== '',
+  })
 }
 
 /** The Organization's rights confirmation and the wording version to show (Owner, Admin). */
@@ -324,6 +792,66 @@ export function useImportRows(importId: string, rejectedOnly: boolean, enabled: 
   return pagedStateBy(query, (row) => String(row.rowNumber))
 }
 
+/** Prospect imports, a page at a time, newest first. */
+export function useProspectImports() {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListProspectImportsResponse,
+    Error,
+    InfiniteData<ListProspectImportsResponse, string | undefined>,
+    readonly [string, string, string],
+    string | undefined
+  >({
+    queryKey: [...KEYS.prospectImports(organizationId), 'list'],
+    queryFn: ({ pageParam, signal }) => app.core.listProspectImports({ cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  return { ...pagedState(query), refetch: () => query.refetch() }
+}
+
+/** One Prospect import with its state and counts. */
+export function useProspectImport(importId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.prospectImports(organizationId), 'one', importId],
+    queryFn: ({ signal }) => app.core.getProspectImport(importId, signal),
+    enabled: organizationId !== '',
+  })
+}
+
+/** A Prospect import's report, a page at a time; `result` lists only the rows that ended so. */
+export function useProspectImportRows(
+  importId: string,
+  result: 'all' | ProspectImportRowResult,
+  enabled: boolean
+) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListProspectImportRowsResponse,
+    Error,
+    InfiniteData<ListProspectImportRowsResponse, string | undefined>,
+    readonly [string, string, string, string, string],
+    string | undefined
+  >({
+    queryKey: [...KEYS.prospectImports(organizationId), 'rows', importId, result],
+    queryFn: ({ pageParam, signal }) =>
+      app.core.listProspectImportRows(importId, {
+        cursor: pageParam,
+        result: result === 'all' ? undefined : result,
+        signal,
+      }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedStateBy(query, (row) => String(row.rowNumber))
+}
+
 /**
  * One list read once for a dashboard count: a single page at the largest size the server allows,
  * never a second page. `more` says a next cursor came back, so the count is a floor ("100+").
@@ -451,4 +979,307 @@ export function useCalls(filter: {
     enabled: organizationId !== '',
   })
   return { ...pagedState(query), refetch: () => query.refetch() }
+}
+
+/** How many pages in a row may come back empty before the screen stops asking and offers "Load more". */
+export const MAX_EMPTY_PAGES = 5
+
+/**
+ * The Prospects the caller may see, a page at a time. A page may hold fewer than the page size,
+ * even none, while a cursor is present (core filters after it reads), so the list is empty only
+ * when no cursor is left; while nothing has been found yet the next page is asked for, up to
+ * `MAX_EMPTY_PAGES`, and then the person decides with "Load more".
+ */
+export function useProspects(filter: ProspectFilter) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ListProspectsResponse,
+    Error,
+    InfiniteData<ListProspectsResponse, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [
+      ...KEYS.prospects(organizationId),
+      'list',
+      filter.q ?? '',
+      filter.status ?? '',
+      filter.source ?? '',
+      filter.ownerMembershipId ?? '',
+      filter.companyId ?? '',
+    ],
+    queryFn: ({ pageParam, signal }) =>
+      app.core.listProspects({ ...filter, cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  const paged = pagedState(query)
+  const pages = query.data?.pages ?? []
+  const searching =
+    query.data !== undefined &&
+    paged.items.length === 0 &&
+    query.hasNextPage &&
+    pages.length <= MAX_EMPTY_PAGES
+  const { fetchNextPage, isFetchingNextPage, isError } = query
+  const pageCount = pages.length
+  // pageCount is a dependency so each arrived empty page asks for the next, even when a fast
+  // fetch never showed as "fetching" in a render.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: pageCount only re-triggers the effect
+  useEffect(() => {
+    if (searching && !isFetchingNextPage && !isError) {
+      void fetchNextPage()
+    }
+  }, [searching, isFetchingNextPage, isError, fetchNextPage, pageCount])
+  return {
+    items: paged.items,
+    state: {
+      ...paged.state,
+      // Nothing yet is not nothing at all: only an end of the list with no rows says "empty".
+      isEmpty: paged.state.isEmpty && !query.hasNextPage,
+      isPending: paged.state.isPending || searching,
+    },
+  }
+}
+
+/** One Prospect with the Source and time of each field. */
+export function useProspect(prospectId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.prospects(organizationId), 'one', prospectId],
+    queryFn: ({ signal }) => app.core.getProspect(prospectId, signal),
+    enabled: organizationId !== '' && prospectId !== '',
+    retry: false,
+  })
+}
+
+/** How many Prospect Companies the picker shows for one search; a longer list asks for more of the name. */
+export const COMPANY_PICKER_SIZE = 25
+
+/** The most pages of members the Owner choices read (at the largest page size), so a huge Organization stays bounded. */
+export const MEMBER_OPTION_PAGES = 10
+
+/** Prospect Companies whose name matches `term` (core's `q`), the first page only; an empty term lists the first ones. */
+export function useProspectCompanySearch(term: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery<ListProspectCompaniesResponse>({
+    queryKey: [...KEYS.prospectCompanies(organizationId), 'search', term],
+    queryFn: ({ signal }) =>
+      app.core.listProspectCompanies({
+        limit: COMPANY_PICKER_SIZE,
+        q: term === '' ? undefined : term,
+        signal,
+      }),
+    enabled: organizationId !== '',
+    placeholderData: (previous) => previous,
+  })
+}
+
+/** One Prospect Company by id; nothing is asked for while `companyId` is empty. */
+export function useProspectCompany(companyId: string | null) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.prospectCompanies(organizationId), 'one', companyId ?? ''],
+    queryFn: ({ signal }) => app.core.getProspectCompany(companyId ?? '', signal),
+    enabled: organizationId !== '' && companyId !== null && companyId !== '',
+    retry: false,
+  })
+}
+
+/**
+ * The names of exactly the Prospect Companies a screen shows. The ids (each once, malformed ones
+ * dropped) are read in chunks of at most `MAX_PROSPECT_COMPANY_IDS`, one `ids` request per chunk;
+ * a Company the answer leaves out has no name here.
+ */
+export function useProspectCompanyNames(
+  companyIds: readonly string[]
+): ReadonlyMap<string, string> {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const unique = [
+    ...new Set(companyIds.filter((id) => prospectCompanyIdSchema.safeParse(id).success)),
+  ]
+  const chunks: string[][] = []
+  for (let start = 0; start < unique.length; start += MAX_PROSPECT_COMPANY_IDS) {
+    chunks.push(unique.slice(start, start + MAX_PROSPECT_COMPANY_IDS))
+  }
+  const results = useQueries({
+    queries: chunks.map((chunk) => ({
+      queryKey: [...KEYS.prospectCompanies(organizationId), 'ids', chunk.join(',')],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        app.core.listProspectCompanies({ ids: chunk, limit: chunk.length, signal }),
+      enabled: organizationId !== '',
+      retry: false,
+      // A page loaded later grows the last chunk: keep the names already known meanwhile.
+      placeholderData: (previous: ListProspectCompaniesResponse | undefined) => previous,
+    })),
+  })
+  const names = new Map<string, string>()
+  for (const result of results) {
+    for (const company of result.data?.items ?? []) {
+      names.set(company.id, companyName(company))
+    }
+  }
+  return names
+}
+
+/** How many members the Owner choice shows for one search; a longer list asks for more of the name. */
+export const MEMBER_PICKER_SIZE = 25
+
+/** A member search as typed, made ready to send: trimmed and cut to core's longest `q` (none if blank). */
+export function memberSearchTerm(text: string): string {
+  return text.trim().slice(0, MAX_MEMBER_QUERY_LENGTH).trim()
+}
+
+/**
+ * Members whose name matches `term` (core's `q`), the first page only; an empty term lists the
+ * first ones. No request is made unless `enabled`.
+ */
+export function useMemberSearch(term: string, enabled: boolean, role?: Role) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const q = memberSearchTerm(term)
+  const query = useQuery<ListMembersResponse>({
+    queryKey: [...KEYS.members(organizationId), 'search', q, role ?? ''],
+    queryFn: ({ signal }) =>
+      app.core.listMembers({
+        limit: MEMBER_PICKER_SIZE,
+        q: q === '' ? undefined : q,
+        role,
+        signal,
+      }),
+    enabled: enabled && organizationId !== '',
+    placeholderData: (previous) => previous,
+  })
+  return { items: query.data?.items ?? [], hasMore: Boolean(query.data?.nextCursor) }
+}
+
+/** The most member ids core resolves in one call. */
+const MEMBER_IDS_PER_CALL = MAX_MEMBER_IDS
+
+/**
+ * The names of specific members by id, resolved with `ids=` calls of at most 100 each (core's
+ * limit), so a name shows even when the member is not on the first page of a list. Returns a map
+ * from id to the member; an id core does not list is absent.
+ */
+export function useMembersByIds(ids: readonly string[], enabled = true) {
+  return useMembersByIdsState(ids, enabled).members
+}
+
+/** Like `useMembersByIds`, and says whether a lookup is still under way (`loading`). */
+export function useMembersByIdsState(ids: readonly string[], enabled = true) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const wanted = [...new Set(ids)].sort()
+  const query = useQuery<ReadonlyMap<string, ListMembersResponse['items'][number]>>({
+    queryKey: [...KEYS.members(organizationId), 'ids', wanted],
+    queryFn: async ({ signal }) => {
+      const found = new Map<string, ListMembersResponse['items'][number]>()
+      for (let at = 0; at < wanted.length; at += MEMBER_IDS_PER_CALL) {
+        const chunk = wanted.slice(at, at + MEMBER_IDS_PER_CALL)
+        const result = await app.core.listMembers({
+          limit: MEMBER_IDS_PER_CALL,
+          ids: chunk,
+          signal,
+        })
+        for (const member of result.items) {
+          found.set(member.id, member)
+        }
+      }
+      return found
+    },
+    enabled: enabled && organizationId !== '' && wanted.length > 0,
+    placeholderData: (previous) => previous,
+  })
+  return {
+    members: query.data ?? new Map<string, ListMembersResponse['items'][number]>(),
+    // Only while there is no answer for these ids yet: a refetch keeps what was resolved.
+    failed: query.isError,
+    loading: query.isLoading || (query.isFetching && query.isPlaceholderData),
+  }
+}
+
+/** The Contact Consent state of one Prospect, every channel. */
+export function useProspectConsent(prospectId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.consent(organizationId), 'state', prospectId],
+    queryFn: ({ signal }) => app.consent.getProspectConsent(prospectId, signal),
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The consent ledger of one Prospect, newest first, a page at a time. */
+export function useConsentEvents(prospectId: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ConsentEventsPage,
+    Error,
+    InfiniteData<ConsentEventsPage, string | undefined>,
+    readonly unknown[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.consent(organizationId), 'events', prospectId],
+    queryFn: ({ pageParam, signal }) =>
+      app.consent.listConsentEvents(prospectId, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+    retry: false,
+  })
+  return pagedState(query)
+}
+
+/** The most pages of Consent Wordings the record form reads, so a long history stays bounded. */
+export const WORDING_PAGES = 4
+
+/** The Consent Wordings of the Organization, newest page first, up to `WORDING_PAGES` pages. */
+export function useConsentWordings(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ConsentWordingsPage,
+    Error,
+    InfiniteData<ConsentWordingsPage, string | undefined>,
+    readonly unknown[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.consent(organizationId), 'wordings'],
+    queryFn: ({ pageParam, signal }) =>
+      app.consent.listConsentWordings({ cursor: pageParam, signal, limit: MAX_PAGE_SIZE }),
+    initialPageParam: undefined,
+    getNextPageParam: (last, pages) =>
+      pages.length >= WORDING_PAGES ? undefined : (last.nextCursor ?? undefined),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+  return pagedState(query)
+}
+
+/** The Suppression entries that match the filters, a page at a time. `enabled` is false for a role that may not list them. */
+export function useSuppressionEntries(filter: SuppressionFilter, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    SuppressionPage,
+    Error,
+    InfiniteData<SuppressionPage, string | undefined>,
+    readonly unknown[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.suppression(organizationId), filter],
+    queryFn: ({ pageParam, signal }) =>
+      app.consent.listSuppressionEntries({ ...filter, cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
 }

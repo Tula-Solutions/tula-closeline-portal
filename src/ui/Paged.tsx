@@ -1,6 +1,6 @@
 import { RotateCw } from 'lucide-react'
 import { type ReactNode, useLayoutEffect, useRef } from 'react'
-import { presentManage } from '~/api/manage-messages'
+import { presentManage, type ShownFailure } from '~/api/manage-messages'
 import { EmptyState } from '~/components/app/empty-state'
 import { Button } from '~/components/ui/button'
 import { Skeleton } from '~/components/ui/skeleton'
@@ -33,8 +33,11 @@ export function Paged(props: {
   readonly emptyHint?: ReactNode
   /** What to do about an empty list, such as the button that adds the first one. */
   readonly emptyAction?: ReactNode
+  /** Words for a failure of this list's call; the members screens' words when not given. */
+  readonly present?: (error: unknown) => ShownFailure
 }) {
   const { state, noun } = props
+  const present = props.present ?? presentManage
   const list = useRef<HTMLDivElement>(null)
   // Rows arrive one after another the first time the list loads here; a cached list, a refetch
   // and Load more put them in place without motion.
@@ -74,7 +77,7 @@ export function Paged(props: {
   if (state.isError && !state.hasData) {
     return (
       <div>
-        <Banner kind='error'>{presentManage(state.error).message}</Banner>
+        <Banner kind='error'>{present(state.error).message}</Banner>
         <Button variant='outline' onClick={() => state.refetch()}>
           <RotateCw aria-hidden='true' />
           Try again
@@ -96,7 +99,7 @@ export function Paged(props: {
       </div>
       {state.isError ? (
         <Banner kind='error' className='mt-4'>
-          {presentManage(state.error).message}
+          {present(state.error).message}
         </Banner>
       ) : null}
       {state.hasNextPage ? (

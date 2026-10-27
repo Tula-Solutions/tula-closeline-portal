@@ -36,15 +36,53 @@ export const fingerprint = {
   invitation: (email: string, role: string) => JSON.stringify(['invitation', email, role]),
   /** Creating a Team called `name`. */
   team: (name: string) => JSON.stringify(['team', name]),
+  /** Creating a Prospect from this body (as JSON text, so the same details are the same intent). */
+  prospect: (body: string) => JSON.stringify(['prospect', body]),
+  /** Creating a Prospect Company called `name`. */
+  prospectCompany: (name: string) => JSON.stringify(['prospect-company', name]),
   /** Uploading a file with this name, size and last-modified time (the same file chosen again is the same intent). */
   document: (name: string, size: number, modified: number) =>
     JSON.stringify(['document', name, size, modified]),
   /** Uploading a Deal import CSV with this name, size and last-modified time. */
   dealImport: (name: string, size: number, modified: number) =>
     JSON.stringify(['deal-import', name, size, modified]),
+  /** Uploading a Prospect import CSV with this name, size and last-modified time. */
+  prospectImport: (name: string, size: number, modified: number) =>
+    JSON.stringify(['prospect-import', name, size, modified]),
   /** Uploading a Transcript or Recording: the file (name, size, modified time), the deal id and the Rep choice as JSON text (empty for none), which together are one intent. */
   call: (name: string, size: number, modified: number, dealId: string, rep: string) =>
     JSON.stringify(['call', name, size, modified, dealId, rep]),
+  /** Adding a Line with this request body (as JSON): the same body is the same intent. */
+  line: (body: string) => JSON.stringify(['line', body]),
+  /** Creating an API key with this request body (as JSON): the same name, scopes, ceiling and expiry are the same intent. */
+  apiKey: (body: string) => JSON.stringify(['api-key', body]),
+  /** Asking for an export with this body (as JSON): the same options are the same intent. */
+  exportRequest: (body: string) => JSON.stringify(['export-request', body]),
+  /** Asking for a download link of the export `exportId`. */
+  exportDownload: (exportId: string) => JSON.stringify(['export-download', exportId]),
+  /** Revoking the API key `apiKeyId`. */
+  apiKeyRevoke: (apiKeyId: string) => JSON.stringify(['api-key-revoke', apiKeyId]),
+  /** Recording a grant on a Prospect with this body (as JSON): the same grant is the same intent. */
+  consentGrant: (prospectId: string, body: string) =>
+    JSON.stringify(['consent-grant', prospectId, body]),
+  /** Withdrawing consent on a Prospect with this body (as JSON). */
+  consentWithdrawal: (prospectId: string, body: string) =>
+    JSON.stringify(['consent-withdrawal', prospectId, body]),
+  /** Writing a Consent Wording with this body (as JSON), or its next version when `wordingId` is given. */
+  consentWording: (wordingId: string, body: string) =>
+    JSON.stringify(['consent-wording', wordingId, body]),
+  /** Adding an address to Suppression with this body (as JSON). */
+  suppression: (body: string) => JSON.stringify(['suppression', body]),
+  /** Deciding the Draft `draftId`: `kind` is approve, edit-approve or reject, `body` the request as JSON text (so the same decision is the same intent). */
+  draftDecision: (draftId: string, kind: 'approve' | 'edit-approve' | 'reject', body: string) =>
+    JSON.stringify(['draft-decision', draftId, kind, body]),
+  /** Taking over the Conversation `conversationId`. */
+  takeover: (conversationId: string) => JSON.stringify(['takeover', conversationId]),
+  /** Handing the Conversation `conversationId` back to the Agent: its own intent, apart from taking over. */
+  handback: (conversationId: string) => JSON.stringify(['handback', conversationId]),
+  /** Replying `body` in the Conversation `conversationId`: the same text is the same intent. */
+  conversationReply: (conversationId: string, body: string) =>
+    JSON.stringify(['conversation-reply', conversationId, body]),
   /** Adding `membershipId` to the Team `teamId`. */
   teamMember: (teamId: string, membershipId: string) =>
     JSON.stringify(['team-member', teamId, membershipId]),

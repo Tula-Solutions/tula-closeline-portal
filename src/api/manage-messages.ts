@@ -3,7 +3,12 @@ import { ApiError, CLIENT_ERRORS } from '~/api/errors'
 import { GENERIC_MESSAGE, waitPhrase } from '~/api/messages'
 
 /** What to show for a failure of a members, Invitations or Teams call, and the field it belongs to. */
-export type ShownFailure = { readonly message: string; readonly field?: 'email' | 'name' }
+export type ShownFailure = {
+  readonly message: string
+  readonly field?: 'email' | 'name'
+  /** Where the person should go to put it right: the Conversation the call was about. */
+  readonly link?: 'conversation'
+}
 
 function tryAgain(seconds: number | undefined): string {
   return seconds === undefined ? 'Try again shortly.' : `Try again in ${waitPhrase(seconds)}.`
@@ -131,7 +136,9 @@ export function outcomeUnknown(error: unknown): boolean {
     return true
   }
   return (
-    error.status === 0 ||
+    error.code === CLIENT_ERRORS.network ||
+    error.code === CLIENT_ERRORS.timeout ||
+    // Every area has its own 5xx codes and the contract has no list of them, so the class stays.
     error.status >= 500 ||
     error.code === CLIENT_ERRORS.badResponse ||
     error.code === ERRORS['request.idempotency_in_progress'].code

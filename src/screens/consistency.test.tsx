@@ -4,6 +4,7 @@ import { CORE_ERRORS, ERRORS } from 'tula-closeline-contract'
 import { hexId, invitationBody, memberBody, page, teamBody } from '~/testing/core-bodies'
 import { failure, type Handler, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal, waitUntilGone } from '~/testing/render'
+import { choose, chosenValue } from '~/testing/select'
 
 const REFRESH = '/v1/client/sessions/refresh'
 const MEMBERS = '/v1/members'
@@ -236,13 +237,11 @@ describe('F4: what is chosen follows the data', () => {
       route('GET', MEMBERS, () => json(200, page([memberBody(2, { name: 'Rita Rep', role })])))
     )
     await screen.findByText('Rita Rep')
-    expect((screen.getByLabelText('Role for Rita Rep') as HTMLSelectElement).value).toBe('rep')
+    expect(chosenValue(screen.getByLabelText('Role for Rita Rep'))).toBe('rep')
     role = 'manager'
     await act(() => portal.app.queryClient.invalidateQueries())
     await waitFor(() =>
-      expect((screen.getByLabelText('Role for Rita Rep') as HTMLSelectElement).value).toBe(
-        'manager'
-      )
+      expect(chosenValue(screen.getByLabelText('Role for Rita Rep'))).toBe('manager')
     )
     expect(screen.queryByRole('button', { name: 'Save role for Rita Rep' })).toBeNull()
   })
@@ -267,13 +266,11 @@ describe('F4: what is chosen follows the data', () => {
     )
     await screen.findByText('Northern', { selector: 'bdi' })
     await portal.user.click(screen.getByRole('button', { name: 'Members of Northern' }))
-    const select = (await screen.findByLabelText('Member')) as HTMLSelectElement
-    await portal.user.selectOptions(select, hexId('mem', 2))
+    const select = await screen.findByLabelText('Member')
+    await choose(portal.user, select, hexId('mem', 2))
     list = [memberBody(1, { name: 'Maya Chen' })]
     await act(() => portal.app.queryClient.invalidateQueries())
-    await waitFor(() =>
-      expect((screen.getByLabelText('Member') as HTMLSelectElement).value).toBe(hexId('mem', 1))
-    )
+    await waitFor(() => expect(chosenValue(screen.getByLabelText('Member'))).toBe(hexId('mem', 1)))
     await portal.user.click(screen.getByRole('button', { name: 'Add to Team' }))
     await waitFor(() =>
       expect(portal.calls.filter((call) => call.method === 'POST')).toHaveLength(1)
