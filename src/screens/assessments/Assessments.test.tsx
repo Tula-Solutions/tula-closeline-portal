@@ -50,15 +50,21 @@ function assessment(n: number, overrides: Record<string, unknown> = {}) {
   }
 }
 
-function rate(week: number, agentKind: string, value: number | null, recordCount: number) {
+function rate(
+  week: number,
+  agentKind: string,
+  value: number | null,
+  recordCount: number,
+  category: string | null = null
+) {
   const base = {
     kind: 'rate',
     week: `2026-W${String(week).padStart(2, '0')}`,
     weekStart: `2026-09-${String(week - 31 + 6).padStart(2, '0')}`,
     agentKind,
     instructionVersion: 3,
+    category,
     recordCount,
-    category: null,
   }
   return value === null
     ? { ...base, state: 'not_enough_data', value: null }
@@ -69,12 +75,21 @@ const rates: Handler = route('GET', RATES, (call) =>
   json(200, {
     from: query(call).get('from'),
     to: query(call).get('to'),
-    items: [
-      rate(37, 'outbound', 0.05, 40),
-      rate(38, 'outbound', 0.1, 50),
-      rate(39, 'outbound', null, 7),
-      rate(37, 'inbound', 0.02, 30),
-    ],
+    items:
+      query(call).get('groupBy') === 'category'
+        ? [
+            rate(37, 'outbound', 0.03, 40, 'unsupported_claim'),
+            rate(37, 'outbound', null, 12, 'tone'),
+            rate(38, 'outbound', 0.06, 50, 'unsupported_claim'),
+            rate(38, 'outbound', 0.01, 50, 'tone'),
+            rate(37, 'inbound', 0.02, 30, 'missing_disclosure'),
+          ]
+        : [
+            rate(37, 'outbound', 0.05, 40),
+            rate(38, 'outbound', 0.1, 50),
+            rate(39, 'outbound', null, 7),
+            rate(37, 'inbound', 0.02, 30),
+          ],
     nextCursor: null,
   })
 )
@@ -326,12 +341,64 @@ describe('Assessments review', () => {
     ).toBeTruthy()
     expect(screen.getByRole('img', { name: /Inbound Agent failure rate by week/ })).toBeTruthy()
     expect(screen.getByText(/1 week has fewer than 20 records/)).toBeTruthy()
-    const table = screen.getByRole('table', { hidden: true })
+    const table = screen.getByRole('table', {
+      hidden: true,
+      name: 'Failure rate by week, Agent and instruction version',
+    })
     expect(within(table).getByText('7 of 20')).toBeTruthy()
     expect(within(table).getAllByText('Not enough data').length).toBe(1)
-    const call = portal.calls.find((c) => c.path === RATES)
+    const call = portal.calls.find((c) => c.path === RATES && !query(c).get('groupBy'))
     expect(call && query(call).get('from')).toBeTruthy()
     expect(call && query(call).get('limit')).toBe('100')
+  })
+
+  test('splits the failure rate by kind of finding and states no rate for a thin cell', async () => {
+    const portal = visit('owner', '/assessments', list, rates)
+    const outbound = await screen.findByRole('table', { name: 'Outbound Agent' })
+    const rows = within(outbound).getAllByRole('row')
+    // Newest week first: W38 states both rates, W37 has a thin Tone cell.
+    expect(within(rows[1] as HTMLElement).getByText('6%')).toBeTruthy()
+    expect(within(rows[1] as HTMLElement).getByText('1%')).toBeTruthy()
+    const thin = rows[2] as HTMLElement
+    expect(within(thin).getByText('3%')).toBeTruthy()
+    expect(within(thin).getByText('Not enough data')).toBeTruthy()
+    expect(within(thin).getByText('12 of 20')).toBeTruthy()
+    expect(within(thin).queryByText('0%')).toBeNull()
+    expect(within(outbound).getByRole('columnheader', { name: 'Missing disclosure' })).toBeTruthy()
+    expect(
+      within(await screen.findByRole('table', { name: 'Inbound Agent' })).getByText('2%')
+    ).toBeTruthy()
+    expect(
+      portal.calls.some((c) => c.path === RATES && query(c).get('groupBy') === 'category')
+    ).toBe(true)
+  })
+
+  test('says so when the kind-of-finding view stops at the page cap', async () => {
+    const endless = route('GET', RATES, (call) =>
+      json(200, {
+        from: query(call).get('from'),
+        to: query(call).get('to'),
+        items: [rate(37, 'outbound', 0.03, 40, 'tone'), rate(38, 'outbound', 0.03, 40, 'tone')],
+        nextCursor: query(call).get('groupBy') === 'category' ? 'more' : null,
+      })
+    )
+    visit('owner', '/assessments', list, endless)
+    expect(
+      await screen.findByText(
+        /Showing weeks up to .*13.*\. Choose a shorter range to see later weeks\./
+      )
+    ).toBeTruthy()
+  })
+
+  test('the Agent filter narrows the kind-of-finding view too', async () => {
+    const portal = visit('owner', '/assessments?agentKind=inbound', list, rates)
+    await screen.findByRole('heading', { name: 'By kind of finding' })
+    await waitFor(() => {
+      const call = portal.calls.find(
+        (c) => c.path === RATES && query(c).get('groupBy') === 'category'
+      )
+      expect(call && query(call).get('agentKind')).toBe('inbound')
+    })
   })
 
   test('shows an empty list as one plain line', async () => {
@@ -343,6 +410,7 @@ describe('Assessments review', () => {
     visit('owner', '/assessments', list, rates)
     await screen.findByText('Unsupported claim, serious.')
     await screen.findByRole('img', { name: /Outbound Agent failure rate/ })
+    await screen.findByRole('table', { name: 'Outbound Agent' })
     const run = async () =>
       (
         await axe.run(screen.getByRole('main'), { rules: { 'color-contrast': { enabled: false } } })

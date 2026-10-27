@@ -5,11 +5,11 @@ import { pickWeek } from '~/screens/assessments/FailureRateChart'
 function item(instructionVersion: number, ok: boolean): AssessmentRateItem {
   const base = {
     kind: 'rate',
+    category: null,
     week: '2026-W40',
     weekStart: '2026-09-28',
     agentKind: 'inbound',
     instructionVersion,
-    category: null,
   } as const
   return ok
     ? { ...base, state: 'ok', value: 0.1, recordCount: 30 }
