@@ -284,7 +284,15 @@ export function createSession(deps: SessionDeps): Session {
         held.deadline - now() <= skewMs &&
         (inFlight !== null || now() - lastRefreshAt >= minGapMs)
       ) {
-        await refreshShared()
+        try {
+          await refreshShared()
+        } catch (error) {
+          // A refused refresh ended the session, and an expired token is no use: both still fail.
+          if (isRefusal(error) || held === null || held.deadline <= now()) {
+            throw error
+          }
+          // Otherwise the current token still works; the next call tries the refresh again.
+        }
       }
       return held?.tokens.accessToken ?? null
     },
