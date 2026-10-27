@@ -9,6 +9,7 @@
     '/sign-in',
     '/sign-up',
     '/book-a-demo',
+    '/book',
     '/copilot',
     '/inbound-agent',
     '/outbound-agent',

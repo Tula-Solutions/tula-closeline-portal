@@ -22,6 +22,9 @@ const QUERY_OR_FRAGMENT = /[?#].*$/s
 const USERINFO = /^([a-z][a-z0-9+.-]*:\/\/)[^/?#]*@/i
 const KEYED_QUERY_OR_FRAGMENT = /[?#][A-Za-z0-9_.-]+=[^\s'"<>)\]]*/g
 const TOKEN_SHAPED = /[A-Za-z0-9_-]{32,}/g
+/** The public booking link carries its secret token as the last path segment. */
+const BOOKING_LINK = /\/book\/[^/?#\s'"<>)\]]+/g
+const BOOKING_LINK_MASK = '/book/[redacted]'
 
 function redactUrl(match: string): string {
   return match.replace(USERINFO, '$1').replace(QUERY_OR_FRAGMENT, '')
@@ -69,6 +72,7 @@ function textScrubber(secrets: readonly string[]): TextScrubber {
       text = `${text.slice(0, MAX_STRING)}[truncated]`
     }
     return text
+      .replace(BOOKING_LINK, BOOKING_LINK_MASK)
       .replace(URL_SHAPED, redactUrl)
       .replace(KEYED_QUERY_OR_FRAGMENT, '')
       .replace(TOKEN_SHAPED, '[redacted]')
@@ -80,7 +84,7 @@ export function stripUrl(value: string): string {
   try {
     const url = new URL(value, 'http://placeholder.invalid')
     const origin = url.origin === 'http://placeholder.invalid' ? '' : url.origin
-    return `${origin}${url.pathname}`
+    return `${origin}${url.pathname.replace(BOOKING_LINK, BOOKING_LINK_MASK)}`
   } catch {
     return '[removed]'
   }

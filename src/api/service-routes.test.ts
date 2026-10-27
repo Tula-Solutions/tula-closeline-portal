@@ -57,6 +57,8 @@ describe('the routing table', () => {
       '/v1/calendar-connection -> core',
       '/v1/availability -> core',
       '/v1/booking-types -> core',
+      '/v1/booking-slots -> core',
+      '/v1/bookings -> core',
       '/v1/routing-rules -> core',
       '/v1/assessment-rates -> core',
       '/v1/playbook -> playbook',

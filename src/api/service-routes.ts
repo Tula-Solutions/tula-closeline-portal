@@ -48,6 +48,8 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/calendar-connection', service: 'core' },
   { prefix: '/v1/availability', service: 'core' },
   { prefix: '/v1/booking-types', service: 'core' },
+  { prefix: '/v1/booking-slots', service: 'core' },
+  { prefix: '/v1/bookings', service: 'core' },
   { prefix: '/v1/routing-rules', service: 'core' },
   { prefix: '/v1/assessment-rates', service: 'core' },
   { prefix: '/v1/playbook', service: 'playbook' },

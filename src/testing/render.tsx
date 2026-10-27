@@ -71,6 +71,8 @@ export function renderPortal(
     sleep?: (milliseconds: number) => Promise<void>
     /** Stands in the text of a rights wording version (the contract's table has one). */
     rightsWording?: (version: number) => RightsWording | undefined
+    /** Collects every secret the page registers with the reporter to keep out of reports. */
+    redacted?: string[]
     /** Render inside `<StrictMode>`, as `main.tsx` does, so effects run, clean up and run again. */
     strict?: boolean
     /** Stands in `location.assign`, which leaves the page for another origin. */
@@ -94,7 +96,10 @@ export function renderPortal(
           })
         : TEST_ENV),
     ...(options.assign ? { assign: options.assign } : {}),
-    reporter: createReporter((error) => reports.push(error)),
+    reporter: createReporter(
+      (error) => reports.push(error),
+      (secret) => options.redacted?.push(secret)
+    ),
     fetch: double.fetch,
     sleep: options.sleep ?? (async () => {}),
     ...(options.rightsWording ? { rightsWording: options.rightsWording } : {}),

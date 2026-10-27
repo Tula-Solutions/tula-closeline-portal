@@ -38,6 +38,7 @@ import { Route as SiteInboundAgentRouteImport } from './routes/_site/inbound-age
 import { Route as SiteOutboundAgentRouteImport } from './routes/_site/outbound-agent'
 import { Route as SiteSecurityRouteImport } from './routes/_site/security'
 import { Route as SiteThePlaybookRouteImport } from './routes/_site/the-playbook'
+import { Route as BookTokenRouteImport } from './routes/book.$token'
 import { Route as AppAnalyticsIndexRouteImport } from './routes/_app/analytics/index'
 import { Route as AppAnalyticsCampaignsRouteImport } from './routes/_app/analytics/campaigns'
 import { Route as AppAnalyticsRepsRouteImport } from './routes/_app/analytics/reps'
@@ -211,6 +212,11 @@ const SiteThePlaybookRoute = SiteThePlaybookRouteImport.update({
   id: '/the-playbook',
   path: '/the-playbook',
   getParentRoute: () => SiteRoute,
+} as any)
+const BookTokenRoute = BookTokenRouteImport.update({
+  id: '/book/$token',
+  path: '/book/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppAnalyticsIndexRoute = AppAnalyticsIndexRouteImport.update({
   id: '/analytics/',
@@ -404,6 +410,7 @@ export interface FileRoutesByFullPath {
   '/outbound-agent': typeof SiteOutboundAgentRoute
   '/security': typeof SiteSecurityRoute
   '/the-playbook': typeof SiteThePlaybookRoute
+  '/book/$token': typeof BookTokenRoute
   '/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/analytics/sources': typeof AppAnalyticsSourcesRoute
@@ -461,6 +468,7 @@ export interface FileRoutesByTo {
   '/outbound-agent': typeof SiteOutboundAgentRoute
   '/security': typeof SiteSecurityRoute
   '/the-playbook': typeof SiteThePlaybookRoute
+  '/book/$token': typeof BookTokenRoute
   '/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/analytics/sources': typeof AppAnalyticsSourcesRoute
@@ -522,6 +530,7 @@ export interface FileRoutesById {
   '/_site/outbound-agent': typeof SiteOutboundAgentRoute
   '/_site/security': typeof SiteSecurityRoute
   '/_site/the-playbook': typeof SiteThePlaybookRoute
+  '/book/$token': typeof BookTokenRoute
   '/_app/': typeof AppIndexRoute
   '/_app/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/_app/analytics/reps': typeof AppAnalyticsRepsRoute
@@ -584,6 +593,7 @@ export interface FileRouteTypes {
     | '/outbound-agent'
     | '/security'
     | '/the-playbook'
+    | '/book/$token'
     | '/analytics/campaigns'
     | '/analytics/reps'
     | '/analytics/sources'
@@ -641,6 +651,7 @@ export interface FileRouteTypes {
     | '/outbound-agent'
     | '/security'
     | '/the-playbook'
+    | '/book/$token'
     | '/analytics/campaigns'
     | '/analytics/reps'
     | '/analytics/sources'
@@ -701,6 +712,7 @@ export interface FileRouteTypes {
     | '/_site/outbound-agent'
     | '/_site/security'
     | '/_site/the-playbook'
+    | '/book/$token'
     | '/_app/'
     | '/_app/analytics/campaigns'
     | '/_app/analytics/reps'
@@ -739,6 +751,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   PublicRoute: typeof PublicRouteWithChildren
   SiteRoute: typeof SiteRouteWithChildren
+  BookTokenRoute: typeof BookTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -945,6 +958,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/the-playbook'
       preLoaderRoute: typeof SiteThePlaybookRouteImport
       parentRoute: typeof SiteRoute
+    }
+    '/book/$token': {
+      id: '/book/$token'
+      path: '/book/$token'
+      fullPath: '/book/$token'
+      preLoaderRoute: typeof BookTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/analytics/': {
       id: '/_app/analytics/'
@@ -1338,6 +1358,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   PublicRoute: PublicRouteWithChildren,
   SiteRoute: SiteRouteWithChildren,
+  BookTokenRoute: BookTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
