@@ -13,6 +13,7 @@ import {
   useProspect,
 } from '~/data/queries'
 import { useRole } from '~/data/session-role'
+import { ConversationControls } from '~/screens/inbox/ConversationControls'
 import { CHANNEL_WORD, LABEL_WORD, STATE_WORD, writerWord } from '~/screens/inbox/words'
 import { Banner } from '~/ui/Banner'
 import { Paged } from '~/ui/Paged'
@@ -95,6 +96,7 @@ export function ConversationScreen() {
           {record.pendingDraftCount === 0 ? '—' : record.pendingDraftCount}
         </Fact>
       </dl>
+      <ConversationControls conversation={record} />
       <Section id='messages' title='Messages'>
         <Paged
           noun='Messages'

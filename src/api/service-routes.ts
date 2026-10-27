@@ -35,6 +35,7 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/drafts', service: 'core' },
   { prefix: '/v1/decisions', service: 'core' },
   { prefix: '/v1/approval-policies', service: 'core' },
+  { prefix: '/v1/escalation-rules', service: 'core' },
   { prefix: '/v1/agent-instructions', service: 'core' },
   { prefix: '/v1/audit-events', service: 'core' },
   { prefix: '/v1/audit-csv', service: 'core' },

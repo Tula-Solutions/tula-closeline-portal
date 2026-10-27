@@ -51,3 +51,34 @@ export function presentInbox(error: unknown): ShownFailure {
   }
   return presentManage(error)
 }
+
+const CONTROL_WORDS: Readonly<Record<string, ShownFailure>> = {
+  [INBOX_ERRORS['inbox.already_controlled'].code]: {
+    message:
+      'Another Rep has already taken over this Conversation. Reload to see who is answering it.',
+  },
+  [INBOX_ERRORS['inbox.not_taken_over'].code]: {
+    message: 'No Rep has taken over this Conversation, so there is nothing to hand back. Reload.',
+  },
+  [INBOX_ERRORS['inbox.not_conversation_owner'].code]: {
+    message:
+      'Only the Rep who took over this Conversation, an Admin or an Owner can do that. Reload to see who is answering it.',
+  },
+  [INBOX_ERRORS['inbox.takeover_required'].code]: {
+    message: 'The Agent is answering this Conversation. Take it over before you reply.',
+  },
+}
+
+/**
+ * Words for a failed takeover, hand-back or reply, from the contract's code and never the status;
+ * anything else is worded as any inbox failure is.
+ */
+export function presentConversationControl(error: unknown): ShownFailure {
+  if (error instanceof ApiError) {
+    const words = CONTROL_WORDS[error.code]
+    if (words !== undefined) {
+      return words
+    }
+  }
+  return presentInbox(error)
+}

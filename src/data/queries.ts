@@ -5,6 +5,7 @@ import {
   type AnalyticsMetric,
   type CallState,
   type CitationRef,
+  type Conversation,
   type DocumentState,
   type GetSeriesResponse,
   type ListDealImportRowsResponse,
@@ -423,6 +424,56 @@ export function useConversation(conversationId: string) {
     enabled: organizationId !== '',
     retry: false,
   })
+}
+
+/** The most escalated Conversations the badge counts; a longer list shows as "more than" this. */
+export const ESCALATED_COUNT_LIMIT = 100
+
+/**
+ * How many Conversations wait for a person, among those core lets the caller see (a Rep sees only
+ * their own, so for a Rep this is their escalations). One page of at most `ESCALATED_COUNT_LIMIT`;
+ * `more` is true when there are further pages.
+ */
+export function useEscalatedCount() {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'escalated-count'],
+    queryFn: async ({ signal }) => {
+      const page = await app.inbox.listConversations({
+        state: 'escalated',
+        limit: ESCALATED_COUNT_LIMIT,
+        signal,
+      })
+      return { count: page.items.length, more: page.nextCursor !== null }
+    },
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The escalation rules in trigger order (Owner, Admin); `enabled` is false for anyone else, so no request is made. */
+export function useEscalationRules(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.inbox(organizationId), 'escalation-rules'],
+    queryFn: ({ signal }) => app.escalation.listRules({ signal }),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+}
+
+/** Puts a Conversation core just answered into the cache, so the next render shows it, then refetches the inbox reads. */
+export function storeConversation(app: App, conversation: Conversation): Promise<void> {
+  const snapshot = app.session.getSnapshot()
+  if (snapshot.status === 'signed_in') {
+    app.queryClient.setQueryData(
+      [...KEYS.inbox(snapshot.organization.id), 'one', conversation.id],
+      conversation
+    )
+  }
+  return refresh(app, 'inbox')
 }
 
 /** The Messages of one Conversation, oldest first, a page at a time. */

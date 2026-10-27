@@ -7,6 +7,7 @@ import type {
   InboxChannel,
   ReplyLabel,
 } from 'tula-closeline-contract'
+import type { EscalationTarget, EscalationTrigger } from '~/api/escalation'
 
 /** The plain word for each channel a Conversation runs on. */
 export const CHANNEL_WORD: Record<InboxChannel, string> = {
@@ -73,4 +74,20 @@ export const DRAFT_STATUS_WORD: Record<DraftStatus, string> = {
   sent: 'Approved and sent',
   superseded: 'Replaced by a newer Draft',
   void: 'No longer needed',
+}
+
+/** The words for what sets an escalation off. */
+export const TRIGGER_WORD: Record<EscalationTrigger, string> = {
+  asks_for_person: 'The Prospect asks for a person',
+  pricing_or_legal: 'The reply turns to pricing or legal terms',
+  negative_tone: 'The Prospect’s tone turns negative',
+  low_confidence: 'The Agent is not confident',
+  writer_failure: 'The Agent cannot write a reply',
+}
+
+/** The words for where an escalated Conversation goes. */
+export const TARGET_WORD: Record<EscalationTarget, string> = {
+  prospect_owner: 'The Prospect’s owner',
+  team_round_robin: 'A Team, in turn',
+  admin_queue: 'The Admin queue',
 }

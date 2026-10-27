@@ -198,6 +198,9 @@ export function Shell() {
             {can.manageApprovalPolicy(role) ? (
               <NavLink to='/inbox/policy'>Approval policy</NavLink>
             ) : null}
+            {can.manageEscalationRules(role) ? (
+              <NavLink to='/inbox/escalation'>Escalation rules</NavLink>
+            ) : null}
           </div>
           <NavGroup id='organization' label='Organization'>
             {can.viewMembers(role) ? <NavLink to='/members'>Members</NavLink> : null}

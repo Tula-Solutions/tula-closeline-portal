@@ -4,6 +4,7 @@ import axe from 'axe-core'
 import { INBOX_ERRORS } from 'tula-closeline-contract'
 import {
   conversationBody,
+  draftBody,
   hexId,
   memberBody,
   messageBody,
@@ -207,5 +208,113 @@ describe('Conversation: the transcript', () => {
     expect(await run()).toEqual([])
     document.documentElement.classList.add('dark')
     expect(await run()).toEqual([])
+  })
+})
+
+describe('Conversation: takeover, reply and hand back', () => {
+  const REP = hexId('mem', 2)
+  const taken = () =>
+    conversationBody(1, { controller: 'rep', controllerMembershipId: REP, state: 'rep' })
+
+  /** Core's side: the Conversation changes hands when a takeover or hand back arrives. */
+  function core() {
+    let current: Record<string, unknown> = conversationBody(1)
+    return [
+      route('GET', CONVERSATION, () => json(200, current)),
+      route('GET', MESSAGES, json(200, page([messageBody(1, 1)]))),
+      route('POST', `${CONVERSATION}/takeover`, () => {
+        current = taken()
+        return json(200, current)
+      }),
+      route('POST', `${CONVERSATION}/handback`, () => {
+        current = conversationBody(1)
+        return json(200, current)
+      }),
+      route('POST', `${CONVERSATION}/replies`, json(202, draftBody(1))),
+    ]
+  }
+
+  test('after a takeover the next render shows the Agent stopped and the Rep as author', async () => {
+    const portal = visit('rep', ...core())
+    expect(await screen.findByText('The Agent')).toBeTruthy()
+    await portal.user.click(await screen.findByRole('button', { name: 'Take over' }))
+    expect(await screen.findByText(/The Agent has stopped/)).toBeTruthy()
+    // A Rep cannot list members, so the author reads "A Rep".
+    expect(await screen.findByText('A Rep')).toBeTruthy()
+    expect(screen.queryByText('The Agent')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Take over' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Hand back to the Agent' })).toBeTruthy()
+    const post = portal.calls.find((call) => call.path === `${CONVERSATION}/takeover`)
+    expect(post?.headers.get('Idempotency-Key')).toBeTruthy()
+  })
+
+  test('replies as the Rep while in control, then hands back', async () => {
+    const portal = visit('rep', ...core())
+    await portal.user.click(await screen.findByRole('button', { name: 'Take over' }))
+    const box = await screen.findByLabelText('Your reply')
+    await portal.user.type(box, 'Thanks, I can send the quote today.')
+    await portal.user.click(screen.getByRole('button', { name: 'Send reply' }))
+    await waitFor(() => {
+      const reply = portal.calls.find((call) => call.path === `${CONVERSATION}/replies`)
+      expect(reply?.body).toEqual({ body: 'Thanks, I can send the quote today.' })
+      expect(reply?.headers.get('Idempotency-Key')).toBeTruthy()
+    })
+    expect(await screen.findByText(/Reply sent to the channel/)).toBeTruthy()
+    expect((screen.getByLabelText('Your reply') as HTMLTextAreaElement).value).toBe('')
+    await portal.user.click(screen.getByRole('button', { name: 'Hand back to the Agent' }))
+    expect(await screen.findByText(/Handed back/)).toBeTruthy()
+    expect(await screen.findByText('The Agent')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Take over' })).toBeTruthy()
+    expect(screen.queryByLabelText('Your reply')).toBeNull()
+  })
+
+  test('refuses an empty reply without asking core', async () => {
+    const portal = visit('rep', ...core())
+    await portal.user.click(await screen.findByRole('button', { name: 'Take over' }))
+    await portal.user.click(await screen.findByRole('button', { name: 'Send reply' }))
+    expect(await screen.findByText(/Write a reply/)).toBeTruthy()
+    expect(portal.calls.some((call) => call.path === `${CONVERSATION}/replies`)).toBe(false)
+  })
+
+  test('words a refused takeover from the code, not the status', async () => {
+    const portal = visit(
+      'rep',
+      route('GET', CONVERSATION, json(200, conversationBody(1))),
+      route('GET', MESSAGES, json(200, page([messageBody(1, 1)]))),
+      route(
+        'POST',
+        `${CONVERSATION}/takeover`,
+        failure(409, INBOX_ERRORS['inbox.already_controlled'].code)
+      )
+    )
+    await portal.user.click(await screen.findByRole('button', { name: 'Take over' }))
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toMatch(/already/i)
+    expect(alert.textContent).not.toContain('Text the portal never shows.')
+    expect(screen.getByRole('button', { name: 'Take over' })).toBeTruthy()
+  })
+
+  test('a closed Conversation offers no control', async () => {
+    visit(
+      'rep',
+      route('GET', CONVERSATION, json(200, conversationBody(1, { state: 'closed' }))),
+      route('GET', MESSAGES, json(200, page([messageBody(1, 1)])))
+    )
+    expect(await screen.findByText(/is closed/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Take over' })).toBeNull()
+    expect(screen.queryByLabelText('Your reply')).toBeNull()
+  })
+
+  test('has no accessibility violations while the Rep is in control', async () => {
+    visit(
+      'rep',
+      route('GET', CONVERSATION, json(200, taken())),
+      route('GET', MESSAGES, json(200, page([messageBody(1, 1)])))
+    )
+    await screen.findByLabelText('Your reply')
+    const results = await axe.run(screen.getByRole('main'), {
+      rules: { 'color-contrast': { enabled: false } },
+    })
+    expect(results.violations.map((v) => v.id)).toEqual([])
   })
 })
