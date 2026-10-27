@@ -23,6 +23,7 @@ export function hexId(
     | 'dcs'
     | 'cpg'
     | 'asm'
+    | 'qst'
     | 'fnd'
     | 'tch',
   n: number
