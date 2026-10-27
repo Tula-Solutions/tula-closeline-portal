@@ -18,6 +18,7 @@ import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
 import { createInboxApi, type InboxApi } from '~/api/inbox'
 import { createMarketingApi, type MarketingApi } from '~/api/marketing'
 import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
+import { createRoutingApi, type RoutingApi } from '~/api/routing'
 import { createSalesHistoryApi, type SalesHistoryApi } from '~/api/sales-history'
 import { createUnsubscribeApi, type UnsubscribeApi } from '~/api/unsubscribe'
 import { createVoiceApi, type VoiceApi } from '~/api/voice'
@@ -52,6 +53,8 @@ export type App = {
   readonly calendar: CalendarApi
   /** The Organization's Booking Types (Owner, Admin define them). */
   readonly bookingTypes: BookingTypesApi
+  /** The Routing Rule routes of core. */
+  readonly routing: RoutingApi
   /** Contact Consent on a Prospect, and the Suppression list. */
   readonly consent: ConsentApi
   /** The public marketing route (the Demo Request form); sends no token. */
@@ -180,6 +183,7 @@ export function createApp(init: AppInit): App {
     agent: createAgentApi(coreHttp),
     calendar: createCalendarApi(coreHttp),
     bookingTypes: createBookingTypesApi(coreHttp),
+    routing: createRoutingApi(coreHttp),
     consent: createConsentApi(coreHttp),
     marketing: createMarketingApi(coreHttp),
     unsubscribe: createUnsubscribeApi(coreHttp),

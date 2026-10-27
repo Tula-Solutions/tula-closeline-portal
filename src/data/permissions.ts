@@ -14,6 +14,7 @@ import {
   INBOX_REVIEW_ROLES,
   INVITABLE_ROLES,
   type InvitableRole,
+  ROUTING_ROLES,
   type Role,
   roleAtLeast,
   SEARCH_ROUTES,
@@ -47,6 +48,10 @@ export const can = {
   manageLines: (role: Role) => VOICE_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner and Admin define, change and retire Booking Types. */
   manageBookingTypes: (role: Role) => BOOKING_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** Owner, Admin and Manager (the contract's routing roles) list and try Routing Rules; a Manager changes only those sending to their own Team, which core enforces. */
+  manageRoutingRules: (role: Role) => ROUTING_ROLES.some((allowed) => allowed === role),
+  /** Owner and Admin put the Routing Rules in order. */
+  reorderRoutingRules: (role: Role) => BOOKING_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner and Admin set which Drafts go out without a person (the approval policy). */
   manageApprovalPolicy: (role: Role) => INBOX_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner and Admin set where a Conversation that needs a person goes (the escalation rules). */

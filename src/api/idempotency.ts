@@ -79,6 +79,8 @@ export const fingerprint = {
   /** Saving `text` as a new draft of the `kind` Agent's instructions. */
   agentInstruction: (kind: string, text: string) =>
     JSON.stringify(['agent-instruction', kind, text]),
+  /** Creating a Routing Rule from this body (as JSON text). */
+  routingRuleCreate: (body: string) => JSON.stringify(['routing-rule-create', body]),
   /** Defining a Booking Type with this body (as JSON). */
   bookingTypeCreate: (body: string) => JSON.stringify(['booking-type-create', body]),
   /** Publishing version `number` of the `kind` Agent's instructions (a rollback when it is an earlier one). */

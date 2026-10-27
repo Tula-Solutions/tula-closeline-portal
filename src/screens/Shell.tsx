@@ -225,6 +225,7 @@ export function Shell() {
             {can.manageBookingTypes(role) ? (
               <NavLink to='/booking-types'>Booking Types</NavLink>
             ) : null}
+            {can.manageRoutingRules(role) ? <NavLink to='/routing'>Routing</NavLink> : null}
             {can.manageLines(role) ? <NavLink to='/lines'>Lines</NavLink> : null}
             {can.manageApiKeys(role) ? <NavLink to='/api-keys'>API keys</NavLink> : null}
             {can.viewAudit(role) ? <NavLink to='/audit'>Audit log</NavLink> : null}

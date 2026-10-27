@@ -26,7 +26,8 @@ export function hexId(
     | 'qst'
     | 'fnd'
     | 'tch'
-    | 'bkt',
+    | 'bkt'
+    | 'rrl',
   n: number
 ): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`
@@ -717,6 +718,32 @@ export function bookingTypeBody(
     state: 'active',
     publicToken: `token${String(n).padStart(2, '0')}`.padEnd(32, 'x'),
     createdAt: '2026-10-01T00:00:00Z',
+    ...overrides,
+  }
+}
+
+/** A Routing Rule as core returns it: a country condition and a named Rep target unless overridden (only the default rule has no condition). */
+export function routingRuleBody(n: number, overrides: Record<string, unknown> = {}) {
+  return {
+    id: hexId('rrl', n),
+    name: `Rule ${n}`,
+    conditions: overrides.isDefault === true ? {} : { countries: ['US'] },
+    target: { kind: 'rep', membershipId: hexId('mem', 1) },
+    isDefault: false,
+    position: n,
+    createdAt: '2026-10-01T00:00:00Z',
+    ...overrides,
+  }
+}
+
+/** A routing outcome as core returns it for a sample: ids and closed reasons only. */
+export function routingResultBody(overrides: Record<string, unknown> = {}) {
+  return {
+    decisionId: null,
+    matchedRuleId: hexId('rrl', 1),
+    candidates: [{ membershipId: hexId('mem', 1), reason: 'named_rep' }],
+    skipped: [{ membershipId: hexId('mem', 2), reason: 'on_leave' }],
+    decidedAt: null,
     ...overrides,
   }
 }
