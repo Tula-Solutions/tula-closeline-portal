@@ -7,6 +7,7 @@ import {
   ASSESSMENT_ADMIN_ROLES,
   AUDIT_ADMIN_ROLES,
   AUDIT_READ_ROLES,
+  BOOKING_ADMIN_ROLES,
   CONSENT_ADMIN_ROLES,
   EXPORT_ROLES,
   INBOX_ADMIN_ROLES,
@@ -44,6 +45,8 @@ export const can = {
   manageTeams: (role: Role) => roleAtLeast(role, 'admin'),
   /** The roles the contract gives the Line routes (Owner and Admin) add, assign and release Lines. */
   manageLines: (role: Role) => VOICE_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** Owner and Admin define, change and retire Booking Types. */
+  manageBookingTypes: (role: Role) => BOOKING_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner and Admin set which Drafts go out without a person (the approval policy). */
   manageApprovalPolicy: (role: Role) => INBOX_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner and Admin set where a Conversation that needs a person goes (the escalation rules). */

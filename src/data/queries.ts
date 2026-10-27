@@ -39,6 +39,7 @@ import type { ApiKeysPage } from '~/api/api-keys'
 import type { ApprovalFilter, ApprovalQueuePage, DecisionsPage } from '~/api/approvals'
 import type { AssessmentFilter, AssessmentRatesPage, AssessmentsPage } from '~/api/assessments'
 import type { AuditFilter, AuditPage } from '~/api/audit'
+import type { BookingTypesPage } from '~/api/booking-types'
 import type {
   ConsentEventsPage,
   ConsentWordingsPage,
@@ -101,6 +102,8 @@ export const KEYS = {
   agent: (organizationId: string) => [organizationId, 'agent'] as const,
   /** The caller's Calendar Connection and working hours. */
   calendar: (organizationId: string) => [organizationId, 'calendar'] as const,
+  /** The Organization's Booking Types. */
+  bookingTypes: (organizationId: string) => [organizationId, 'booking-types'] as const,
   /** The rights confirmation. */
   rights: (organizationId: string) => [organizationId, 'rights'] as const,
 }
@@ -284,6 +287,26 @@ export function useLines(enabled: boolean) {
   >({
     queryKey: KEYS.lines(organizationId),
     queryFn: ({ pageParam, signal }) => app.voice.listLines({ cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** The Booking Types, a page at a time. `enabled` is false for a role that may not manage them (no request is made). */
+export function useBookingTypes(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    BookingTypesPage,
+    Error,
+    InfiniteData<BookingTypesPage, string | undefined>,
+    readonly [string, string],
+    string | undefined
+  >({
+    queryKey: KEYS.bookingTypes(organizationId),
+    queryFn: ({ pageParam, signal }) => app.bookingTypes.list({ cursor: pageParam, signal }),
     initialPageParam: undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: enabled && organizationId !== '',

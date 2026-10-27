@@ -222,6 +222,9 @@ export function Shell() {
             {can.viewMembers(role) ? <NavLink to='/members'>Members</NavLink> : null}
             {can.manageInvitations(role) ? <NavLink to='/invitations'>Invitations</NavLink> : null}
             <NavLink to='/teams'>Teams</NavLink>
+            {can.manageBookingTypes(role) ? (
+              <NavLink to='/booking-types'>Booking Types</NavLink>
+            ) : null}
             {can.manageLines(role) ? <NavLink to='/lines'>Lines</NavLink> : null}
             {can.manageApiKeys(role) ? <NavLink to='/api-keys'>API keys</NavLink> : null}
             {can.viewAudit(role) ? <NavLink to='/audit'>Audit log</NavLink> : null}
