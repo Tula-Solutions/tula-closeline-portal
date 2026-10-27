@@ -490,14 +490,18 @@ describe('Prospect import: step 3, read the report', () => {
       'row_number,result,reason,prospect_id\r\n2,created,,prs_1\r\n3,rejected,invalid_email,\r\n'
     let blob: Blob | undefined
     let createdAt = 0
+    const reportUrl = `blob:report-${crypto.randomUUID()}`
     URL.createObjectURL = (made: Blob | MediaSource) => {
       blob = made as Blob
       createdAt = performance.now()
-      return 'blob:report'
+      return reportUrl
     }
     let revokedAt: number | undefined
-    URL.revokeObjectURL = () => {
-      revokedAt = performance.now()
+    // Count only this URL: another test's leftover revoke timer can fire during this one.
+    URL.revokeObjectURL = (revoked: string) => {
+      if (revoked === reportUrl) {
+        revokedAt = performance.now()
+      }
     }
     const done = prospectImportBody(1)
     const portal = open(`/prospects/imports/${done.id}`, 'owner', [
@@ -525,8 +529,11 @@ describe('Prospect import: step 3, read the report', () => {
   test('a report that cannot be fetched says so and can be tried again', async () => {
     const done = prospectImportBody(1)
     let tries = 0
+    let revoked = false
     URL.createObjectURL = () => 'blob:report'
-    URL.revokeObjectURL = () => {}
+    URL.revokeObjectURL = () => {
+      revoked = true
+    }
     const portal = open(`/prospects/imports/${done.id}`, 'owner', [
       route('GET', `${IMPORTS}/${done.id}`, json(200, done)),
       route('GET', rowsPath(done.id), json(200, page([prospectImportRowBody(2)]))),
@@ -542,6 +549,8 @@ describe('Prospect import: step 3, read the report', () => {
     expect((await screen.findByRole('alert')).textContent).toMatch(/no longer exists/)
     await portal.user.click(screen.getByRole('button', { name: 'Download the report (CSV)' }))
     await waitFor(() => expect(tries).toBe(2))
+    // Let the screen's 1 s revoke timer fire here, not inside the next test.
+    await waitFor(() => expect(revoked).toBe(true), { timeout: 3_000 })
   })
 })
 
