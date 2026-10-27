@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { ASSESSMENT_ERRORS, ERRORS } from 'tula-closeline-contract'
-import { assessmentGone, presentAssessment } from '~/api/assessment-messages'
+import { assessmentGone, presentAssessment, presentTranscript } from '~/api/assessment-messages'
 import { ApiError } from '~/api/errors'
 
 describe('presentAssessment', () => {
@@ -11,5 +11,14 @@ describe('presentAssessment', () => {
     const sameStatus = new ApiError({ code: ERRORS['auth.forbidden'].code, status: 404 })
     expect(assessmentGone(sameStatus)).toBe(false)
     expect(presentAssessment(sameStatus).message).toMatch(/Owner or Admin/)
+  })
+})
+
+describe('presentTranscript', () => {
+  test('words voice being down and a timeout apart by code, whatever the status', () => {
+    const down = new ApiError({ code: ERRORS['server.unavailable'].code, status: 504 })
+    const slow = new ApiError({ code: ERRORS['server.timeout'].code, status: 503 })
+    expect(presentTranscript(down).message).toMatch(/could not be reached/)
+    expect(presentTranscript(slow).message).toMatch(/too long/)
   })
 })

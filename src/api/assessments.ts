@@ -3,6 +3,8 @@ import {
   type Assessment,
   type AssessmentRateItem,
   type AssessmentVerdict,
+  type CallTurnsResponse,
+  callTurnsResponseSchema,
   type FINDING_FEEDBACKS,
   type Finding,
   type FindingCategory,
@@ -52,6 +54,12 @@ export type AssessmentsApi = {
     feedback: FindingFeedback,
     idempotencyKey: string
   ): Promise<Finding>
+  /** The Call turns on each side of an assessed Call turn, oldest first. The text is tenant speech: never log it. */
+  getTranscript(
+    assessmentId: string,
+    window: number,
+    signal?: AbortSignal
+  ): Promise<CallTurnsResponse>
   /** One page of weekly failure rates for the range (at most 13 months), oldest week first. */
   listRates(
     range: {
@@ -105,6 +113,14 @@ export function createAssessmentsApi(http: HttpClient): AssessmentsApi {
         headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
         auth: true,
         parse: (json) => findingSchema.parse(json),
+      }),
+    getTranscript: (assessmentId, window, signal) =>
+      http.request({
+        path: `/v1/assessments/${segment(assessmentId)}/transcript`,
+        query: { window },
+        auth: true,
+        ...(signal ? { signal } : {}),
+        parse: (json) => callTurnsResponseSchema.parse(json),
       }),
     listRates: (range, page) =>
       http.request({

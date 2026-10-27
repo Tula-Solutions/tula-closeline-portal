@@ -9,6 +9,7 @@ function item(instructionVersion: number, ok: boolean): AssessmentRateItem {
     weekStart: '2026-09-28',
     agentKind: 'inbound',
     instructionVersion,
+    category: null,
   } as const
   return ok
     ? { ...base, state: 'ok', value: 0.1, recordCount: 30 }

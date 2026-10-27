@@ -54,8 +54,8 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
 
 - Assessments review (`/assessments`: Owner, Admin) is hidden from everyone else, in the nav and by a
   notice on the route that makes no request. Findings hold spans, never text: a Draft's sentence is
-  fetched on demand and shown through `plain()`; a Call turn has no readable transcript route yet, so
-  the entry says so. Feedback goes out with an Idempotency-Key from `app.keys`. The failure-rate
+  fetched on demand and shown through `plain()`; a Call turn's neighbouring turns are read on request
+  (`GET /v1/assessments/{id}/transcript`, window 3, never retried by the hook, text shown through `plain()`, never in an address or log). Feedback goes out with an Idempotency-Key from `app.keys`. The failure-rate
   chart is per Agent kind (the rates route has no category dimension) and never states a rate for a
   week under 20 records.
 - Audit log (`/audit`: Owner, Admin, Manager) and Data export (`/export`: Owner, Admin) are hidden from

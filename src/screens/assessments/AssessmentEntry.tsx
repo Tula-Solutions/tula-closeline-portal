@@ -5,6 +5,7 @@ import type { FindingFeedback } from '~/api/assessments'
 import { useApp } from '~/app-context'
 import { Button } from '~/components/ui/button'
 import { refresh, useDraft } from '~/data/queries'
+import { TranscriptWindow } from '~/screens/assessments/TranscriptWindow'
 import {
   AGENT_WORD,
   CATEGORY_WORD,
@@ -20,7 +21,7 @@ import { Untrusted } from '~/ui/Untrusted'
 import { useSubmit } from '~/ui/useSubmit'
 import { When } from '~/ui/When'
 
-/** The offending sentence of a Draft, read only once asked for; the Call turn's text is not readable yet. */
+/** The offending sentence of a Draft, read only once asked for. */
 function DraftQuote(props: { readonly draftId: string; readonly finding: Finding }) {
   const draft = useDraft(props.draftId)
   if (draft.isPending) {
@@ -94,7 +95,6 @@ function FindingLine(props: {
         ) : (
           <p className='hint m-0'>
             Characters {finding.span.start} to {finding.span.end} of turn {subject.turnIndex + 1}.
-            The sentence is not shown: a Call's transcript is not available here yet.
           </p>
         )}
       </div>
@@ -160,6 +160,7 @@ export function AssessmentEntry(props: { readonly assessment: Assessment }) {
           ))}
         </ul>
       )}
+      {subject.kind === 'call_turn' ? <TranscriptWindow assessmentId={assessment.id} /> : null}
       {problem === '' ? null : (
         <Banner kind='error' className='mt-4 mb-0'>
           {problem}
