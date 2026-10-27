@@ -133,7 +133,7 @@ describe('Assessments review', () => {
     const entries = await screen.findAllByRole('listitem', { name: '' })
     expect(entries.length).toBeGreaterThan(0)
     expect(await screen.findByText('Unsupported claim, serious.')).toBeTruthy()
-    expect(screen.getByText('Tone, low'.replace('low', 'minor') + '.')).toBeTruthy()
+    expect(screen.getByText('Tone, minor.')).toBeTruthy()
     expect(screen.getByText('Failed')).toBeTruthy()
     expect(screen.getByText('Warning')).toBeTruthy()
     const first = portal.calls.find((call) => call.path === LIST)
