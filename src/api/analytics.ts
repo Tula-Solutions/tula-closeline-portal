@@ -2,11 +2,16 @@ import {
   type AgentKind,
   type AnalyticsGroupBy,
   type AnalyticsMetric,
+  type DealAttribution,
+  dealAttributionSchema,
   type GetSeriesResponse,
   getSeriesResponseSchema,
   type InboxChannel,
+  listSourcePerformanceResponseSchema,
   listTableResponseSchema,
   MAX_ANALYTICS_CSV_PAGE_SIZE,
+  type SOURCE_FLAGS,
+  type SourcePerformance,
   type TableRow,
 } from 'tula-closeline-contract'
 import type { PageRequest } from '~/api/core'
@@ -31,6 +36,18 @@ export type TableCsvPage = { readonly csv: string; readonly nextCursor: string |
 /** The most groups one table page holds (core's page maximum). */
 export const TABLE_PAGE_SIZE = 100
 
+/** A flag a source can carry. */
+export type SourceFlag = (typeof SOURCE_FLAGS)[number]
+
+/** One page of source performance, most touched first. */
+export type SourcesPage = {
+  readonly items: readonly SourcePerformance[]
+  readonly nextCursor: string | null
+}
+
+/** The most rows one Attribution or sources page holds (core's page maximum). */
+export const ATTRIBUTION_PAGE_MAX = 100
+
 /** The core routes the portal uses for the analytics dashboards (every role reads, within its own scope). */
 export type AnalyticsApi = {
   /** One metric over the range, by day, ungrouped or one line per group. */
@@ -46,6 +63,10 @@ export type AnalyticsApi = {
     groupBy: AnalyticsGroupBy,
     page: PageRequest
   ): Promise<TablePage>
+  /** The Attribution of one won or lost Deal: a page of its touches with first- and last-touch credit (Owner, Admin). */
+  getDealAttribution(dealRecordId: string, page: PageRequest): Promise<DealAttribution>
+  /** One page of Playbook sources with their win rate, most touched first; `flag` keeps the flagged ones (Owner, Admin). */
+  listSourcePerformance(flag: SourceFlag | undefined, page: PageRequest): Promise<SourcesPage>
   /** One page of the table as CSV (header row on every page). */
   downloadTableCsv(
     filter: AnalyticsFilter,
@@ -88,6 +109,26 @@ export function createAnalyticsApi(http: HttpClient): AnalyticsApi {
         auth: true,
         ...(page.signal ? { signal: page.signal } : {}),
         parse: (json) => listTableResponseSchema.parse(json),
+      }),
+    getDealAttribution: (dealRecordId, page) =>
+      http.request({
+        path: `/v1/analytics/deals/${encodeURIComponent(dealRecordId)}/attribution`,
+        query: { cursor: page.cursor, limit: Math.min(page.limit ?? 25, ATTRIBUTION_PAGE_MAX) },
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => dealAttributionSchema.parse(json),
+      }),
+    listSourcePerformance: (flag, page) =>
+      http.request({
+        path: '/v1/analytics/source-performance',
+        query: {
+          flag,
+          cursor: page.cursor,
+          limit: Math.min(page.limit ?? 25, ATTRIBUTION_PAGE_MAX),
+        },
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => listSourcePerformanceResponseSchema.parse(json),
       }),
     downloadTableCsv: (filter, groupBy, cursor) =>
       http.request({

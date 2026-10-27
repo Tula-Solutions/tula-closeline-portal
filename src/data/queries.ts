@@ -8,6 +8,7 @@ import {
   type CitationRef,
   type Conversation,
   type Deal,
+  type DealAttribution,
   type DocumentState,
   type GetSeriesResponse,
   type ListDealImportRowsResponse,
@@ -33,7 +34,7 @@ import {
   type TableRow,
 } from 'tula-closeline-contract'
 import type { InstructionVersionsPage } from '~/api/agent'
-import type { AnalyticsFilter } from '~/api/analytics'
+import type { AnalyticsFilter, SourceFlag, SourcesPage } from '~/api/analytics'
 import type { ApiKeysPage } from '~/api/api-keys'
 import type { ApprovalFilter, ApprovalQueuePage, DecisionsPage } from '~/api/approvals'
 import type { AssessmentFilter, AssessmentRatesPage, AssessmentsPage } from '~/api/assessments'
@@ -1454,4 +1455,64 @@ export function useAgentPause(enabled: boolean) {
     enabled: enabled && organizationId !== '',
     retry: false,
   })
+}
+
+/** The most touches or sources one page holds. */
+const ATTRIBUTION_LIST_PAGE = 100
+
+/** The touches of a Deal, a page at a time; `head` is the first page (Outcome, look-back and credit). `enabled` is false for a role that may not read it (no request is made). */
+export function useDealAttribution(dealRecordId: string, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    DealAttribution,
+    Error,
+    InfiniteData<DealAttribution, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.analytics(organizationId), 'attribution', dealRecordId],
+    queryFn: ({ pageParam, signal }) =>
+      app.analytics.getDealAttribution(dealRecordId, {
+        cursor: pageParam,
+        limit: ATTRIBUTION_LIST_PAGE,
+        signal,
+      }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.touches.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  const paged = pagedStateBy(
+    {
+      ...query,
+      data: query.data && { ...query.data, pages: query.data.pages.map((page) => page.touches) },
+    },
+    (touch) => touch.id
+  )
+  return { ...paged, head: query.data?.pages[0] }
+}
+
+/** The Playbook sources by win rate, a page at a time; `flag` keeps those cited often but lost. `enabled` is false for a role that may not read them (no request is made). */
+export function useSourcePerformance(flag: SourceFlag | undefined, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    SourcesPage,
+    Error,
+    InfiniteData<SourcesPage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.analytics(organizationId), 'sources', flag ?? 'all'],
+    queryFn: ({ pageParam, signal }) =>
+      app.analytics.listSourcePerformance(flag, {
+        cursor: pageParam,
+        limit: ATTRIBUTION_LIST_PAGE,
+        signal,
+      }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedStateBy(query, (row) => JSON.stringify(row.source))
 }

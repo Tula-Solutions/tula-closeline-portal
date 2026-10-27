@@ -33,3 +33,25 @@ export function presentAnalytics(error: unknown): ShownFailure {
   }
   return presentManage(error)
 }
+
+/** Words for a failed Attribution read: an open, unknown or other-Organization Deal is the same not found, told by code. */
+export function presentAttribution(error: unknown): ShownFailure {
+  if (error instanceof ApiError && error.code === ERRORS['request.not_found'].code) {
+    return {
+      message:
+        'There is no Attribution for that Deal. It may be open, not exist, or belong to another Organization. Attribution is only shown for a won or lost Deal.',
+    }
+  }
+  if (error instanceof ApiError && error.code === ERRORS['auth.forbidden'].code) {
+    return { message: 'Only an Owner or Admin can see which touches led to a Deal.' }
+  }
+  return presentManage(error)
+}
+
+/** Words for a failed read of the Playbook sources, by code. */
+export function presentSources(error: unknown): ShownFailure {
+  if (error instanceof ApiError && error.code === ERRORS['auth.forbidden'].code) {
+    return { message: 'Only an Owner or Admin can see how Playbook sources performed.' }
+  }
+  return presentManage(error)
+}
