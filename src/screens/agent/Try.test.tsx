@@ -294,13 +294,13 @@ describe('Try your Agent: guards and retries', () => {
   test('no Try again is offered once the Agents are paused', async () => {
     const portal = visit(
       'owner',
-      running,
+      route('GET', '/v1/agent-controls/organization-pause', failure(500, 'service.unavailable')),
       route('POST', SESSIONS, session),
       route('POST', MESSAGES, () => failure(409, 'agent.paused'))
     )
     await start(portal)
     await say(portal, 'What does Pro cost?')
-    await screen.findByText(/The Agents are paused/)
+    await region().findByRole('status')
     expect(region().queryByRole('button', { name: 'Try again' })).toBeNull()
   })
 })

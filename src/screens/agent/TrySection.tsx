@@ -155,7 +155,7 @@ export function TrySection(props: { readonly manage: boolean }) {
             <button type='button' className='button' onClick={() => void start()}>
               Try again
             </button>
-          ) : failedText === undefined ? null : (
+          ) : failedText === undefined || paused ? null : (
             <button type='button' className='button' onClick={() => void submit(failedText)}>
               Try again
             </button>
