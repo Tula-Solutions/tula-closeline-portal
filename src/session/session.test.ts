@@ -140,17 +140,55 @@ describe('a refresh that fails', () => {
     }
   )
 
-  test.each([0, 500, 503])('with status %d keeps the session for another try', async (status) => {
+  test.each([0, 500, 503])(
+    'with status %d inside the skew still serves the token that works',
+    async (status) => {
+      const { session, advance } = setup({
+        refresh: async () => {
+          throw new ApiError({ code: 'server.unavailable', status })
+        },
+      })
+      session.start(tokens({ now: T0, accessToken: 'access-1' }))
+      advance(50_000)
+      expect(await session.accessToken()).toBe('access-1')
+      expect(session.getSnapshot().status).toBe('signed_in')
+    }
+  )
+
+  test('inside the skew is tried again only after the minimum gap, not on every call', async () => {
+    let attempts = 0
     const { session, advance } = setup({
       refresh: async () => {
-        throw new ApiError({ code: 'server.unavailable', status })
+        attempts += 1
+        throw new ApiError({ code: 'server.unavailable', status: 503 })
       },
     })
-    session.start(tokens({ now: T0 }))
-    advance(50_000)
-    await expect(session.accessToken()).rejects.toBeInstanceOf(ApiError)
-    expect(session.getSnapshot().status).toBe('signed_in')
+    session.start(tokens({ now: T0, accessToken: 'access-1' }))
+    advance(46_000)
+    for (let call = 0; call < 3; call += 1) {
+      expect(await session.accessToken()).toBe('access-1')
+      advance(1_000)
+    }
+    expect(attempts).toBe(1)
+    advance(10_000)
+    expect(await session.accessToken()).toBe('access-1')
+    expect(attempts).toBe(2)
   })
+
+  test.each([0, 500, 503])(
+    'with status %d past the expiry fails but keeps the session',
+    async (status) => {
+      const { session, advance } = setup({
+        refresh: async () => {
+          throw new ApiError({ code: 'server.unavailable', status })
+        },
+      })
+      session.start(tokens({ now: T0 }))
+      advance(70_000)
+      await expect(session.accessToken()).rejects.toBeInstanceOf(ApiError)
+      expect(session.getSnapshot().status).toBe('signed_in')
+    }
+  )
 })
 
 describe('signing out', () => {
@@ -647,8 +685,8 @@ describe('an on-load refresh answered with a 4xx (F3)', () => {
   test('a 403 on a later refresh of a held session does not end it or report', async () => {
     const refused: unknown[] = []
     const reported = createSessionWithRefusal(refused, 403)
-    reported.start(tokens({ now: T0, ttlMs: 1000 }))
-    await expect(reported.accessToken()).rejects.toBeInstanceOf(ApiError)
+    reported.start(tokens({ now: T0, ttlMs: 1000, accessToken: 'access-1' }))
+    expect(await reported.accessToken()).toBe('access-1')
     expect(reported.getSnapshot().status).toBe('signed_in')
     expect(refused).toEqual([])
   })
