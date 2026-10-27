@@ -302,8 +302,11 @@ function ControlForm(
           const windows = days[day]
           const first = windows?.[0]
           return (
-            <div key={day} className='flex flex-wrap items-center gap-x-4 gap-y-1 py-1'>
-              <label className='flex min-w-32 items-center'>
+            <div
+              key={day}
+              className='grid grid-cols-[8rem_minmax(0,9rem)_minmax(0,9rem)] items-center gap-x-2 gap-y-1 py-1'
+            >
+              <label className='flex items-center'>
                 <input
                   type='checkbox'
                   checked={windows !== undefined}
@@ -326,19 +329,19 @@ function ControlForm(
                   <Input
                     type='time'
                     aria-label={`${DAY_WORD[day].long} from`}
-                    className='w-32'
                     value={first.start}
                     onChange={(event) => setTime(day, 'start', event.target.value)}
                   />
                   <Input
                     type='time'
                     aria-label={`${DAY_WORD[day].long} until`}
-                    className='w-32'
                     value={first.end}
                     onChange={(event) => setTime(day, 'end', event.target.value)}
                   />
                   {windows && windows.length > 1 ? (
-                    <span className='hint'>and {windows.length - 1} more, kept as they are</span>
+                    <span className='hint col-span-3'>
+                      and {windows.length - 1} more, kept as they are
+                    </span>
                   ) : null}
                 </>
               ) : null}
