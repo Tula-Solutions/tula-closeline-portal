@@ -32,6 +32,11 @@ export const MAX_HELD_KEYS = 32
 
 /** The fingerprints: everything that identifies an intent (its kind, path parameters and body), as one string. */
 export const fingerprint = {
+  /** Starting a try-it session; one per press of Start, so a retry of that press reuses its key. */
+  trySession: (attempt: number) => JSON.stringify(['try-session', attempt]),
+  /** Saying `text` as message number `index` of a try-it session. */
+  tryMessage: (sessionId: string, index: number, text: string) =>
+    JSON.stringify(['try-message', sessionId, index, text]),
   /** Inviting `email` for `role`. */
   invitation: (email: string, role: string) => JSON.stringify(['invitation', email, role]),
   /** Creating a Team called `name`. */

@@ -1,5 +1,6 @@
 import type {
   AgentKind,
+  AgentToolName,
   AgentVoiceStyle,
   ControlLevel,
   EscalationTrigger,
@@ -103,4 +104,14 @@ export const VOICE_STYLE_WORD: Record<AgentVoiceStyle, string> = {
   warm: 'Warm',
   neutral: 'Neutral',
   crisp: 'Crisp',
+}
+
+/** What each tool the Inbound Agent may call does, in words. */
+export const TOOL_WORD: Readonly<Record<AgentToolName, string>> = {
+  record_answer: 'Recorded the caller’s answer to a Qualification question.',
+  find_slots: 'Looked up free times for a meeting.',
+  book: 'Booked a meeting.',
+  hand_off: 'Handed the conversation to a Rep.',
+  end_call: 'Ended the conversation.',
+  revoke_consent: 'Recorded that the caller withdrew Contact Consent.',
 }

@@ -1,6 +1,7 @@
 import {
   type AddLineRequest,
   type AgentSettings,
+  type AgentTurn,
   type AssignLineRequest,
   agentSettingsSchema,
   type CreateQualificationQuestionRequest,
@@ -13,7 +14,12 @@ import {
   qualificationQuestionSchema,
   reorderQualificationQuestionsRequestSchema,
   type SetAgentSettingsRequest,
+  sendTryMessageRequestSchema,
   setAgentSettingsRequestSchema,
+  startTrySessionRequestSchema,
+  type TrySession,
+  tryReplySchema,
+  trySessionSchema,
   type UpdateQualificationQuestionRequest,
 } from 'tula-closeline-contract'
 import { PAGE_SIZE, type PageRequest } from '~/api/core'
@@ -52,9 +58,16 @@ export type VoiceApi = {
   deleteQuestion(questionId: string): Promise<void>
   /** Sets the order of all questions, every id once; the key makes a repeat change nothing (Owner, Admin). */
   reorderQuestions(questionIds: readonly string[], idempotencyKey: string): Promise<void>
+  /** Starts a text rehearsal of the Inbound Agent; nothing is placed or sent (Owner, Admin). */
+  startTrySession(idempotencyKey: string): Promise<TrySession>
+  /** Says something in a try-it session and returns the Agent's reply turn (Owner, Admin). */
+  sendTryMessage(sessionId: string, text: string, idempotencyKey: string): Promise<AgentTurn>
 }
 
 const segment = encodeURIComponent
+
+/** A text turn asks a model and the Playbook; no budget is stated in the spec, so allow 30 s before the portal gives up (the key makes a retry safe). */
+const TRY_TURN_TIMEOUT_MS = 30_000
 
 /** Builds the voice routes over an HTTP client for same-origin paths, which sends the access token. */
 export function createVoiceApi(http: HttpClient): VoiceApi {
@@ -147,6 +160,25 @@ export function createVoiceApi(http: HttpClient): VoiceApi {
         auth: true,
         // The contract names no body for this answer; the list is read again after it.
         parse: () => undefined,
+      }),
+    startTrySession: (idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: '/v1/agent/try-sessions',
+        body: startTrySessionRequestSchema.parse({}),
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json) => trySessionSchema.parse(json),
+      }),
+    sendTryMessage: (sessionId, text, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: `/v1/agent/try-sessions/${segment(sessionId)}/messages`,
+        body: sendTryMessageRequestSchema.parse({ text }),
+        timeoutMs: TRY_TURN_TIMEOUT_MS,
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json) => tryReplySchema.parse(json).reply,
       }),
   }
 }
