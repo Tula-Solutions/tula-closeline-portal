@@ -12,6 +12,7 @@ import { ControlsSection } from '~/screens/agent/ControlsSection'
 import { InstructionsSection } from '~/screens/agent/InstructionsSection'
 import { QuestionsSection } from '~/screens/agent/QuestionsSection'
 import { SettingsSection } from '~/screens/agent/SettingsSection'
+import { TrySection } from '~/screens/agent/TrySection'
 import { KIND_NAME } from '~/screens/agent/words'
 import { Banner } from '~/ui/Banner'
 import { Confirm } from '~/ui/Confirm'
@@ -119,6 +120,7 @@ function AgentPage(props: { readonly manage: boolean }) {
               onDone={feedback.done}
               onFail={feedback.failed}
             />
+            <TrySection manage={props.manage} />
           </>
         ) : null}
       </div>

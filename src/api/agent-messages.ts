@@ -28,6 +28,14 @@ export function presentAgent(error: unknown): ShownFailure {
         }
       case AGENT_ERRORS['agent.question_not_found'].code:
         return { message: 'That question no longer exists. Reload the page.' }
+      case AGENT_ERRORS['agent.paused'].code:
+        return { message: 'The Agents are paused. Resume them to try the Agent.' }
+      case AGENT_ERRORS['agent.session_not_found'].code:
+        return { message: 'This conversation has ended. Start over to keep trying the Agent.' }
+      case AGENT_ERRORS['agent.no_published_instructions'].code:
+        return {
+          message: 'The Inbound Agent has no published instructions yet. Publish a version first.',
+        }
       case ERRORS['request.invalid'].code:
         return { message: 'Check the details you entered and try again.' }
       default:
