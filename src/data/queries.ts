@@ -50,6 +50,7 @@ import type { ProspectFilter } from '~/api/core'
 import type { ExportsPage } from '~/api/exports'
 import type { ConversationFilter, ConversationsPage, MessagesPage } from '~/api/inbox'
 import type { SuggestionsPage } from '~/api/playbook'
+import type { RoutingRulesPage } from '~/api/routing'
 import type { CallsPage } from '~/api/sales-history'
 import type { LinesPage } from '~/api/voice'
 import type { App } from '~/app'
@@ -104,6 +105,8 @@ export const KEYS = {
   calendar: (organizationId: string) => [organizationId, 'calendar'] as const,
   /** The Organization's Booking Types. */
   bookingTypes: (organizationId: string) => [organizationId, 'booking-types'] as const,
+  /** The Organization's Routing Rules. */
+  routingRules: (organizationId: string) => [organizationId, 'routing-rules'] as const,
   /** The rights confirmation. */
   rights: (organizationId: string) => [organizationId, 'rights'] as const,
 }
@@ -312,6 +315,38 @@ export function useBookingTypes(enabled: boolean) {
     enabled: enabled && organizationId !== '',
   })
   return pagedState(query)
+}
+
+/** The most pages of Routing Rules read at once: an Organization has at most 200, a page holds up to 100. */
+const ROUTING_RULE_PAGES = 3
+
+/** All the Routing Rules in the order tried, read a bounded page at a time; `complete` is false if more remain beyond the cap. */
+export function useRoutingRules(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    RoutingRulesPage,
+    Error,
+    InfiniteData<RoutingRulesPage, string | undefined>,
+    readonly [string, string],
+    string | undefined
+  >({
+    queryKey: KEYS.routingRules(organizationId),
+    queryFn: ({ pageParam, signal }) =>
+      app.routing.list({ cursor: pageParam, limit: MAX_PAGE_SIZE, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  const { fetchNextPage, hasNextPage, isFetchingNextPage, isError } = query
+  const pageCount = query.data?.pages.length ?? 0
+  // pageCount is a dependency so each arrived page asks for the next one.
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage && !isError && pageCount < ROUTING_RULE_PAGES) {
+      void fetchNextPage()
+    }
+  }, [hasNextPage, isFetchingNextPage, isError, fetchNextPage, pageCount])
+  return { ...pagedState(query), complete: !hasNextPage }
 }
 
 /** The API keys, a page at a time. `enabled` is false for a role that may not manage them (no request is made). */

@@ -26,6 +26,7 @@ import { Route as AppInvitationsRouteImport } from './routes/_app/invitations'
 import { Route as AppLinesRouteImport } from './routes/_app/lines'
 import { Route as AppMembersRouteImport } from './routes/_app/members'
 import { Route as AppPlaybookRouteImport } from './routes/_app/playbook'
+import { Route as AppRoutingRouteImport } from './routes/_app/routing'
 import { Route as AppSalesHistoryRouteImport } from './routes/_app/sales-history'
 import { Route as AppSuppressionRouteImport } from './routes/_app/suppression'
 import { Route as AppTeamsRouteImport } from './routes/_app/teams'
@@ -149,6 +150,11 @@ const AppMembersRoute = AppMembersRouteImport.update({
 const AppPlaybookRoute = AppPlaybookRouteImport.update({
   id: '/playbook',
   path: '/playbook',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRoutingRoute = AppRoutingRouteImport.update({
+  id: '/routing',
+  path: '/routing',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSalesHistoryRoute = AppSalesHistoryRouteImport.update({
@@ -386,6 +392,7 @@ export interface FileRoutesByFullPath {
   '/lines': typeof AppLinesRoute
   '/members': typeof AppMembersRoute
   '/playbook': typeof AppPlaybookRouteWithChildren
+  '/routing': typeof AppRoutingRoute
   '/sales-history': typeof AppSalesHistoryRouteWithChildren
   '/suppression': typeof AppSuppressionRoute
   '/teams': typeof AppTeamsRoute
@@ -443,6 +450,7 @@ export interface FileRoutesByTo {
   '/invitations': typeof AppInvitationsRoute
   '/lines': typeof AppLinesRoute
   '/members': typeof AppMembersRoute
+  '/routing': typeof AppRoutingRoute
   '/suppression': typeof AppSuppressionRoute
   '/teams': typeof AppTeamsRoute
   '/sign-in': typeof PublicSignInRoute
@@ -502,6 +510,7 @@ export interface FileRoutesById {
   '/_app/lines': typeof AppLinesRoute
   '/_app/members': typeof AppMembersRoute
   '/_app/playbook': typeof AppPlaybookRouteWithChildren
+  '/_app/routing': typeof AppRoutingRoute
   '/_app/sales-history': typeof AppSalesHistoryRouteWithChildren
   '/_app/suppression': typeof AppSuppressionRoute
   '/_app/teams': typeof AppTeamsRoute
@@ -563,6 +572,7 @@ export interface FileRouteTypes {
     | '/lines'
     | '/members'
     | '/playbook'
+    | '/routing'
     | '/sales-history'
     | '/suppression'
     | '/teams'
@@ -620,6 +630,7 @@ export interface FileRouteTypes {
     | '/invitations'
     | '/lines'
     | '/members'
+    | '/routing'
     | '/suppression'
     | '/teams'
     | '/sign-in'
@@ -678,6 +689,7 @@ export interface FileRouteTypes {
     | '/_app/lines'
     | '/_app/members'
     | '/_app/playbook'
+    | '/_app/routing'
     | '/_app/sales-history'
     | '/_app/suppression'
     | '/_app/teams'
@@ -848,6 +860,13 @@ declare module '@tanstack/react-router' {
       path: '/playbook'
       fullPath: '/playbook'
       preLoaderRoute: typeof AppPlaybookRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/routing': {
+      id: '/_app/routing'
+      path: '/routing'
+      fullPath: '/routing'
+      preLoaderRoute: typeof AppRoutingRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/sales-history': {
@@ -1216,6 +1235,7 @@ interface AppRouteChildren {
   AppLinesRoute: typeof AppLinesRoute
   AppMembersRoute: typeof AppMembersRoute
   AppPlaybookRoute: typeof AppPlaybookRouteWithChildren
+  AppRoutingRoute: typeof AppRoutingRoute
   AppSalesHistoryRoute: typeof AppSalesHistoryRouteWithChildren
   AppSuppressionRoute: typeof AppSuppressionRoute
   AppTeamsRoute: typeof AppTeamsRoute
@@ -1252,6 +1272,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLinesRoute: AppLinesRoute,
   AppMembersRoute: AppMembersRoute,
   AppPlaybookRoute: AppPlaybookRouteWithChildren,
+  AppRoutingRoute: AppRoutingRoute,
   AppSalesHistoryRoute: AppSalesHistoryRouteWithChildren,
   AppSuppressionRoute: AppSuppressionRoute,
   AppTeamsRoute: AppTeamsRoute,

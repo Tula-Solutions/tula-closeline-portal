@@ -48,6 +48,7 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/calendar-connection', service: 'core' },
   { prefix: '/v1/availability', service: 'core' },
   { prefix: '/v1/booking-types', service: 'core' },
+  { prefix: '/v1/routing-rules', service: 'core' },
   { prefix: '/v1/assessment-rates', service: 'core' },
   { prefix: '/v1/playbook', service: 'playbook' },
   { prefix: '/v1/lines', service: 'voice' },
@@ -57,10 +58,11 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
 ]
 
 /**
- * Paths no browser needs and the table leaves out: `/healthz` and `/readyz` are served by both
- * services (a collision, so a probe must address a service directly), and `/.well-known/jwks.json`
- * is auth's key set, fetched service to service, and `/webhooks/twilio/*` is called by Twilio on
- * voice directly. Anything under `/internal` is never routed.
+ * Paths no browser needs and the table leaves out. `/healthz` and `/readyz` are served by every
+ * service (a collision, so a probe must address a service directly). `/.well-known/jwks.json` is
+ * auth's key set, fetched service to service. `/webhooks/twilio/*` (recording, status, inbound) is
+ * called by Twilio on voice directly. `/v1/routing/route` is the call path voice uses to pick a
+ * Rep. Anything under `/internal` is never routed.
  */
 export const NOT_ROUTED_FROM_BROWSER: readonly string[] = [
   '/healthz',
@@ -68,6 +70,8 @@ export const NOT_ROUTED_FROM_BROWSER: readonly string[] = [
   '/.well-known/jwks.json',
   '/webhooks/twilio/recording',
   '/webhooks/twilio/status',
+  '/webhooks/twilio/inbound',
+  '/v1/routing/route',
 ]
 
 /** Dot segments, doubled slashes and encoded dots or slashes in a path: never routed, so `/v1/client/../internal/...` cannot slip past the prefix. */
