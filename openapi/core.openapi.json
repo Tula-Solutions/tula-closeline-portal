@@ -48913,13 +48913,311 @@
         }
       }
     },
+    "/v1/conversations/{conversationId}/summary": {
+      "get": {
+        "tags": [
+          "analytics"
+        ],
+        "summary": "Get the summary of a Conversation",
+        "description": "All roles, for a Conversation the caller may see: a Rep their own, a Manager those of their Team, an Admin and Owner all. The summary and Outcome label only, never a Message body. The summary is untrusted model output: show it as plain text. A Conversation without a summary yet, one the caller may not see, one that does not exist and one of another Organization are all `request.not_found`, never 403.",
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^cnv_[0-9a-f]{32}$"
+            },
+            "required": true,
+            "name": "conversationId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The summary and Outcome label.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "conversationId": {
+                      "type": "string",
+                      "pattern": "^cnv_[0-9a-f]{32}$"
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 500
+                    },
+                    "outcomeLabel": {
+                      "type": "string",
+                      "enum": [
+                        "won",
+                        "lost",
+                        "open",
+                        "no_response",
+                        "meeting_booked"
+                      ]
+                    },
+                    "generatedAt": {
+                      "type": "string",
+                      "maxLength": 64,
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "conversationId",
+                    "summary",
+                    "outcomeLabel",
+                    "generatedAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The path is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, expired or not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "auth.forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "request.not_found, or organization.not_found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "organization.deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Something went wrong on our side.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "pattern": "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+                        },
+                        "message": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        },
+                        "details": {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/assessments": {
       "get": {
         "tags": [
           "assessments"
         ],
         "summary": "List the Assessed Call turns",
-        "description": "Owner, Admin and Manager (a Manager sees the Prospects of their Teams); a Rep is `auth.forbidden`. Every finished Agent turn gets one Assessment. `sort=worst_first` puts the worst severity first, then the newest, and lists flagged turns only (no `pass`) unless a `verdict` is given; the default is newest first, every verdict. Cursor-paged, at most 100 a page. A turn that could not be judged has no Assessment. Findings hold spans, never text.",
+        "description": "Owner and Admin; a Manager or Rep is `auth.forbidden`. Every finished Agent turn gets one Assessment. `sort=worst_first` puts the worst severity first, then the newest, and lists flagged turns only (no `pass`) unless a `verdict` is given; the default is newest first, every verdict. Cursor-paged, at most 100 a page. A turn that could not be judged has no Assessment. Findings hold spans, never text.",
         "security": [
           {
             "accessToken": []
@@ -50425,7 +50723,7 @@
           "assessments"
         ],
         "summary": "Read the weekly failed rate",
-        "description": "Owner and Admin. One item per ISO week, Agent kind and instruction version over a range of at most 13 months, oldest week first, cursor-paged. A fail whose findings are all marked false alarms does not count. Under 20 Assessments a week the rate is \"not enough data\".",
+        "description": "Owner and Admin. One item per ISO week, Agent kind and instruction version over a range of at most 13 months, oldest week first, cursor-paged. A fail whose findings are all marked false alarms does not count. Under 20 Assessments a week the rate is \"not enough data\". `groupBy=category` gives one item per finding category with a counted failing finding; `category` is null otherwise.",
         "security": [
           {
             "accessToken": []
@@ -50460,6 +50758,17 @@
             },
             "required": false,
             "name": "agentKind",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "category"
+              ]
+            },
+            "required": false,
+            "name": "groupBy",
             "in": "query"
           },
           {
@@ -50555,6 +50864,19 @@
                                   "null"
                                 ],
                                 "minimum": 1
+                              },
+                              "category": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "enum": [
+                                  "unsupported_claim",
+                                  "policy_deviation",
+                                  "missing_disclosure",
+                                  "tone",
+                                  null
+                                ]
                               }
                             },
                             "required": [
@@ -50565,7 +50887,8 @@
                               "week",
                               "weekStart",
                               "agentKind",
-                              "instructionVersion"
+                              "instructionVersion",
+                              "category"
                             ],
                             "additionalProperties": false
                           },
@@ -50613,6 +50936,19 @@
                                   "null"
                                 ],
                                 "minimum": 1
+                              },
+                              "category": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ],
+                                "enum": [
+                                  "unsupported_claim",
+                                  "policy_deviation",
+                                  "missing_disclosure",
+                                  "tone",
+                                  null
+                                ]
                               }
                             },
                             "required": [
@@ -50623,7 +50959,8 @@
                               "week",
                               "weekStart",
                               "agentKind",
-                              "instructionVersion"
+                              "instructionVersion",
+                              "category"
                             ],
                             "additionalProperties": false
                           }

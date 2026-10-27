@@ -56,8 +56,8 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
   notice on the route that makes no request. Findings hold spans, never text: a Draft's sentence is
   fetched on demand and shown through `plain()`; a Call turn has no readable transcript route yet, so
   the entry says so. Feedback goes out with an Idempotency-Key from `app.keys`. The failure-rate
-  chart is per Agent kind (the rates route has no category dimension) and never states a rate for a
-  week under 20 records.
+  chart is per Agent kind, with a second ledger table of weeks by kind of finding (`groupBy=category`);
+  neither states a rate for a week or cell under 20 records.
 - Audit log (`/audit`: Owner, Admin, Manager) and Data export (`/export`: Owner, Admin) are hidden from
   everyone else, in the nav and by a notice on the route. The audit screen shows ids, labels and
   actions, never the text of a Message. An export download link is requested on click, handed to

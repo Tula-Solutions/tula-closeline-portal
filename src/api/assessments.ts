@@ -58,6 +58,8 @@ export type AssessmentsApi = {
       readonly from: string
       readonly to: string
       readonly agentKind?: AgentKind | undefined
+      /** `category` splits each week's rate by kind of finding. */
+      readonly groupBy?: 'category' | undefined
     },
     page: PageRequest
   ): Promise<AssessmentRatesPage>
@@ -113,6 +115,7 @@ export function createAssessmentsApi(http: HttpClient): AssessmentsApi {
           from: range.from,
           to: range.to,
           ...(range.agentKind ? { agentKind: range.agentKind } : {}),
+          ...(range.groupBy ? { groupBy: range.groupBy } : {}),
           cursor: page.cursor,
           limit: Math.min(page.limit ?? ASSESSMENT_PAGE_MAX, ASSESSMENT_PAGE_MAX),
         },
