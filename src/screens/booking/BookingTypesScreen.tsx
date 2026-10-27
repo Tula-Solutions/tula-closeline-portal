@@ -5,6 +5,7 @@ import {
   createBookingTypeRequestSchema,
 } from 'tula-closeline-contract'
 import { presentBookingType } from '~/api/booking-messages'
+import { fingerprint } from '~/api/idempotency'
 import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
 import { Section } from '~/components/app/section'
@@ -277,7 +278,14 @@ function CreateForm(props: {
   const [round, setRound] = useState(0)
   const add = useSubmit<CreateBookingTypeRequest>(
     async (body) => {
-      await app.bookingTypes.create(body)
+      const attempt = app.keys.begin(fingerprint.bookingTypeCreate(JSON.stringify(body)))
+      try {
+        await app.bookingTypes.create(body, attempt.key)
+      } catch (failure) {
+        attempt.failed(failure)
+        throw failure
+      }
+      attempt.succeeded()
       setError(undefined)
       setRound((n) => n + 1)
       await refresh(app, 'bookingTypes')

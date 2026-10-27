@@ -3,6 +3,7 @@ import {
   bookingTypeSchema,
   type CreateBookingTypeRequest,
   createBookingTypeRequestSchema,
+  IDEMPOTENCY_KEY_HEADER,
   updateBookingTypeRequestSchema,
 } from 'tula-closeline-contract'
 import { z } from 'zod'
@@ -26,8 +27,8 @@ const pageSchema = z.object({
 export type BookingTypesApi = {
   /** One page of the Organization's Booking Types, retired ones included. */
   list(page: PageRequest): Promise<BookingTypesPage>
-  /** Defines a Booking Type; core makes its public token. */
-  create(body: CreateBookingTypeRequest): Promise<BookingType>
+  /** Defines a Booking Type; core makes its public token and answers a replayed key with the first result. */
+  create(body: CreateBookingTypeRequest, idempotencyKey: string): Promise<BookingType>
   /** Changes some fields of a Booking Type. */
   update(id: string, body: UpdateBookingTypeRequest): Promise<BookingType>
   /** Retires a Booking Type: it can no longer be booked; answering again is fine. */
@@ -48,11 +49,12 @@ export function createBookingTypesApi(http: HttpClient): BookingTypesApi {
         ...(page.signal ? { signal: page.signal } : {}),
         parse: (json) => pageSchema.parse(json),
       }),
-    create: (body) =>
+    create: (body, idempotencyKey) =>
       http.request({
         method: 'POST',
         path: '/v1/booking-types',
         body: createBookingTypeRequestSchema.parse(body),
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
         auth: true,
         parse: one,
       }),

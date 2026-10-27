@@ -133,6 +133,39 @@ describe('Booking Types: add', () => {
     expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('')
   })
 
+  test('a retry after a dropped response reuses the key; a changed body gets a new one', async () => {
+    let posts = 0
+    const portal = visit(
+      'admin',
+      '/booking-types',
+      route('POST', TYPES, () => {
+        posts += 1
+        if (posts <= 2) {
+          throw new TypeError('network down')
+        }
+        return json(201, bookingTypeBody(9))
+      }),
+      list
+    )
+    const name = await screen.findByLabelText('Name')
+    await portal.user.type(name, 'Demo')
+    await portal.user.click(screen.getByRole('button', { name: 'Add Booking Type' }))
+    await screen.findByRole('alert')
+    await portal.user.click(screen.getByRole('button', { name: 'Add Booking Type' }))
+    await waitFor(() => expect(posts).toBe(2))
+    await screen.findByRole('alert')
+    await portal.user.type(name, ' two')
+    await portal.user.click(screen.getByRole('button', { name: 'Add Booking Type' }))
+    await waitFor(() => expect(posts).toBe(3))
+    const keys = portal.calls
+      .filter((call) => call.method === 'POST')
+      .map((call) => call.headers.get('idempotency-key'))
+    expect(keys[0]).toBeTruthy()
+    expect(keys[1]).toBe(keys[0])
+    expect(keys[2]).toBeTruthy()
+    expect(keys[2]).not.toBe(keys[0])
+  })
+
   test('field errors come from the contract schema and nothing is sent', async () => {
     const portal = visit('admin', '/booking-types', list)
     const length = await screen.findByLabelText('Length (minutes)')
