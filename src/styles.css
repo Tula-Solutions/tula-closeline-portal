@@ -1040,23 +1040,6 @@
     margin-inline-end: 0.5rem;
   }
 
-  /* In a ledger row or a list item's actions, a quiet action is set as text, as Remove is. */
-  td .button-quiet,
-  .row-actions .button-quiet {
-    padding-inline: 0.25rem;
-    border-color: transparent;
-    font-weight: 500;
-    text-decoration: underline;
-    text-decoration-color: var(--border-strong);
-    text-underline-offset: 4px;
-  }
-
-  td .button-quiet:hover,
-  .row-actions .button-quiet:hover {
-    background: transparent;
-    text-decoration-color: currentColor;
-  }
-
   /* Below the md width a stacking ledger reads row by row: each row is a ruled block of its cells, in order. */
   @media (width < 48rem) {
     .ledger-stack thead {
