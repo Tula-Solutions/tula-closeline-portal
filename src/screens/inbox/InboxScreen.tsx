@@ -9,11 +9,13 @@ import {
   type InboxChannel,
   REPLY_LABELS,
   type ReplyLabel,
+  type Role,
 } from 'tula-closeline-contract'
 import { presentInbox } from '~/api/inbox-messages'
 import { PageHeader } from '~/components/app/page-header'
 import { StatusBadge } from '~/components/app/status-badge'
-import { useConversations } from '~/data/queries'
+import { ESCALATED_COUNT_LIMIT, useConversations, useEscalatedCount } from '~/data/queries'
+import { useRole } from '~/data/session-role'
 import { cn } from '~/lib/utils'
 import { readInboxSearch } from '~/screens/inbox/search'
 import { CHANNEL_WORD, LABEL_WORD, STATE_WORD } from '~/screens/inbox/words'
@@ -48,6 +50,7 @@ export function InboxScreen() {
     state: search.state,
     label: search.label,
   })
+  const role = useRole()
   const [filtersOpen, setFiltersOpen] = useState(false)
   const filtersId = useId()
   const narrowed =
@@ -65,6 +68,11 @@ export function InboxScreen() {
         description='Replies from your Prospects, and who is answering them: the Agent or a Rep. A Rep sees their own Conversations; an Owner or Admin sees every one.'
       />
       <div className='flex flex-col gap-4'>
+        <EscalatedToggle
+          role={role}
+          on={search.state === 'escalated'}
+          onChange={(on) => change({ state: on ? 'escalated' : undefined })}
+        />
         <button
           type='button'
           className='button button-quiet inline-flex w-fit items-center gap-2 md:hidden'
@@ -190,5 +198,42 @@ function ConversationRow(props: { readonly conversation: Conversation }) {
         {conversation.pendingDraftCount === 0 ? '—' : conversation.pendingDraftCount}
       </td>
     </tr>
+  )
+}
+
+/**
+ * One quiet line above the filters: the Conversations waiting for a person and a single numeral.
+ * Core lets a Rep see only their own, so for a Rep the count is theirs; a Manager, Admin or Owner
+ * sees every escalation they may see, including the Admin queue (core names no assignee in a list).
+ */
+function EscalatedToggle(props: {
+  readonly role: Role | null
+  readonly on: boolean
+  readonly onChange: (on: boolean) => void
+}) {
+  const escalated = useEscalatedCount()
+  const mine = props.role === 'rep'
+  const label = mine ? 'Escalated to me' : 'Escalated'
+  const count = escalated.data
+  const numeral =
+    count === undefined ? null : count.more ? `${ESCALATED_COUNT_LIMIT}+` : String(count.count)
+  return (
+    <p className='m-0 flex items-baseline gap-3'>
+      <button
+        type='button'
+        className='button button-quiet'
+        aria-pressed={props.on}
+        onClick={() => props.onChange(!props.on)}
+      >
+        {label}
+        {numeral === null ? null : (
+          <>
+            {' '}
+            <span className='label-mono'>{numeral}</span>
+            <span className='sr-only'> waiting for a person</span>
+          </>
+        )}
+      </button>
+    </p>
   )
 }

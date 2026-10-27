@@ -670,3 +670,18 @@ export function decisionBody(n: number, overrides: Record<string, unknown> = {})
     ...overrides,
   }
 }
+
+/** One escalation rule: the Admin queue for a writer failure, unless overridden. */
+export function escalationRuleBody(overrides: Record<string, unknown> = {}) {
+  return {
+    id: hexId('cev', 1),
+    trigger: 'writer_failure',
+    target: 'admin_queue',
+    teamId: null,
+    threshold: null,
+    enabled: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  }
+}

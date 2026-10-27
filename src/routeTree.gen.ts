@@ -38,6 +38,7 @@ import { Route as AppAnalyticsCampaignsRouteImport } from './routes/_app/analyti
 import { Route as AppAnalyticsRepsRouteImport } from './routes/_app/analytics/reps'
 import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox/index'
 import { Route as AppInboxConversationIdRouteImport } from './routes/_app/inbox/$conversationId'
+import { Route as AppInboxEscalationRouteImport } from './routes/_app/inbox/escalation'
 import { Route as AppInboxPolicyRouteImport } from './routes/_app/inbox/policy'
 import { Route as AppPlaybookIndexRouteImport } from './routes/_app/playbook/index'
 import { Route as AppPlaybookSearchRouteImport } from './routes/_app/playbook/search'
@@ -203,6 +204,11 @@ const AppInboxConversationIdRoute = AppInboxConversationIdRouteImport.update({
   path: '/inbox/$conversationId',
   getParentRoute: () => AppRoute,
 } as any)
+const AppInboxEscalationRoute = AppInboxEscalationRouteImport.update({
+  id: '/inbox/escalation',
+  path: '/inbox/escalation',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppInboxPolicyRoute = AppInboxPolicyRouteImport.update({
   id: '/inbox/policy',
   path: '/inbox/policy',
@@ -347,6 +353,7 @@ export interface FileRoutesByFullPath {
   '/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
+  '/inbox/escalation': typeof AppInboxEscalationRoute
   '/inbox/policy': typeof AppInboxPolicyRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/playbook/suggestions': typeof AppPlaybookSuggestionsRoute
@@ -395,6 +402,7 @@ export interface FileRoutesByTo {
   '/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
+  '/inbox/escalation': typeof AppInboxEscalationRoute
   '/inbox/policy': typeof AppInboxPolicyRoute
   '/playbook/search': typeof AppPlaybookSearchRoute
   '/playbook/suggestions': typeof AppPlaybookSuggestionsRoute
@@ -448,6 +456,7 @@ export interface FileRoutesById {
   '/_app/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/_app/analytics/reps': typeof AppAnalyticsRepsRoute
   '/_app/inbox/$conversationId': typeof AppInboxConversationIdRoute
+  '/_app/inbox/escalation': typeof AppInboxEscalationRoute
   '/_app/inbox/policy': typeof AppInboxPolicyRoute
   '/_app/playbook/search': typeof AppPlaybookSearchRoute
   '/_app/playbook/suggestions': typeof AppPlaybookSuggestionsRoute
@@ -500,6 +509,7 @@ export interface FileRouteTypes {
     | '/analytics/campaigns'
     | '/analytics/reps'
     | '/inbox/$conversationId'
+    | '/inbox/escalation'
     | '/inbox/policy'
     | '/playbook/search'
     | '/playbook/suggestions'
@@ -548,6 +558,7 @@ export interface FileRouteTypes {
     | '/analytics/campaigns'
     | '/analytics/reps'
     | '/inbox/$conversationId'
+    | '/inbox/escalation'
     | '/inbox/policy'
     | '/playbook/search'
     | '/playbook/suggestions'
@@ -600,6 +611,7 @@ export interface FileRouteTypes {
     | '/_app/analytics/campaigns'
     | '/_app/analytics/reps'
     | '/_app/inbox/$conversationId'
+    | '/_app/inbox/escalation'
     | '/_app/inbox/policy'
     | '/_app/playbook/search'
     | '/_app/playbook/suggestions'
@@ -837,6 +849,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInboxConversationIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/inbox/escalation': {
+      id: '/_app/inbox/escalation'
+      path: '/inbox/escalation'
+      fullPath: '/inbox/escalation'
+      preLoaderRoute: typeof AppInboxEscalationRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/inbox/policy': {
       id: '/_app/inbox/policy'
       path: '/inbox/policy'
@@ -1066,6 +1085,7 @@ interface AppRouteChildren {
   AppAnalyticsCampaignsRoute: typeof AppAnalyticsCampaignsRoute
   AppAnalyticsRepsRoute: typeof AppAnalyticsRepsRoute
   AppInboxConversationIdRoute: typeof AppInboxConversationIdRoute
+  AppInboxEscalationRoute: typeof AppInboxEscalationRoute
   AppInboxPolicyRoute: typeof AppInboxPolicyRoute
   AppProspectsProspectIdRoute: typeof AppProspectsProspectIdRoute
   AppProspectsImportsRoute: typeof AppProspectsImportsRouteWithChildren
@@ -1094,6 +1114,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsCampaignsRoute: AppAnalyticsCampaignsRoute,
   AppAnalyticsRepsRoute: AppAnalyticsRepsRoute,
   AppInboxConversationIdRoute: AppInboxConversationIdRoute,
+  AppInboxEscalationRoute: AppInboxEscalationRoute,
   AppInboxPolicyRoute: AppInboxPolicyRoute,
   AppProspectsProspectIdRoute: AppProspectsProspectIdRoute,
   AppProspectsImportsRoute: AppProspectsImportsRouteWithChildren,

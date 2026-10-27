@@ -7,6 +7,7 @@ import { type AuditApi, createAuditApi } from '~/api/audit'
 import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
 import { type ConsentApi, createConsentApi } from '~/api/consent'
 import { type CoreApi, createCoreApi } from '~/api/core'
+import { createEscalationApi, type EscalationApi } from '~/api/escalation'
 import { createExportsApi, type ExportsApi } from '~/api/exports'
 import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
@@ -32,6 +33,7 @@ export type App = {
   readonly apiKeys: ApiKeysApi
   readonly inbox: InboxApi
   readonly approvals: ApprovalsApi
+  readonly escalation: EscalationApi
   /** The analytics dashboards: series, comparison tables and their CSV. */
   readonly analytics: AnalyticsApi
   /** The audit log: events, the CSV and the hash-chain check. */
@@ -158,6 +160,7 @@ export function createApp(init: AppInit): App {
     apiKeys: createApiKeysApi(coreHttp),
     inbox: createInboxApi(coreHttp),
     approvals: createApprovalsApi(coreHttp),
+    escalation: createEscalationApi(coreHttp),
     analytics: createAnalyticsApi(coreHttp),
     audit: createAuditApi(coreHttp),
     exports: createExportsApi(coreHttp),

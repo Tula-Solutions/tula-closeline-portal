@@ -21,8 +21,11 @@ function params(url: string) {
   return new URL(url, 'http://x').searchParams
 }
 
+/** The reads of the list itself; the escalated count is a separate read of a full page. */
 function listed(portal: ReturnType<typeof renderPortal>) {
-  return portal.calls.filter((call) => call.path === CONVERSATIONS)
+  return portal.calls.filter(
+    (call) => call.path === CONVERSATIONS && params(call.url).get('limit') !== '100'
+  )
 }
 
 afterEach(() => {
@@ -233,5 +236,61 @@ describe('Inbox: the list', () => {
     expect(await run()).toEqual([])
     document.documentElement.classList.add('dark')
     expect(await run()).toEqual([])
+  })
+})
+
+describe('Inbox: escalated to me', () => {
+  const escalated = (n: number) => conversationBody(n, { state: 'escalated' })
+
+  /** Answers the escalated read with `mine` and every other read with the plain list. */
+  function list(mine: ReturnType<typeof escalated>[], nextCursor: string | null = null) {
+    return route('GET', CONVERSATIONS, (call) =>
+      params(call.url).get('state') === 'escalated'
+        ? json(200, { items: mine, nextCursor })
+        : json(200, page([conversationBody(1), conversationBody(2), ...mine]))
+    )
+  }
+
+  test('a Rep sees a quiet count of the escalated Conversations core lists for them', async () => {
+    const portal = visit('rep', '/inbox', list([escalated(3), escalated(4)]))
+    const toggle = await screen.findByRole('button', { name: /Escalated to me/ })
+    await waitFor(() => expect(toggle.textContent).toContain('2'))
+    expect(toggle.getAttribute('aria-pressed')).toBe('false')
+    const counted = portal.calls.filter((call) => params(call.url).get('state') === 'escalated')
+    expect(counted.length).toBeGreaterThan(0)
+    expect(params(counted[0]?.url ?? '').has('controller')).toBe(false)
+  })
+
+  test('the count does not include Conversations the plain list holds', async () => {
+    visit('rep', '/inbox', list([escalated(3)]))
+    const toggle = await screen.findByRole('button', { name: /Escalated to me/ })
+    await waitFor(() => expect(toggle.textContent).toMatch(/\b1\b/))
+    expect(toggle.textContent).not.toMatch(/\b3\b/)
+  })
+
+  test('a count that does not fit one page ends in a plus', async () => {
+    visit('rep', '/inbox', list([escalated(3)], 'more'))
+    const toggle = await screen.findByRole('button', { name: /Escalated to me/ })
+    await waitFor(() => expect(toggle.textContent).toContain('100+'))
+  })
+
+  test('other roles see the whole escalated queue, not "to me"', async () => {
+    visit('admin', '/inbox', list([escalated(3)]))
+    expect(await screen.findByRole('button', { name: /^Escalated/ })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /to me/ })).toBeNull()
+  })
+
+  test('pressing it filters the list to the escalated state and a second press clears it', async () => {
+    const portal = visit('rep', '/inbox', list([escalated(3)]))
+    const toggle = await screen.findByRole('button', { name: /Escalated to me/ })
+    await portal.user.click(toggle)
+    await waitFor(() => expect(toggle.getAttribute('aria-pressed')).toBe('true'))
+    await waitFor(() =>
+      expect(listed(portal).some((call) => params(call.url).get('state') === 'escalated')).toBe(
+        true
+      )
+    )
+    await portal.user.click(toggle)
+    await waitFor(() => expect(toggle.getAttribute('aria-pressed')).toBe('false'))
   })
 })

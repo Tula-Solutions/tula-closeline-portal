@@ -43,6 +43,8 @@ export const can = {
   manageLines: (role: Role) => VOICE_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner and Admin set which Drafts go out without a person (the approval policy). */
   manageApprovalPolicy: (role: Role) => INBOX_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** Owner and Admin set where a Conversation that needs a person goes (the escalation rules). */
+  manageEscalationRules: (role: Role) => INBOX_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner, Admin and Manager read the decisions made about Drafts. */
   viewDecisions: (role: Role) => INBOX_REVIEW_ROLES.some((allowed) => allowed === role),
   /** Creating, listing and revoking API keys. */

@@ -4,6 +4,9 @@ import {
   type ConversationState,
   conversationPageSchema,
   conversationSchema,
+  type Draft,
+  draftSchema,
+  IDEMPOTENCY_KEY_HEADER,
   type InboxChannel,
   type Message,
   messagePageSchema,
@@ -40,6 +43,12 @@ export type InboxApi = {
   getConversation(conversationId: string, signal?: AbortSignal): Promise<Conversation>
   /** One page of a Conversation's Messages, oldest first. */
   listMessages(conversationId: string, page: PageRequest): Promise<MessagesPage>
+  /** Takes the Conversation over from the Agent; the same Rep again is a no-op that answers the Conversation. The key makes a repeat act once. */
+  takeOver(conversationId: string, idempotencyKey: string): Promise<Conversation>
+  /** Hands the Conversation back to the Agent (the Rep who took it over, an Admin or an Owner). The key makes a repeat act once. */
+  handBack(conversationId: string, idempotencyKey: string): Promise<Conversation>
+  /** Sends the controlling Rep's own reply; core answers the approved Draft while the channel sends it. The key makes a repeat send once. */
+  reply(conversationId: string, body: string, idempotencyKey: string): Promise<Draft>
 }
 
 const segment = encodeURIComponent
@@ -76,6 +85,31 @@ export function createInboxApi(http: HttpClient): InboxApi {
         auth: true,
         ...(page.signal ? { signal: page.signal } : {}),
         parse: (json) => messagePageSchema.parse(json),
+      }),
+    takeOver: (conversationId, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: `/v1/conversations/${segment(conversationId)}/takeover`,
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json) => conversationSchema.parse(json),
+      }),
+    handBack: (conversationId, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: `/v1/conversations/${segment(conversationId)}/handback`,
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json) => conversationSchema.parse(json),
+      }),
+    reply: (conversationId, body, idempotencyKey) =>
+      http.request({
+        method: 'POST',
+        path: `/v1/conversations/${segment(conversationId)}/replies`,
+        body: { body },
+        headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+        auth: true,
+        parse: (json) => draftSchema.parse(json),
       }),
   }
 }

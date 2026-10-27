@@ -44,6 +44,7 @@ describe('the routing table', () => {
       '/v1/drafts -> core',
       '/v1/decisions -> core',
       '/v1/approval-policies -> core',
+      '/v1/escalation-rules -> core',
       '/v1/agent-instructions -> core',
       '/v1/audit-events -> core',
       '/v1/audit-csv -> core',

@@ -76,6 +76,13 @@ export const fingerprint = {
   /** Deciding the Draft `draftId`: `kind` is approve, edit-approve or reject, `body` the request as JSON text (so the same decision is the same intent). */
   draftDecision: (draftId: string, kind: 'approve' | 'edit-approve' | 'reject', body: string) =>
     JSON.stringify(['draft-decision', draftId, kind, body]),
+  /** Taking over the Conversation `conversationId`. */
+  takeover: (conversationId: string) => JSON.stringify(['takeover', conversationId]),
+  /** Handing the Conversation `conversationId` back to the Agent: its own intent, apart from taking over. */
+  handback: (conversationId: string) => JSON.stringify(['handback', conversationId]),
+  /** Replying `body` in the Conversation `conversationId`: the same text is the same intent. */
+  conversationReply: (conversationId: string, body: string) =>
+    JSON.stringify(['conversation-reply', conversationId, body]),
   /** Adding `membershipId` to the Team `teamId`. */
   teamMember: (teamId: string, membershipId: string) =>
     JSON.stringify(['team-member', teamId, membershipId]),

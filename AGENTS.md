@@ -84,6 +84,12 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
   Rep to their own Conversations, the screen sends no owner filter. Message bodies render as text only. The list
   shows no Prospect names (no N+1); the Conversation view resolves the Prospect and, only for roles that may
   list members, the Rep name (otherwise "A Rep").
+  Takeover, hand back and Rep replies (`ConversationControls.tsx`) send an Idempotency-Key through
+  `app.keys`; the answered Conversation is written into the cache, so the next render shows who
+  answers. "Escalated to me" is `state=escalated` (limit 100, `100+` when more): core lists a Rep only
+  their own, but has no owner filter, so other roles see "Escalated" over everything they may see.
+  Escalation rules (`/inbox/escalation`, Owner and Admin, `src/api/escalation.ts`) use a local
+  schema because the contract has none yet; replace it when the contract adds one.
 - Developers (`src/screens/DevelopersScreen.tsx`): renders the vendored public OpenAPI document
   (`openapi/public.openapi.json`, refreshed with `bun run vendor:public -- --from <hub clone>`) and
   calls no private route. Visible to every role.
