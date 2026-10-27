@@ -139,6 +139,16 @@ describe('Assessments review', () => {
     const first = portal.calls.find((call) => call.path === LIST)
     expect(first && query(first).get('limit')).toBe('25')
     expect(first && query(first).get('verdict')).toBeNull()
+    expect(first && query(first).get('sort')).toBe('worst_first')
+  })
+
+  test('narrows the failure-rate chart to the chosen Agent', async () => {
+    const portal = visit('owner', '/assessments?agentKind=inbound', list, rates)
+    await screen.findByText('Unsupported claim, serious.')
+    await waitFor(() => {
+      const call = portal.calls.find((c) => c.path === RATES)
+      expect(call && query(call).get('agentKind')).toBe('inbound')
+    })
   })
 
   test('quotes the offending sentence of a Draft on request, and says why a Call turn has none', async () => {

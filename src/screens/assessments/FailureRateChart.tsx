@@ -1,4 +1,8 @@
-import type { AgentKind, AssessmentRateItem } from 'tula-closeline-contract'
+import {
+  type AgentKind,
+  type AssessmentRateItem,
+  MIN_RATE_SAMPLE as MIN_RECORDS,
+} from 'tula-closeline-contract'
 import { formatCount, formatRate } from '~/screens/analytics/format'
 import { niceTop } from '~/screens/analytics/LineChart'
 import { AGENT_WORD } from '~/screens/assessments/words'
@@ -13,9 +17,6 @@ const BOTTOM = 26
 const PLOT_W = WIDTH - LEFT - RIGHT
 const PLOT_H = HEIGHT - TOP - BOTTOM
 
-/** The fewest records a week needs before core states a rate. */
-const MIN_RECORDS = 20
-
 type Week = { readonly week: string; readonly weekStart: string }
 
 /** The distinct weeks in the items, oldest first. */
@@ -27,18 +28,21 @@ function weeksOf(items: readonly AssessmentRateItem[]): readonly Week[] {
   return [...seen.values()].sort((a, b) => a.weekStart.localeCompare(b.weekStart))
 }
 
-/** What the week's number is for one Agent: the newest instruction version's rate when there are several. */
-function pickWeek(items: readonly AssessmentRateItem[], week: string): AssessmentRateItem | null {
-  const ofWeek = items.filter((item) => item.week === week)
-  return (
-    ofWeek.reduce<AssessmentRateItem | null>(
+/** What the week's number is for one Agent: the newest instruction version that states a rate, else the newest. */
+export function pickWeek(
+  items: readonly AssessmentRateItem[],
+  week: string
+): AssessmentRateItem | null {
+  const newest = (list: readonly AssessmentRateItem[]) =>
+    list.reduce<AssessmentRateItem | null>(
       (best, item) =>
         best === null || (item.instructionVersion ?? 0) >= (best.instructionVersion ?? 0)
           ? item
           : best,
       null
-    ) ?? null
-  )
+    )
+  const ofWeek = items.filter((item) => item.week === week)
+  return newest(ofWeek.filter((item) => item.state === 'ok')) ?? newest(ofWeek)
 }
 
 function Plot(props: {

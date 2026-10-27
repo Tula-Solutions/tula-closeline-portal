@@ -37,6 +37,15 @@ describe('readAssessmentSearch', () => {
 })
 
 describe('dates', () => {
+  test('a lone date is a problem and never reaches the call, since core wants both or neither', () => {
+    for (const search of [{ from: '2026-10-01' }, { to: '2026-10-07' }]) {
+      expect(datesProblem(search)).not.toBeNull()
+      const filter = assessmentFilter(search)
+      expect(filter.from).toBeUndefined()
+      expect(filter.to).toBeUndefined()
+    }
+  })
+
   test('an end before the start is a problem and never reaches the call', () => {
     const search = { from: '2026-10-07', to: '2026-10-01' }
     expect(datesProblem(search)).not.toBeNull()

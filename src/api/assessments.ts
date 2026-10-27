@@ -88,6 +88,7 @@ export function createAssessmentsApi(http: HttpClient): AssessmentsApi {
         path: '/v1/assessments',
         query: {
           ...filterQuery(filter),
+          sort: 'worst_first',
           cursor,
           limit: Math.min(limit ?? 25, ASSESSMENT_PAGE_MAX),
         },

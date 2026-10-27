@@ -1,6 +1,7 @@
 import { type InfiniteData, useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import {
+  type AgentKind,
   type AnalyticsGroupBy,
   type AnalyticsMetric,
   type CallState,
@@ -346,7 +347,7 @@ const MAX_RATE_PAGES = 5
 
 /** The weekly failure rates over a range, oldest week first. Reads every page up to {@link MAX_RATE_PAGES}; `enabled` is false for a role that may not review them. */
 export function useAssessmentRates(
-  range: { readonly from: string; readonly to: string },
+  range: { readonly from: string; readonly to: string; readonly agentKind?: AgentKind | undefined },
   enabled: boolean
 ) {
   const app = useApp()
@@ -358,7 +359,13 @@ export function useAssessmentRates(
     readonly string[],
     string | undefined
   >({
-    queryKey: [...KEYS.assessments(organizationId), 'rates', range.from, range.to],
+    queryKey: [
+      ...KEYS.assessments(organizationId),
+      'rates',
+      range.from,
+      range.to,
+      range.agentKind ?? '',
+    ],
     queryFn: ({ pageParam, signal }) =>
       app.assessments.listRates(range, { cursor: pageParam, signal }),
     initialPageParam: undefined,

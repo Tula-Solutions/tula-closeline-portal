@@ -54,6 +54,9 @@ export function mergeAssessmentSearch(
 
 /** The sentence that says why the dates cannot be asked, or null. Checked before any call. */
 export function datesProblem(search: AssessmentSearch): string | null {
+  if ((search.from === undefined) !== (search.to === undefined)) {
+    return 'Give both a start and an end date, or neither.'
+  }
   if (search.from !== undefined && search.to !== undefined && search.to < search.from) {
     return 'The end date is before the start date.'
   }

@@ -130,7 +130,7 @@ function Filters(props: {
 
 function Rates(props: { readonly search: AssessmentSearch }) {
   const range = rateRange(props.search, todayString())
-  const rates = useAssessmentRates(range, true)
+  const rates = useAssessmentRates({ ...range, agentKind: props.search.agentKind }, true)
   return (
     <section aria-labelledby='rates-heading' className='mb-12'>
       <h2 id='rates-heading' className='m-0 border-t border-rule-strong pt-4'>
