@@ -110,6 +110,7 @@ describe('isUnauthenticated and isClientFault branch on the code', () => {
     ['some.unlisted_code', 403, true],
     [CLIENT_ERRORS.badResponse, 403, true],
     [CLIENT_ERRORS.badResponse, 502, false],
+    [CLIENT_ERRORS.badResponse, 429, false],
     [CLIENT_ERRORS.network, 0, false],
   ])('%s at %d is a client fault -> %p', (code, status, expected) => {
     expect(isClientFault(new ApiError({ code, status }))).toBe(expected)
