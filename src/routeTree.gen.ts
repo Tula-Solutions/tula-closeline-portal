@@ -14,6 +14,7 @@ import { Route as PublicRouteImport } from './routes/_public'
 import { Route as SiteRouteImport } from './routes/_site'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppApiKeysRouteImport } from './routes/_app/api-keys'
+import { Route as AppAssessmentsRouteImport } from './routes/_app/assessments'
 import { Route as AppAuditRouteImport } from './routes/_app/audit'
 import { Route as AppConsentWordingsRouteImport } from './routes/_app/consent-wordings'
 import { Route as AppDevelopersRouteImport } from './routes/_app/developers'
@@ -82,6 +83,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppApiKeysRoute = AppApiKeysRouteImport.update({
   id: '/api-keys',
   path: '/api-keys',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAssessmentsRoute = AppAssessmentsRouteImport.update({
+  id: '/assessments',
+  path: '/assessments',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAuditRoute = AppAuditRouteImport.update({
@@ -331,6 +337,7 @@ const AppSalesHistoryImportsImportIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/api-keys': typeof AppApiKeysRoute
+  '/assessments': typeof AppAssessmentsRoute
   '/audit': typeof AppAuditRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
@@ -382,6 +389,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/api-keys': typeof AppApiKeysRoute
+  '/assessments': typeof AppAssessmentsRoute
   '/audit': typeof AppAuditRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
@@ -433,6 +441,7 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_site': typeof SiteRouteWithChildren
   '/_app/api-keys': typeof AppApiKeysRoute
+  '/_app/assessments': typeof AppAssessmentsRoute
   '/_app/audit': typeof AppAuditRoute
   '/_app/consent-wordings': typeof AppConsentWordingsRoute
   '/_app/developers': typeof AppDevelopersRoute
@@ -487,6 +496,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/api-keys'
+    | '/assessments'
     | '/audit'
     | '/consent-wordings'
     | '/developers'
@@ -538,6 +548,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/api-keys'
+    | '/assessments'
     | '/audit'
     | '/consent-wordings'
     | '/developers'
@@ -588,6 +599,7 @@ export interface FileRouteTypes {
     | '/_public'
     | '/_site'
     | '/_app/api-keys'
+    | '/_app/assessments'
     | '/_app/audit'
     | '/_app/consent-wordings'
     | '/_app/developers'
@@ -679,6 +691,13 @@ declare module '@tanstack/react-router' {
       path: '/api-keys'
       fullPath: '/api-keys'
       preLoaderRoute: typeof AppApiKeysRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/assessments': {
+      id: '/_app/assessments'
+      path: '/assessments'
+      fullPath: '/assessments'
+      preLoaderRoute: typeof AppAssessmentsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/audit': {
@@ -1070,6 +1089,7 @@ const AppProspectsImportsRouteWithChildren =
 
 interface AppRouteChildren {
   AppApiKeysRoute: typeof AppApiKeysRoute
+  AppAssessmentsRoute: typeof AppAssessmentsRoute
   AppAuditRoute: typeof AppAuditRoute
   AppConsentWordingsRoute: typeof AppConsentWordingsRoute
   AppDevelopersRoute: typeof AppDevelopersRoute
@@ -1099,6 +1119,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppApiKeysRoute: AppApiKeysRoute,
+  AppAssessmentsRoute: AppAssessmentsRoute,
   AppAuditRoute: AppAuditRoute,
   AppConsentWordingsRoute: AppConsentWordingsRoute,
   AppDevelopersRoute: AppDevelopersRoute,

@@ -21,7 +21,9 @@ export function hexId(
     | 'msg'
     | 'drf'
     | 'dcs'
-    | 'cpg',
+    | 'cpg'
+    | 'asm'
+    | 'fnd',
   n: number
 ): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`

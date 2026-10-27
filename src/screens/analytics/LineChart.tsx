@@ -16,7 +16,7 @@ const PLOT_W = WIDTH - LEFT - RIGHT
 const PLOT_H = HEIGHT - TOP - BOTTOM
 
 /** The next 1, 2 or 5 times a power of ten at or above `value`, so the top gridline is a round number. */
-function niceTop(value: number): number {
+export function niceTop(value: number): number {
   if (value <= 1) {
     return 1
   }
