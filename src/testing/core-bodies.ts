@@ -25,7 +25,8 @@ export function hexId(
     | 'asm'
     | 'qst'
     | 'fnd'
-    | 'tch',
+    | 'tch'
+    | 'bkt',
   n: number
 ): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`
@@ -687,6 +688,35 @@ export function escalationRuleBody(overrides: Record<string, unknown> = {}) {
     enabled: true,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
+    ...overrides,
+  }
+}
+
+/** A Booking Type as core returns it to an Owner or Admin: active, 30 minutes, by video, with a public token. */
+export function bookingTypeBody(
+  n: number,
+  overrides: Partial<{
+    name: string
+    lengthMinutes: number
+    bufferBeforeMinutes: number
+    bufferAfterMinutes: number
+    minimumNoticeMinutes: number
+    mode: 'phone' | 'video'
+    state: 'active' | 'retired'
+    publicToken: string | null
+  }> = {}
+) {
+  return {
+    id: hexId('bkt', n),
+    name: `Discovery ${n}`,
+    lengthMinutes: 30,
+    bufferBeforeMinutes: 5,
+    bufferAfterMinutes: 10,
+    minimumNoticeMinutes: 60,
+    mode: 'video',
+    state: 'active',
+    publicToken: `token${String(n).padStart(2, '0')}`.padEnd(32, 'x'),
+    createdAt: '2026-10-01T00:00:00Z',
     ...overrides,
   }
 }
