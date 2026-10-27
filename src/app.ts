@@ -8,6 +8,7 @@ import { type AssessmentsApi, createAssessmentsApi } from '~/api/assessments'
 import { type AuditApi, createAuditApi } from '~/api/audit'
 import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
 import { type BookingTypesApi, createBookingTypesApi } from '~/api/booking-types'
+import { type BookingsApi, createBookingsApi } from '~/api/bookings'
 import { type CalendarApi, createCalendarApi } from '~/api/calendar'
 import { type ConsentApi, createConsentApi } from '~/api/consent'
 import { type CoreApi, createCoreApi } from '~/api/core'
@@ -54,6 +55,7 @@ export type App = {
   readonly calendar: CalendarApi
   /** The Organization's Booking Types (Owner, Admin define them). */
   readonly bookingTypes: BookingTypesApi
+  readonly bookings: BookingsApi
   /** The Routing Rule routes of core. */
   readonly routing: RoutingApi
   /** Contact Consent on a Prospect, and the Suppression list. */
@@ -186,6 +188,7 @@ export function createApp(init: AppInit): App {
     agent: createAgentApi(coreHttp),
     calendar: createCalendarApi(coreHttp),
     bookingTypes: createBookingTypesApi(coreHttp),
+    bookings: createBookingsApi(coreHttp),
     routing: createRoutingApi(coreHttp),
     consent: createConsentApi(coreHttp),
     marketing: createMarketingApi(coreHttp),
