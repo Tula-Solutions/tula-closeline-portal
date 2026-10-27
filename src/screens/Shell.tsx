@@ -238,6 +238,9 @@ export function Shell() {
             ) : null}
             <NavLink to='/analytics/reps'>{role === 'rep' ? 'Your numbers' : 'Reps'}</NavLink>
             {can.reviewAssessments(role) ? <NavLink to='/assessments'>Assessments</NavLink> : null}
+            {can.viewAttribution(role) ? (
+              <NavLink to='/analytics/sources'>Playbook sources</NavLink>
+            ) : null}
           </NavGroup>
           <NavGroup id='knowledge' label='Knowledge'>
             <NavLink to='/playbook'>Playbook</NavLink>

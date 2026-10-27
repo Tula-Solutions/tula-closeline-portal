@@ -6,8 +6,10 @@ import { presentSales } from '~/api/sales-messages'
 import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
 import { StatusBadge } from '~/components/app/status-badge'
+import { can } from '~/data/permissions'
 import { refresh, useDeal } from '~/data/queries'
 import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
+import { useRole } from '~/data/session-role'
 import { Money } from '~/screens/sales/DealsScreen'
 import { Banner } from '~/ui/Banner'
 import { Field } from '~/ui/Field'
@@ -27,6 +29,8 @@ export function DealScreen() {
   useDocumentTitle('Deal')
   const { dealRecordId } = route.useParams()
   const deal = useDeal(dealRecordId)
+  const role = useRole()
+  const attributable = role !== null && can.viewAttribution(role)
   return (
     <>
       <PageHeader
@@ -95,6 +99,13 @@ export function DealScreen() {
               Calls of this Deal
             </Link>
           </p>
+          {attributable && deal.data.outcome !== 'open' ? (
+            <p>
+              <Link to='/analytics/deals/$dealRecordId' params={{ dealRecordId: deal.data.id }}>
+                Which touches led to this Outcome
+              </Link>
+            </p>
+          ) : null}
           {deal.data.appearedInImport ? null : (
             <p className='hint'>No CSV has named it: it was created by a Call upload.</p>
           )}

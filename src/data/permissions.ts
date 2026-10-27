@@ -56,6 +56,8 @@ export const can = {
   viewAnalytics: (role: Role) => ANALYTICS_READ_ROLES.some((allowed) => allowed === role),
   /** Owner and Admin (the contract's analytics admin roles) compare Campaigns and break numbers down by Channel or Agent; a Manager or Rep core refuses with auth.forbidden. */
   compareCampaigns: (role: Role) => ANALYTICS_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** Attribution and source performance are Owner and Admin only (the contract's analytics admin roles); core refuses a Manager or Rep with auth.forbidden. */
+  viewAttribution: (role: Role) => ANALYTICS_ADMIN_ROLES.some((allowed) => allowed === role),
   /** The roles the contract gives the assessment review (Owner and Admin) read flagged Agent output and mark findings; a Manager or Rep never reaches it. */
   reviewAssessments: (role: Role) => ASSESSMENT_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner, Admin and Manager see one row per Rep; a Rep sees only their own row. */

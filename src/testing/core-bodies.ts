@@ -23,7 +23,8 @@ export function hexId(
     | 'dcs'
     | 'cpg'
     | 'asm'
-    | 'fnd',
+    | 'fnd'
+    | 'tch',
   n: number
 ): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`
