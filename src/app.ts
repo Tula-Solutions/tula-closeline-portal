@@ -7,6 +7,7 @@ import { type ApprovalsApi, createApprovalsApi } from '~/api/approvals'
 import { type AssessmentsApi, createAssessmentsApi } from '~/api/assessments'
 import { type AuditApi, createAuditApi } from '~/api/audit'
 import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
+import { type CalendarApi, createCalendarApi } from '~/api/calendar'
 import { type ConsentApi, createConsentApi } from '~/api/consent'
 import { type CoreApi, createCoreApi } from '~/api/core'
 import { createEscalationApi, type EscalationApi } from '~/api/escalation'
@@ -46,6 +47,8 @@ export type App = {
   readonly exports: ExportsApi
   /** Agent instructions, control levels and the pause switch. */
   readonly agent: AgentApi
+  /** The caller's own Calendar Connection and working hours. */
+  readonly calendar: CalendarApi
   /** Contact Consent on a Prospect, and the Suppression list. */
   readonly consent: ConsentApi
   /** The public marketing route (the Demo Request form); sends no token. */
@@ -172,6 +175,7 @@ export function createApp(init: AppInit): App {
     audit: createAuditApi(coreHttp),
     exports: createExportsApi(coreHttp),
     agent: createAgentApi(coreHttp),
+    calendar: createCalendarApi(coreHttp),
     consent: createConsentApi(coreHttp),
     marketing: createMarketingApi(coreHttp),
     unsubscribe: createUnsubscribeApi(coreHttp),

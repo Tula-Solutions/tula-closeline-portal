@@ -17,6 +17,7 @@ import { Route as AppAgentRouteImport } from './routes/_app/agent'
 import { Route as AppApiKeysRouteImport } from './routes/_app/api-keys'
 import { Route as AppAssessmentsRouteImport } from './routes/_app/assessments'
 import { Route as AppAuditRouteImport } from './routes/_app/audit'
+import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppConsentWordingsRouteImport } from './routes/_app/consent-wordings'
 import { Route as AppDevelopersRouteImport } from './routes/_app/developers'
 import { Route as AppExportRouteImport } from './routes/_app/export'
@@ -39,6 +40,7 @@ import { Route as AppAnalyticsIndexRouteImport } from './routes/_app/analytics/i
 import { Route as AppAnalyticsCampaignsRouteImport } from './routes/_app/analytics/campaigns'
 import { Route as AppAnalyticsRepsRouteImport } from './routes/_app/analytics/reps'
 import { Route as AppAnalyticsSourcesRouteImport } from './routes/_app/analytics/sources'
+import { Route as AppCalendarCallbackRouteImport } from './routes/_app/calendar_.callback'
 import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox/index'
 import { Route as AppInboxConversationIdRouteImport } from './routes/_app/inbox/$conversationId'
 import { Route as AppInboxEscalationRouteImport } from './routes/_app/inbox/escalation'
@@ -101,6 +103,11 @@ const AppAssessmentsRoute = AppAssessmentsRouteImport.update({
 const AppAuditRoute = AppAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => AppRoute,
 } as any)
 const AppConsentWordingsRoute = AppConsentWordingsRouteImport.update({
@@ -211,6 +218,11 @@ const AppAnalyticsRepsRoute = AppAnalyticsRepsRouteImport.update({
 const AppAnalyticsSourcesRoute = AppAnalyticsSourcesRouteImport.update({
   id: '/analytics/sources',
   path: '/analytics/sources',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarCallbackRoute = AppCalendarCallbackRouteImport.update({
+  id: '/calendar_/callback',
+  path: '/calendar/callback',
   getParentRoute: () => AppRoute,
 } as any)
 const AppInboxIndexRoute = AppInboxIndexRouteImport.update({
@@ -359,6 +371,7 @@ export interface FileRoutesByFullPath {
   '/api-keys': typeof AppApiKeysRoute
   '/assessments': typeof AppAssessmentsRoute
   '/audit': typeof AppAuditRoute
+  '/calendar': typeof AppCalendarRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
   '/export': typeof AppExportRoute
@@ -380,6 +393,7 @@ export interface FileRoutesByFullPath {
   '/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/analytics/sources': typeof AppAnalyticsSourcesRoute
+  '/calendar/callback': typeof AppCalendarCallbackRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/inbox/escalation': typeof AppInboxEscalationRoute
   '/inbox/policy': typeof AppInboxPolicyRoute
@@ -414,6 +428,7 @@ export interface FileRoutesByTo {
   '/api-keys': typeof AppApiKeysRoute
   '/assessments': typeof AppAssessmentsRoute
   '/audit': typeof AppAuditRoute
+  '/calendar': typeof AppCalendarRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
   '/export': typeof AppExportRoute
@@ -433,6 +448,7 @@ export interface FileRoutesByTo {
   '/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/analytics/sources': typeof AppAnalyticsSourcesRoute
+  '/calendar/callback': typeof AppCalendarCallbackRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/inbox/escalation': typeof AppInboxEscalationRoute
   '/inbox/policy': typeof AppInboxPolicyRoute
@@ -469,6 +485,7 @@ export interface FileRoutesById {
   '/_app/api-keys': typeof AppApiKeysRoute
   '/_app/assessments': typeof AppAssessmentsRoute
   '/_app/audit': typeof AppAuditRoute
+  '/_app/calendar': typeof AppCalendarRoute
   '/_app/consent-wordings': typeof AppConsentWordingsRoute
   '/_app/developers': typeof AppDevelopersRoute
   '/_app/export': typeof AppExportRoute
@@ -491,6 +508,7 @@ export interface FileRoutesById {
   '/_app/analytics/campaigns': typeof AppAnalyticsCampaignsRoute
   '/_app/analytics/reps': typeof AppAnalyticsRepsRoute
   '/_app/analytics/sources': typeof AppAnalyticsSourcesRoute
+  '/_app/calendar_/callback': typeof AppCalendarCallbackRoute
   '/_app/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/_app/inbox/escalation': typeof AppInboxEscalationRoute
   '/_app/inbox/policy': typeof AppInboxPolicyRoute
@@ -527,6 +545,7 @@ export interface FileRouteTypes {
     | '/api-keys'
     | '/assessments'
     | '/audit'
+    | '/calendar'
     | '/consent-wordings'
     | '/developers'
     | '/export'
@@ -548,6 +567,7 @@ export interface FileRouteTypes {
     | '/analytics/campaigns'
     | '/analytics/reps'
     | '/analytics/sources'
+    | '/calendar/callback'
     | '/inbox/$conversationId'
     | '/inbox/escalation'
     | '/inbox/policy'
@@ -582,6 +602,7 @@ export interface FileRouteTypes {
     | '/api-keys'
     | '/assessments'
     | '/audit'
+    | '/calendar'
     | '/consent-wordings'
     | '/developers'
     | '/export'
@@ -601,6 +622,7 @@ export interface FileRouteTypes {
     | '/analytics/campaigns'
     | '/analytics/reps'
     | '/analytics/sources'
+    | '/calendar/callback'
     | '/inbox/$conversationId'
     | '/inbox/escalation'
     | '/inbox/policy'
@@ -636,6 +658,7 @@ export interface FileRouteTypes {
     | '/_app/api-keys'
     | '/_app/assessments'
     | '/_app/audit'
+    | '/_app/calendar'
     | '/_app/consent-wordings'
     | '/_app/developers'
     | '/_app/export'
@@ -658,6 +681,7 @@ export interface FileRouteTypes {
     | '/_app/analytics/campaigns'
     | '/_app/analytics/reps'
     | '/_app/analytics/sources'
+    | '/_app/calendar_/callback'
     | '/_app/inbox/$conversationId'
     | '/_app/inbox/escalation'
     | '/_app/inbox/policy'
@@ -749,6 +773,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/audit'
       preLoaderRoute: typeof AppAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/consent-wordings': {
@@ -903,6 +934,13 @@ declare module '@tanstack/react-router' {
       path: '/analytics/sources'
       fullPath: '/analytics/sources'
       preLoaderRoute: typeof AppAnalyticsSourcesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calendar_/callback': {
+      id: '/_app/calendar_/callback'
+      path: '/calendar/callback'
+      fullPath: '/calendar/callback'
+      preLoaderRoute: typeof AppCalendarCallbackRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/inbox/': {
@@ -1150,6 +1188,7 @@ interface AppRouteChildren {
   AppApiKeysRoute: typeof AppApiKeysRoute
   AppAssessmentsRoute: typeof AppAssessmentsRoute
   AppAuditRoute: typeof AppAuditRoute
+  AppCalendarRoute: typeof AppCalendarRoute
   AppConsentWordingsRoute: typeof AppConsentWordingsRoute
   AppDevelopersRoute: typeof AppDevelopersRoute
   AppExportRoute: typeof AppExportRoute
@@ -1164,6 +1203,7 @@ interface AppRouteChildren {
   AppAnalyticsCampaignsRoute: typeof AppAnalyticsCampaignsRoute
   AppAnalyticsRepsRoute: typeof AppAnalyticsRepsRoute
   AppAnalyticsSourcesRoute: typeof AppAnalyticsSourcesRoute
+  AppCalendarCallbackRoute: typeof AppCalendarCallbackRoute
   AppInboxConversationIdRoute: typeof AppInboxConversationIdRoute
   AppInboxEscalationRoute: typeof AppInboxEscalationRoute
   AppInboxPolicyRoute: typeof AppInboxPolicyRoute
@@ -1183,6 +1223,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppApiKeysRoute: AppApiKeysRoute,
   AppAssessmentsRoute: AppAssessmentsRoute,
   AppAuditRoute: AppAuditRoute,
+  AppCalendarRoute: AppCalendarRoute,
   AppConsentWordingsRoute: AppConsentWordingsRoute,
   AppDevelopersRoute: AppDevelopersRoute,
   AppExportRoute: AppExportRoute,
@@ -1197,6 +1238,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsCampaignsRoute: AppAnalyticsCampaignsRoute,
   AppAnalyticsRepsRoute: AppAnalyticsRepsRoute,
   AppAnalyticsSourcesRoute: AppAnalyticsSourcesRoute,
+  AppCalendarCallbackRoute: AppCalendarCallbackRoute,
   AppInboxConversationIdRoute: AppInboxConversationIdRoute,
   AppInboxEscalationRoute: AppInboxEscalationRoute,
   AppInboxPolicyRoute: AppInboxPolicyRoute,

@@ -99,6 +99,8 @@ export const KEYS = {
   suppression: (organizationId: string) => [organizationId, 'suppression'] as const,
   /** Every cached read about Agent instructions, control levels and the pause switch. */
   agent: (organizationId: string) => [organizationId, 'agent'] as const,
+  /** The caller's Calendar Connection and working hours. */
+  calendar: (organizationId: string) => [organizationId, 'calendar'] as const,
   /** The rights confirmation. */
   rights: (organizationId: string) => [organizationId, 'rights'] as const,
 }
@@ -110,6 +112,18 @@ export function refresh(app: App, list: keyof typeof KEYS): Promise<void> {
     return Promise.resolve()
   }
   return app.queryClient.invalidateQueries({ queryKey: KEYS[list](snapshot.organization.id) })
+}
+
+/**
+ * Refreshes the caller's calendar reads after a change. A read still in flight would answer from
+ * before the change and clear the stale mark, so it is cancelled first.
+ */
+export async function refreshCalendar(app: App): Promise<void> {
+  const snapshot = app.session.getSnapshot()
+  if (snapshot.status === 'signed_in') {
+    await app.queryClient.cancelQueries({ queryKey: KEYS.calendar(snapshot.organization.id) })
+  }
+  await refresh(app, 'calendar')
 }
 
 type Page<T> = { readonly items: readonly T[]; readonly nextCursor: string | null }
@@ -1543,6 +1557,30 @@ export function useQualificationQuestions(enabled: boolean) {
     queryKey: questionsKey(organizationId),
     queryFn: ({ signal }) => app.voice.listQuestions(signal),
     enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The caller's own Calendar Connection, or null when none exists. */
+export function useCalendarConnection() {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.calendar(organizationId), 'connection'],
+    queryFn: ({ signal }) => app.calendar.get(signal),
+    enabled: organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The caller's own time zone and weekly working hours. */
+export function useAvailability() {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.calendar(organizationId), 'availability'],
+    queryFn: ({ signal }) => app.calendar.getAvailability(signal),
+    enabled: organizationId !== '',
     retry: false,
   })
 }
