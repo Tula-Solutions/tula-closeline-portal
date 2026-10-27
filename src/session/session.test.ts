@@ -628,6 +628,22 @@ describe('an on-load refresh answered with a 4xx (F3)', () => {
     }
   )
 
+  test('a bare 429 from an edge (no contract body) stays unreachable', async () => {
+    const refused: unknown[] = []
+    const reported = createSession({
+      now: () => T0,
+      wallNow: () => T0,
+      refresh: async () => {
+        throw new ApiError({ code: 'client.bad_response', status: 429 })
+      },
+      revoke: async () => {},
+      onRefused: (error) => refused.push(error),
+    })
+    await reported.restore()
+    expect(reported.getSnapshot()).toEqual({ status: 'unreachable' })
+    expect(refused).toEqual([])
+  })
+
   test('a 403 on a later refresh of a held session does not end it or report', async () => {
     const refused: unknown[] = []
     const reported = createSessionWithRefusal(refused, 403)

@@ -145,7 +145,7 @@ function refused(error: ApiError): boolean {
 
 /**
  * True for a refusal a retry cannot fix (a 4xx for the code), other than being unauthenticated or
- * rate limited. A bare 408 is a proxy timing out, which a retry can fix.
+ * rate limited. A bare 408 or 429 is a proxy or edge, which a retry can fix.
  */
 export function isClientFault(error: unknown): error is ApiError {
   if (
@@ -156,5 +156,5 @@ export function isClientFault(error: unknown): error is ApiError {
     return false
   }
   const status = statusOf(error)
-  return status >= 400 && status < 500 && status !== 408
+  return status >= 400 && status < 500 && status !== 408 && status !== 429
 }
