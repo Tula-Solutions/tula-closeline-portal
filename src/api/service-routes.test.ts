@@ -51,6 +51,8 @@ describe('the routing table', () => {
       '/v1/exports -> core',
       '/v1/audit-verification -> core',
       '/v1/analytics -> core',
+      '/v1/assessments -> core',
+      '/v1/assessment-rates -> core',
       '/v1/playbook -> playbook',
       '/v1/lines -> voice',
     ])

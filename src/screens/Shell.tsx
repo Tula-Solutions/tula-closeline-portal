@@ -222,6 +222,7 @@ export function Shell() {
               <NavLink to='/analytics/campaigns'>Campaigns</NavLink>
             ) : null}
             <NavLink to='/analytics/reps'>{role === 'rep' ? 'Your numbers' : 'Reps'}</NavLink>
+            {can.reviewAssessments(role) ? <NavLink to='/assessments'>Assessments</NavLink> : null}
           </NavGroup>
           <NavGroup id='knowledge' label='Knowledge'>
             <NavLink to='/playbook'>Playbook</NavLink>

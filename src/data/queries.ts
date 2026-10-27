@@ -33,6 +33,7 @@ import {
 import type { AnalyticsFilter } from '~/api/analytics'
 import type { ApiKeysPage } from '~/api/api-keys'
 import type { ApprovalFilter, ApprovalQueuePage, DecisionsPage } from '~/api/approvals'
+import type { AssessmentFilter, AssessmentRatesPage, AssessmentsPage } from '~/api/assessments'
 import type { AuditFilter, AuditPage } from '~/api/audit'
 import type {
   ConsentEventsPage,
@@ -78,6 +79,8 @@ export const KEYS = {
   calls: (organizationId: string) => [organizationId, 'calls'] as const,
   /** Every cached analytics read (series and tables), whatever its range or filters. */
   analytics: (organizationId: string) => [organizationId, 'analytics'] as const,
+  /** Every cached read about assessments (the review list and the weekly failure rates). */
+  assessments: (organizationId: string) => [organizationId, 'assessments'] as const,
   /** Every cached list of audit events, whatever its filter. */
   audit: (organizationId: string) => [organizationId, 'audit'] as const,
   /** The export jobs of the Organization. */
@@ -308,6 +311,75 @@ export function useAuditEvents(filter: AuditFilter, enabled: boolean) {
   return pagedState(query)
 }
 
+/** The most assessments one page of the review list holds. */
+const ASSESSMENT_LIST_PAGE = 25
+
+/** The assessments matching a filter, worst first and a page at a time. `enabled` is false for a role that may not review them (no request is made). */
+export function useAssessments(filter: AssessmentFilter, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    AssessmentsPage,
+    Error,
+    InfiniteData<AssessmentsPage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.assessments(organizationId), 'list', JSON.stringify(filter)],
+    queryFn: ({ pageParam, signal }) =>
+      app.assessments.listAssessments({
+        ...filter,
+        cursor: pageParam,
+        limit: ASSESSMENT_LIST_PAGE,
+        signal,
+      }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** The most pages of weekly rates one chart reads (100 weeks each), so a long range cannot loop. */
+const MAX_RATE_PAGES = 5
+
+/** The weekly failure rates over a range, oldest week first. Reads every page up to {@link MAX_RATE_PAGES}; `enabled` is false for a role that may not review them. */
+export function useAssessmentRates(
+  range: { readonly from: string; readonly to: string },
+  enabled: boolean
+) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    AssessmentRatesPage,
+    Error,
+    InfiniteData<AssessmentRatesPage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.assessments(organizationId), 'rates', range.from, range.to],
+    queryFn: ({ pageParam, signal }) =>
+      app.assessments.listRates(range, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+  })
+  const { hasNextPage, isFetchingNextPage, fetchNextPage } = query
+  const pages = query.data?.pages.length ?? 0
+  useEffect(() => {
+    if (hasNextPage && !isFetchingNextPage && pages < MAX_RATE_PAGES) {
+      void fetchNextPage()
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, pages])
+  return {
+    items: query.data?.pages.flatMap((page) => page.items) ?? [],
+    isPending: query.isPending,
+    isError: query.isError,
+    error: query.error,
+    refetch: () => void query.refetch(),
+  }
+}
+
 /** One analytics metric by day over the range, ungrouped or one line per group. `enabled` is false for a view the role does not have. */
 export function useAnalyticsSeries(
   filter: AnalyticsFilter,
@@ -524,13 +596,13 @@ export function useApprovalQueue(filter: ApprovalFilter, enabled = true) {
 }
 
 /** One Draft. */
-export function useDraft(draftId: string) {
+export function useDraft(draftId: string, enabled = true) {
   const app = useApp()
   const organizationId = useOrganizationId()
   return useQuery({
     queryKey: [...KEYS.inbox(organizationId), 'draft', draftId],
     queryFn: ({ signal }) => app.approvals.getDraft(draftId, signal),
-    enabled: organizationId !== '',
+    enabled: enabled && organizationId !== '',
     retry: false,
   })
 }
