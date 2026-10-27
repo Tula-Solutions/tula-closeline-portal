@@ -390,6 +390,8 @@ export function useAssessmentRates(
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, pages])
   return {
     items: query.data?.pages.flatMap((page) => page.items) ?? [],
+    /** True when the page cap stopped the read with more weeks still to come. */
+    truncated: Boolean(hasNextPage) && pages >= MAX_RATE_PAGES,
     isPending: query.isPending,
     isError: query.isError,
     error: query.error,

@@ -270,6 +270,23 @@ describe('Assessments review', () => {
     ).toBe(true)
   })
 
+  test('says so when the kind-of-finding view stops at the page cap', async () => {
+    const endless = route('GET', RATES, (call) =>
+      json(200, {
+        from: query(call).get('from'),
+        to: query(call).get('to'),
+        items: [rate(37, 'outbound', 0.03, 40, 'tone'), rate(38, 'outbound', 0.03, 40, 'tone')],
+        nextCursor: query(call).get('groupBy') === 'category' ? 'more' : null,
+      })
+    )
+    visit('owner', '/assessments', list, endless)
+    expect(
+      await screen.findByText(
+        /Showing weeks up to .*13.*\. Choose a shorter range to see later weeks\./
+      )
+    ).toBeTruthy()
+  })
+
   test('the Agent filter narrows the kind-of-finding view too', async () => {
     const portal = visit('owner', '/assessments?agentKind=inbound', list, rates)
     await screen.findByRole('heading', { name: 'By kind of finding' })
@@ -290,6 +307,7 @@ describe('Assessments review', () => {
     visit('owner', '/assessments', list, rates)
     await screen.findByText('Unsupported claim, serious.')
     await screen.findByRole('img', { name: /Outbound Agent failure rate/ })
+    await screen.findByRole('table', { name: 'Outbound Agent' })
     const run = async () =>
       (
         await axe.run(screen.getByRole('main'), { rules: { 'color-contrast': { enabled: false } } })

@@ -182,7 +182,16 @@ function Rates(props: { readonly search: AssessmentSearch }) {
       ) : byCategory.items.length === 0 ? (
         <p className='hint'>No output was assessed in these weeks.</p>
       ) : (
-        <CategoryRates items={byCategory.items} />
+        <>
+          {byCategory.truncated ? (
+            <p role='status' className='hint mb-4'>
+              Showing weeks up to{' '}
+              {formatDateOnly([...byCategory.items.map((i) => i.weekStart)].sort().at(-1) ?? '')}.
+              Choose a shorter range to see later weeks.
+            </p>
+          ) : null}
+          <CategoryRates items={byCategory.items} />
+        </>
       )}
     </section>
   )
