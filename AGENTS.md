@@ -116,6 +116,11 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
   the address at once, and never logs or reports them. In `local` Google cannot return to the
   portal, so the page also takes the code pasted. `calendar.not_connected` is the empty state, not
   an error. Saving hours sends back the loaded `dailyCap` and `awayUntil` unchanged (PUT replaces).
+- Public booking page (`/book/$token`, `src/screens/booking/PublicBookingPage.tsx`,
+  `src/api/public-booking.ts`): no sign-in and no app frame. The token is a secret: registered with
+  `app.reporter.redact`, masked by `/book/` in `src/report/scrub.ts`, never in the title. Times show
+  in the browser's zone; the booking sends `timeZone`, the honeypot `website` (a filled one is still
+  sent; the server decides) and an Idempotency-Key kept on retry. Cancel and reschedule are not here.
 - Developers (`src/screens/DevelopersScreen.tsx`): renders the vendored public OpenAPI document
   (`openapi/public.openapi.json`, refreshed with `bun run vendor:public -- --from <hub clone>`) and
   calls no private route. Visible to every role.

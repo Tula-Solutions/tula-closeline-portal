@@ -35,6 +35,12 @@ describe('public/theme-init.js', () => {
     expect(isDark()).toBe(false)
   })
 
+  test('the public booking page is a visitor page', () => {
+    localStorage.setItem('closeline.theme', 'dark')
+    run('/book/abc', false)
+    expect(isDark()).toBe(false)
+  })
+
   test('a visitor page follows the system setting', () => {
     localStorage.setItem('closeline.theme', 'light')
     run('/sign-in', true)

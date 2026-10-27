@@ -284,3 +284,18 @@ describe('scrubEvent bounds its work on long strings', () => {
     expect(ms).toBeLessThan(500)
   })
 })
+
+describe('a public booking link keeps its token out of reports', () => {
+  const token = 'Tk-booking_0123456789abcdef0123456789abcdef'
+  test('stripUrl masks the last path segment of /book/', () => {
+    expect(stripUrl(`https://app.example/book/${token}?x=1`)).toBe(
+      'https://app.example/book/[redacted]'
+    )
+  })
+  test('text naming the path loses the token even when it is short', () => {
+    const event = scrubEvent({ message: 'Failed at /book/short-one and again /book/abc?x=1' })
+    expect(JSON.stringify(event)).not.toContain('short-one')
+    expect(JSON.stringify(event)).not.toContain('abc')
+    expect(JSON.stringify(event)).toContain('/book/[redacted]')
+  })
+})
