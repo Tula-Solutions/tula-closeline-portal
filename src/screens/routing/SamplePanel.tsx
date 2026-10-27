@@ -69,7 +69,7 @@ function Outcome(props: {
       {result.candidates.length === 0 ? (
         <p className='hint m-0'>Nobody would be tried.</p>
       ) : (
-        <ol className='m-0 list-decimal divide-y border-y pl-6' aria-label='Reps tried, in order'>
+        <ol className='m-0 list-none divide-y border-y p-0' aria-label='Reps tried, in order'>
           {result.candidates.map((entry) => (
             <li key={entry.membershipId} className='flex flex-col py-2'>
               <Untrusted value={nameOf(entry.membershipId)} />
