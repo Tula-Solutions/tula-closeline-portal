@@ -217,6 +217,7 @@ export function Shell() {
             ) : null}
             {can.viewAgent(role) ? <NavLink to='/agent'>Agent</NavLink> : null}
             <NavLink to='/calendar'>Calendar</NavLink>
+            <NavLink to='/bookings'>Bookings</NavLink>
           </div>
           <NavGroup id='organization' label='Organization'>
             {can.viewMembers(role) ? <NavLink to='/members'>Members</NavLink> : null}

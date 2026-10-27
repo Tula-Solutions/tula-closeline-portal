@@ -18,6 +18,7 @@ import { Route as AppApiKeysRouteImport } from './routes/_app/api-keys'
 import { Route as AppAssessmentsRouteImport } from './routes/_app/assessments'
 import { Route as AppAuditRouteImport } from './routes/_app/audit'
 import { Route as AppBookingTypesRouteImport } from './routes/_app/booking-types'
+import { Route as AppBookingsRouteImport } from './routes/_app/bookings'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppConsentWordingsRouteImport } from './routes/_app/consent-wordings'
 import { Route as AppDevelopersRouteImport } from './routes/_app/developers'
@@ -111,6 +112,11 @@ const AppAuditRoute = AppAuditRouteImport.update({
 const AppBookingTypesRoute = AppBookingTypesRouteImport.update({
   id: '/booking-types',
   path: '/booking-types',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBookingsRoute = AppBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCalendarRoute = AppCalendarRouteImport.update({
@@ -390,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/assessments': typeof AppAssessmentsRoute
   '/audit': typeof AppAuditRoute
   '/booking-types': typeof AppBookingTypesRoute
+  '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
@@ -450,6 +457,7 @@ export interface FileRoutesByTo {
   '/assessments': typeof AppAssessmentsRoute
   '/audit': typeof AppAuditRoute
   '/booking-types': typeof AppBookingTypesRoute
+  '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
@@ -510,6 +518,7 @@ export interface FileRoutesById {
   '/_app/assessments': typeof AppAssessmentsRoute
   '/_app/audit': typeof AppAuditRoute
   '/_app/booking-types': typeof AppBookingTypesRoute
+  '/_app/bookings': typeof AppBookingsRoute
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/consent-wordings': typeof AppConsentWordingsRoute
   '/_app/developers': typeof AppDevelopersRoute
@@ -573,6 +582,7 @@ export interface FileRouteTypes {
     | '/assessments'
     | '/audit'
     | '/booking-types'
+    | '/bookings'
     | '/calendar'
     | '/consent-wordings'
     | '/developers'
@@ -633,6 +643,7 @@ export interface FileRouteTypes {
     | '/assessments'
     | '/audit'
     | '/booking-types'
+    | '/bookings'
     | '/calendar'
     | '/consent-wordings'
     | '/developers'
@@ -692,6 +703,7 @@ export interface FileRouteTypes {
     | '/_app/assessments'
     | '/_app/audit'
     | '/_app/booking-types'
+    | '/_app/bookings'
     | '/_app/calendar'
     | '/_app/consent-wordings'
     | '/_app/developers'
@@ -817,6 +829,13 @@ declare module '@tanstack/react-router' {
       path: '/booking-types'
       fullPath: '/booking-types'
       preLoaderRoute: typeof AppBookingTypesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/bookings': {
+      id: '/_app/bookings'
+      path: '/bookings'
+      fullPath: '/bookings'
+      preLoaderRoute: typeof AppBookingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/calendar': {
@@ -1247,6 +1266,7 @@ interface AppRouteChildren {
   AppAssessmentsRoute: typeof AppAssessmentsRoute
   AppAuditRoute: typeof AppAuditRoute
   AppBookingTypesRoute: typeof AppBookingTypesRoute
+  AppBookingsRoute: typeof AppBookingsRoute
   AppCalendarRoute: typeof AppCalendarRoute
   AppConsentWordingsRoute: typeof AppConsentWordingsRoute
   AppDevelopersRoute: typeof AppDevelopersRoute
@@ -1284,6 +1304,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAssessmentsRoute: AppAssessmentsRoute,
   AppAuditRoute: AppAuditRoute,
   AppBookingTypesRoute: AppBookingTypesRoute,
+  AppBookingsRoute: AppBookingsRoute,
   AppCalendarRoute: AppCalendarRoute,
   AppConsentWordingsRoute: AppConsentWordingsRoute,
   AppDevelopersRoute: AppDevelopersRoute,

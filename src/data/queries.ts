@@ -40,6 +40,7 @@ import type { ApprovalFilter, ApprovalQueuePage, DecisionsPage } from '~/api/app
 import type { AssessmentFilter, AssessmentRatesPage, AssessmentsPage } from '~/api/assessments'
 import type { AuditFilter, AuditPage } from '~/api/audit'
 import type { BookingTypesPage } from '~/api/booking-types'
+import type { BookingsPage, SlotsPage, SlotsRequest } from '~/api/bookings'
 import type {
   ConsentEventsPage,
   ConsentWordingsPage,
@@ -105,6 +106,8 @@ export const KEYS = {
   calendar: (organizationId: string) => [organizationId, 'calendar'] as const,
   /** The Organization's Booking Types. */
   bookingTypes: (organizationId: string) => [organizationId, 'booking-types'] as const,
+  /** Every cached list of Bookings and free times for moving one. */
+  bookings: (organizationId: string) => [organizationId, 'bookings'] as const,
   /** The Organization's Routing Rules. */
   routingRules: (organizationId: string) => [organizationId, 'routing-rules'] as const,
   /** The rights confirmation. */
@@ -315,6 +318,54 @@ export function useBookingTypes(enabled: boolean) {
     enabled: enabled && organizationId !== '',
   })
   return pagedState(query)
+}
+
+/** The Bookings of one window, a page at a time: `upcoming` starts at `boundary` or later, `past` before it. Core scopes them to the caller's role. */
+export function useBookings(window: 'upcoming' | 'past', boundary: string) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const range = window === 'upcoming' ? { from: boundary } : { to: boundary }
+  const query = useInfiniteQuery<
+    BookingsPage,
+    Error,
+    InfiniteData<BookingsPage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.bookings(organizationId), 'list', window, boundary],
+    queryFn: ({ pageParam, signal }) => app.bookings.list(range, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: organizationId !== '',
+  })
+  return pagedState(query)
+}
+
+/** Free times for moving a Booking (its Booking Type and Prospect), a page at a time; read only while `enabled`. */
+export function useBookingSlots(request: SlotsRequest, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    SlotsPage,
+    Error,
+    InfiniteData<SlotsPage, string | undefined>,
+    readonly string[],
+    string | undefined
+  >({
+    queryKey: [
+      ...KEYS.bookings(organizationId),
+      'slots',
+      request.bookingTypeId,
+      request.prospectId,
+      request.from,
+    ],
+    queryFn: ({ pageParam, signal }) => app.bookings.slots(request, { cursor: pageParam, signal }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+  return pagedStateBy(query, (slot) => slot.startsAt + slot.repMembershipId)
 }
 
 /** The most pages of Routing Rules read at once: an Organization has at most 200, a page holds up to 100. */

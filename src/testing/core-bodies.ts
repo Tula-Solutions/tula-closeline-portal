@@ -27,6 +27,7 @@ export function hexId(
     | 'fnd'
     | 'tch'
     | 'bkt'
+    | 'bkg'
     | 'rrl',
   n: number
 ): string {
@@ -746,4 +747,44 @@ export function routingResultBody(overrides: Record<string, unknown> = {}) {
     decidedAt: null,
     ...overrides,
   }
+}
+
+/** A Booking as core returns it: a confirmed video Booking by a member, with Rep 1 and Prospect 1 unless overridden. */
+export function bookingBody(
+  n: number,
+  overrides: Partial<{
+    startsAt: string
+    endsAt: string
+    mode: 'phone' | 'video'
+    state: 'pending' | 'confirmed' | 'cancelled'
+    origin: 'member' | 'agent' | 'public'
+    repMembershipId: string
+    prospectId: string
+    bookingTypeId: string
+    cancelledAt: string | null
+  }> = {}
+) {
+  const mode = overrides.mode ?? 'video'
+  return {
+    id: hexId('bkg', n),
+    bookingTypeId: hexId('bkt', 1),
+    repMembershipId: hexId('mem', 1),
+    prospectId: hexId('prs', 1),
+    startsAt: '2099-01-05T15:00:00Z',
+    endsAt: '2099-01-05T15:30:00Z',
+    mode,
+    state: 'confirmed',
+    origin: 'member',
+    joinUrl: mode === 'video' ? 'https://meet.example.com/abc' : null,
+    routingDecisionId: null,
+    createdAt: '2026-10-01T00:00:00Z',
+    cancelledAt: overrides.state === 'cancelled' ? '2026-10-02T00:00:00Z' : null,
+    ...overrides,
+  }
+}
+
+/** A free time with the Rep who would take it (Rep 1 unless overridden). */
+export function slotBody(startsAt: string, repMembershipId = hexId('mem', 1)) {
+  const end = new Date(Date.parse(startsAt) + 30 * 60_000).toISOString().replace('.000Z', 'Z')
+  return { startsAt, endsAt: end, repMembershipId }
 }
