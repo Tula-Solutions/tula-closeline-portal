@@ -230,6 +230,27 @@ describe('Agent questions: reorder', () => {
   })
 })
 
+describe('Agent questions: a refused move', () => {
+  test('shows the server list again, not the snapshot, when a delete landed meanwhile', async () => {
+    let reads = 0
+    const portal = visit(
+      'owner',
+      route('PUT', ORDER, failure(422, 'agent.question_invalid')),
+      (call) => {
+        if (call.method !== 'GET' || call.path !== QUESTIONS) {
+          return null
+        }
+        reads += 1
+        return json(200, { items: reads === 1 ? seed() : seed().slice(1), nextCursor: null })
+      }
+    )
+    await screen.findByRole('list', { name: 'Qualification questions' })
+    await portal.user.click(screen.getByRole('button', { name: 'Move question 2 down' }))
+    await screen.findByText(/skip logic looks at a question that is missing/)
+    await waitFor(() => expect(prompts()).toHaveLength(2))
+  })
+})
+
 describe('Agent questions: accessibility', () => {
   test.each(['light', 'dark'] as const)('passes axe in %s with a form open', async (theme) => {
     if (theme === 'dark') {

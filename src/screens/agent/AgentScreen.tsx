@@ -11,6 +11,7 @@ import { useRole } from '~/data/session-role'
 import { ControlsSection } from '~/screens/agent/ControlsSection'
 import { InstructionsSection } from '~/screens/agent/InstructionsSection'
 import { QuestionsSection } from '~/screens/agent/QuestionsSection'
+import { SettingsSection } from '~/screens/agent/SettingsSection'
 import { KIND_NAME } from '~/screens/agent/words'
 import { Banner } from '~/ui/Banner'
 import { Confirm } from '~/ui/Confirm'
@@ -107,7 +108,18 @@ function AgentPage(props: { readonly manage: boolean }) {
           onFail={feedback.failed}
         />
         {kind === 'inbound' ? (
-          <QuestionsSection manage={props.manage} onDone={feedback.done} onFail={feedback.failed} />
+          <>
+            <SettingsSection
+              manage={props.manage}
+              onDone={feedback.done}
+              onFail={feedback.failed}
+            />
+            <QuestionsSection
+              manage={props.manage}
+              onDone={feedback.done}
+              onFail={feedback.failed}
+            />
+          </>
         ) : null}
       </div>
     </>
