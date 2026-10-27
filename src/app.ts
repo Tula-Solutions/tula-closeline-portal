@@ -1,5 +1,6 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { type RightsWording, rightsWordingFor } from 'tula-closeline-contract'
+import { type AgentApi, createAgentApi } from '~/api/agent'
 import { type AnalyticsApi, createAnalyticsApi } from '~/api/analytics'
 import { type ApiKeysApi, createApiKeysApi } from '~/api/api-keys'
 import { type ApprovalsApi, createApprovalsApi } from '~/api/approvals'
@@ -40,6 +41,8 @@ export type App = {
   readonly audit: AuditApi
   /** The Organization data export: request, watch, download. */
   readonly exports: ExportsApi
+  /** Agent instructions, control levels and the pause switch. */
+  readonly agent: AgentApi
   /** Contact Consent on a Prospect, and the Suppression list. */
   readonly consent: ConsentApi
   /** The public marketing route (the Demo Request form); sends no token. */
@@ -164,6 +167,7 @@ export function createApp(init: AppInit): App {
     analytics: createAnalyticsApi(coreHttp),
     audit: createAuditApi(coreHttp),
     exports: createExportsApi(coreHttp),
+    agent: createAgentApi(coreHttp),
     consent: createConsentApi(coreHttp),
     marketing: createMarketingApi(coreHttp),
     unsubscribe: createUnsubscribeApi(coreHttp),

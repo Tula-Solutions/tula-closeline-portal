@@ -1,6 +1,7 @@
 import { type InfiniteData, useInfiniteQuery, useQueries, useQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import {
+  type AgentKind,
   type AnalyticsGroupBy,
   type AnalyticsMetric,
   type CallState,
@@ -31,6 +32,7 @@ import {
   type SuggestionStatus,
   type TableRow,
 } from 'tula-closeline-contract'
+import type { InstructionVersionsPage } from '~/api/agent'
 import type { AnalyticsFilter } from '~/api/analytics'
 import type { ApiKeysPage } from '~/api/api-keys'
 import type { ApprovalFilter, ApprovalQueuePage, DecisionsPage } from '~/api/approvals'
@@ -91,6 +93,8 @@ export const KEYS = {
   consent: (organizationId: string) => [organizationId, 'consent'] as const,
   /** Every cached list of Suppression entries, whatever its filters. */
   suppression: (organizationId: string) => [organizationId, 'suppression'] as const,
+  /** Every cached read about Agent instructions, control levels and the pause switch. */
+  agent: (organizationId: string) => [organizationId, 'agent'] as const,
   /** The rights confirmation. */
   rights: (organizationId: string) => [organizationId, 'rights'] as const,
 }
@@ -1282,4 +1286,74 @@ export function useSuppressionEntries(filter: SuppressionFilter, enabled: boolea
     enabled: enabled && organizationId !== '',
   })
   return pagedState(query)
+}
+
+/** The published instructions of an Agent kind; `enabled` is false for a role that may not read them. */
+export function usePublishedInstructions(kind: AgentKind, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.agent(organizationId), kind, 'published'],
+    queryFn: ({ signal }) => app.agent.getPublished(kind, signal),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The versions of an Agent kind's instructions, newest first, a page at a time. */
+export function useInstructionVersions(kind: AgentKind, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    InstructionVersionsPage,
+    Error,
+    InfiniteData<InstructionVersionsPage, string | undefined>,
+    readonly unknown[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.agent(organizationId), kind, 'versions'],
+    queryFn: ({ pageParam, signal }) =>
+      app.agent.listVersions(kind, { cursor: pageParam, signal, limit: MAX_PAGE_SIZE }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+  return pagedStateBy(query, (version) => String(version.number))
+}
+
+/** The line-by-line difference between two versions, read when `enabled`. */
+export function useInstructionDiff(kind: AgentKind, from: number, to: number, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.agent(organizationId), kind, 'diff', from, to],
+    queryFn: ({ signal }) => app.agent.getDiff(kind, from, to, signal),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The control levels of an Agent kind: its default and its channel overrides. */
+export function useAgentControls(kind: AgentKind, enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.agent(organizationId), kind, 'controls'],
+    queryFn: ({ signal }) => app.agent.listControls(kind, signal),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+}
+
+/** Whether every Agent of the Organization is paused. */
+export function useAgentPause(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.agent(organizationId), 'pause'],
+    queryFn: ({ signal }) => app.agent.getPause(signal),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
 }
