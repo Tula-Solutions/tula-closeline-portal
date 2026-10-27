@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 import { screen, waitFor, within } from '@testing-library/react'
 import { MAX_PAGE_SIZE } from 'tula-closeline-contract'
-import { callBody, dealBody, documentBody, memberBody, page } from '~/testing/core-bodies'
+import {
+  callBody,
+  dealBody,
+  documentBody,
+  importBody,
+  memberBody,
+  page,
+} from '~/testing/core-bodies'
 import { failure, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
 
@@ -9,6 +16,7 @@ const MEMBERS = '/v1/members'
 const DOCS = '/v1/playbook/documents'
 const DEALS = '/v1/playbook/deals'
 const CALLS = '/v1/playbook/calls'
+const IMPORTS = '/v1/playbook/deal-imports'
 
 function visit(
   role: 'owner' | 'admin' | 'manager' | 'rep',
@@ -42,7 +50,7 @@ describe('home: the briefing', () => {
       expect(list.getByRole('link', { name: /^2\+ Documents in the Playbook\.$/ })).toBeTruthy()
     )
     await waitFor(() =>
-      expect(list.getByRole('link', { name: /^1 won Deal teaches search\.$/ })).toBeTruthy()
+      expect(list.getByRole('link', { name: /^1 won Deal in search\.$/ })).toBeTruthy()
     )
     await waitFor(() =>
       expect(list.getByRole('link', { name: /^0 Calls on record\.$/ })).toBeTruthy()
@@ -83,9 +91,66 @@ describe('home: the briefing', () => {
     const link = await within(numbers).findByRole('link', {
       name: /^1 Document in the Playbook\.$/,
     })
-    const classes = link.className.split(/\s+/)
-    expect(classes).toContain('underline')
-    expect(classes).toContain('decoration-border-strong')
+    // The words carry the underline (the numeral does not), and the whole link draws it on hover.
+    expect(link.classList.contains('ink-hover')).toBe(true)
+    expect(link.querySelector('.ink-link')?.textContent).toBe('Document in the Playbook.')
+  })
+
+  test('the numeral is written once, as text the screen reader reads, and drawn for sight only', async () => {
+    visit('rep', route('GET', DOCS, json(200, page([documentBody(1), documentBody(2)], 'c2'))))
+    const numbers = await counts()
+    const link = await numbers.findByRole('link', { name: /^2\+ Documents in the Playbook\.$/ })
+    const drawn = link.querySelector('[aria-hidden="true"]')
+    await waitFor(() => expect(drawn?.textContent).toBe('2+'))
+  })
+
+  test('an Owner sees this week: Calls added in the last seven days and the last import', async () => {
+    const now = Date.now()
+    const recent = new Date(now - 2 * 24 * 3600 * 1000).toISOString().replace(/\.\d+Z$/, 'Z')
+    const old = new Date(now - 20 * 24 * 3600 * 1000).toISOString().replace(/\.\d+Z$/, 'Z')
+    const calls = [
+      { ...callBody(1, { fileName: 'kickoff.txt', state: 'ready' }), createdAt: recent },
+      { ...callBody(2, { fileName: 'old.txt' }), createdAt: old },
+    ]
+    const portal = visit(
+      'owner',
+      route('GET', MEMBERS, json(200, page([]))),
+      route('GET', DOCS, json(200, page([]))),
+      route('GET', DEALS, json(200, page([]))),
+      route('GET', CALLS, json(200, page(calls))),
+      route(
+        'GET',
+        IMPORTS,
+        json(
+          200,
+          page([
+            {
+              ...importBody(1),
+              state: 'completed',
+              rowCount: 13,
+              appliedCount: 12,
+              createdAt: recent,
+            },
+          ])
+        )
+      )
+    )
+    const week = await screen.findByRole('region', { name: 'This week' })
+    await waitFor(() => expect(within(week).getByText('kickoff.txt')).toBeTruthy())
+    expect(within(week).queryByText('old.txt')).toBeNull()
+    await waitFor(() => expect(week.textContent).toContain('Last import, 12 rows applied'))
+    // One page of one import, and the Calls line and this week share a single Calls read.
+    const imports = portal.calls.filter((call) => call.path === IMPORTS)
+    expect(imports).toHaveLength(1)
+    expect(new URL(imports[0]?.url ?? '', 'http://x').searchParams.get('limit')).toBe('1')
+    expect(portal.calls.filter((call) => call.path === CALLS)).toHaveLength(1)
+  })
+
+  test('a Rep is not shown this week and no import is requested', async () => {
+    const portal = visit('rep', route('GET', DOCS, json(200, page([]))))
+    await counts()
+    expect(screen.queryByRole('region', { name: 'This week' })).toBeNull()
+    expect(portal.calls.some((call) => call.path === IMPORTS)).toBe(false)
   })
 
   test('a Rep sees the documents count only, and nothing it may not read is requested', async () => {

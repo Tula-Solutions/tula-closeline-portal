@@ -325,6 +325,7 @@ describe('Prospect import: step 2, watch progress', () => {
   test.each([
     ['too_many_rows', /more than 50,000 rows/],
     ['unreadable', /could not be read as a CSV/],
+    ['processing_failed', /could not process this file in time/],
   ] as const)(
     'a failed import (%s) says why in words and offers no report',
     async (reason, words) => {

@@ -11,6 +11,8 @@ import { OUTCOME_LABEL, outcomeLabel } from '~/data/sales-history'
 import { Money } from '~/screens/sales/DealsScreen'
 import { Banner } from '~/ui/Banner'
 import { Field } from '~/ui/Field'
+import { dealTransitionName, transitionName } from '~/ui/motion'
+import { SaveButton } from '~/ui/SaveButton'
 import { SelectField } from '~/ui/SelectField'
 import { Untrusted } from '~/ui/Untrusted'
 import { useDocumentTitle } from '~/ui/useDocumentTitle'
@@ -28,8 +30,30 @@ export function DealScreen() {
   return (
     <>
       <PageHeader
-        eyebrow='Sales history'
-        title='Deal'
+        eyebrow={
+          deal.data === undefined || deal.data.name === null ? (
+            'Sales history'
+          ) : (
+            <>
+              Deal <Untrusted value={deal.data.dealId} />
+            </>
+          )
+        }
+        title={
+          deal.data === undefined ? (
+            'Deal'
+          ) : deal.data.name === null ? (
+            <span ref={transitionName(dealTransitionName(deal.data.id))}>
+              <bdi>{deal.data.dealId}</bdi>
+            </span>
+          ) : (
+            // The heading wraps instead of clipping: the whole name is the page's title. It is the
+            // name from the Deals row, moved here as a shared view transition.
+            <bdi data-deal-name ref={transitionName(dealTransitionName(deal.data.id))}>
+              {deal.data.name}
+            </bdi>
+          )
+        }
         actions={
           <Link to='/sales-history/deals' className='button button-quiet'>
             <ArrowLeft aria-hidden='true' className='size-4' />
@@ -53,22 +77,16 @@ export function DealScreen() {
       ) : (
         <>
           <dl>
-            <dt>Deal id</dt>
-            <dd>
-              <Untrusted value={deal.data.dealId} />
+            <dt>Amount</dt>
+            <dd className='font-serif text-[2rem] leading-tight tracking-[-0.02em] tabular-nums'>
+              <Money amount={deal.data.amount} currency={deal.data.currency} />
             </dd>
-            <dt>Name</dt>
-            <dd>{deal.data.name === null ? '-' : <Untrusted value={deal.data.name} />}</dd>
             <dt>Current Outcome</dt>
             <dd>
               <StatusBadge state={deal.data.outcome}>{outcomeLabel(deal.data.outcome)}</StatusBadge>
             </dd>
             <dt>Closed</dt>
             <dd>{deal.data.closedAt === null ? '-' : <DateOnly value={deal.data.closedAt} />}</dd>
-            <dt>Amount</dt>
-            <dd>
-              <Money amount={deal.data.amount} currency={deal.data.currency} />
-            </dd>
             <dt>Calls</dt>
             <dd>{deal.data.callCount}</dd>
           </dl>
@@ -129,6 +147,7 @@ function OutcomeForm(props: {
   }, [props.readAt, saved])
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
+  const [savedAt, setSavedAt] = useState(0)
   // The closing date as typed (`YYYY-MM-DD`, from a date input); null until touched, then it follows the Deal.
   const [typedDate, setTypedDate] = useState<string | null>(null)
   const [dateError, setDateError] = useState<string | undefined>(undefined)
@@ -143,6 +162,7 @@ function OutcomeForm(props: {
       setError(null)
       await app.salesHistory.setDealOutcome(props.id, chosen, closedAt)
       setNotice('Outcome saved.')
+      setSavedAt((now) => now + 1)
       // The select keeps showing what was saved until a read of the Deal succeeds (the effect
       // above). A failed read is the page's own error, not this save's.
       // The read count as the save answers: a read that finished while it was in flight is older than the save.
@@ -187,8 +207,10 @@ function OutcomeForm(props: {
         save.submit({ outcome, closedAt, typed: typedDate })
       }}
     >
-      <h2 id='outcome-heading'>Set the Outcome</h2>
-      <p className='hint'>
+      <h2 id='outcome-heading' className='mb-2'>
+        Set the Outcome
+      </h2>
+      <p className='hint mt-0'>
         Only a won Deal's Calls are used in search. After you change the Outcome, search may lag a
         little behind while its Calls are updated.
       </p>
@@ -217,9 +239,9 @@ function OutcomeForm(props: {
           setDateError(undefined)
         }}
       />
-      <button type='submit' className='button' aria-disabled={save.pending}>
-        {save.pending ? 'Saving...' : 'Save Outcome'}
-      </button>
+      <SaveButton pending={save.pending} savedAt={savedAt} pendingLabel='Saving...'>
+        Save Outcome
+      </SaveButton>
       <p role='status' aria-label='Notice' className='notice'>
         {notice}
       </p>

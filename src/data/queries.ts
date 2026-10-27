@@ -6,6 +6,7 @@ import {
   type CallState,
   type CitationRef,
   type Conversation,
+  type Deal,
   type DocumentState,
   type GetSeriesResponse,
   type ListDealImportRowsResponse,
@@ -772,6 +773,23 @@ export function useDeal(dealRecordId: string) {
   })
 }
 
+/**
+ * Puts a Deal already read in a list into the cache of its own page, so the page opens with it at
+ * once (and the Deal id can move into it as a view transition); the page still reads it fresh.
+ */
+export function useSeedDeal() {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return (deal: Deal) => {
+    const key = [...KEYS.deals(organizationId), 'one', deal.id]
+    // Never over a Deal already read on its own page, which may be newer than the list's copy.
+    if (organizationId !== '' && app.queryClient.getQueryData(key) === undefined) {
+      // Dated the epoch, so it counts as stale and the page reads the Deal again as it opens.
+      app.queryClient.setQueryData(key, deal, { updatedAt: 0 })
+    }
+  }
+}
+
 /** One Call read alone, which (unlike a page of Calls) carries the speaker excerpts; only while `enabled`. */
 export function useCallSpeakers(callId: string, enabled: boolean) {
   const app = useApp()
@@ -975,6 +993,28 @@ export function useCallsFirstPage(enabled: boolean) {
   return useFirstPage(
     [...KEYS.calls(organizationId), 'first-page'],
     (signal) => app.salesHistory.listCalls({ limit: MAX_PAGE_SIZE, signal }),
+    enabled && organizationId !== ''
+  )
+}
+
+/** Every Deal's first page (any Outcome) for the Sales overview's figures; no request unless `enabled`. */
+export function useDealsFirstPage(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useFirstPage(
+    [...KEYS.deals(organizationId), 'first-page', 'any'],
+    (signal) => app.salesHistory.listDeals({ limit: MAX_PAGE_SIZE, signal }),
+    enabled && organizationId !== ''
+  )
+}
+
+/** The newest import only (a page of one), for "last import" lines; no request unless `enabled`. */
+export function useLatestImport(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useFirstPage(
+    [...KEYS.dealImports(organizationId), 'latest'],
+    (signal) => app.salesHistory.listDealImports({ limit: 1, signal }),
     enabled && organizationId !== ''
   )
 }

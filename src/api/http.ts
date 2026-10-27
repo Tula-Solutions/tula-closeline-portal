@@ -1,5 +1,12 @@
 import { ERRORS } from 'tula-closeline-contract'
-import { ApiError, CLIENT_ERRORS, clientError, isTransient, parseErrorResponse } from '~/api/errors'
+import {
+  ApiError,
+  CLIENT_ERRORS,
+  clientError,
+  isTransient,
+  isUnauthenticated,
+  parseErrorResponse,
+} from '~/api/errors'
 
 /** The session as the HTTP client sees it: a token to send, a way to renew it, and a way to end it. */
 export type Authorizer = {
@@ -261,7 +268,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
     try {
       result = await attempt(options, token)
     } catch (error) {
-      if (!(error instanceof ApiError) || error.status !== 401) {
+      if (!isUnauthenticated(error)) {
         throw error
       }
       if (!sameSession()) {
@@ -281,7 +288,7 @@ export function createHttpClient(config: HttpConfig): HttpClient {
         }
         return second
       } catch (second) {
-        if (second instanceof ApiError && second.status === 401 && sameSession()) {
+        if (isUnauthenticated(second) && sameSession()) {
           authorizer.rejected(renewed)
         }
         throw second

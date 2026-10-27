@@ -614,6 +614,7 @@ export function draftBody(
     ungrounded,
     checks: [{ name: 'tone', passed: true }],
     hold: ungrounded ? 'ungrounded' : 'policy',
+    assessment: null,
     status: 'pending',
     createdAt: '2026-10-05T10:00:00Z',
     decidedAt: null,

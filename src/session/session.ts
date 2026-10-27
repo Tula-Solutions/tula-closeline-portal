@@ -1,5 +1,6 @@
 import type { SessionTokens } from '~/api/auth'
-import { ApiError } from '~/api/errors'
+import type { ApiError } from '~/api/errors'
+import { isClientFault, isUnauthenticated } from '~/api/errors'
 import type { Authorizer } from '~/api/http'
 
 /** A role in an Organization, as the auth service reports it. */
@@ -83,20 +84,11 @@ const RESTORING: SessionSnapshot = { status: 'restoring' }
 const UNREACHABLE: SessionSnapshot = { status: 'unreachable' }
 const MISCONFIGURED: SessionSnapshot = { status: 'misconfigured' }
 
-/** True when auth refused the refresh cookie for good (401), as opposed to being unreachable or failing. */
-function isRefusal(error: unknown): boolean {
-  return error instanceof ApiError && error.status === 401
-}
+/** True when auth refused the refresh cookie for good, as opposed to being unreachable or failing. */
+const isRefusal = isUnauthenticated
 
-/** True for a 4xx a retry cannot fix: not a refusal (401), not busy (429), not a timeout (408). */
-function isConfigurationFault(error: unknown): error is ApiError {
-  return (
-    error instanceof ApiError &&
-    error.status >= 400 &&
-    error.status < 500 &&
-    ![401, 408, 429].includes(error.status)
-  )
-}
+/** True for a 4xx a retry cannot fix: not a refusal, not busy (rate limited). */
+const isConfigurationFault = isClientFault
 
 const CHANNEL_NAME = 'closeline-session'
 

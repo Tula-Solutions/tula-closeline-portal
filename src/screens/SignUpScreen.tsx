@@ -331,10 +331,7 @@ export function SignUpScreen() {
             Create an Organization instead
           </Button>
         ) : null}
-        <Link
-          to='/sign-in'
-          className='font-medium text-foreground underline decoration-border-strong underline-offset-4 hover:decoration-current'
-        >
+        <Link to='/sign-in' className='font-medium text-foreground ink-link'>
           Sign in instead
         </Link>
       </div>

@@ -321,6 +321,8 @@ describe('Playbook documents: every answer to an upload', () => {
     ],
     [403, ERRORS['auth.forbidden'].code, /role does not allow/],
     [400, ERRORS['request.invalid'].code, /could not read that file/],
+    // Retry follows the rate.limited code, not a 429 status on its own.
+    [429, ERRORS['request.invalid'].code, /could not read that file/],
   ] as const)(
     '%s %s is explained and offers no retry of the same bytes',
     async (status, code, words) => {

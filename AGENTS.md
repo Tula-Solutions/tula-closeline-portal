@@ -27,8 +27,10 @@ All tickets live in the hub: `gh issue list -R Tula-Solutions/tula-closeline --l
 ## Layout
 
 Vite, React, TypeScript, TanStack Router (file routes in `src/routes/`, thin) and TanStack Query.
-Plain CSS in `src/styles.css`: two colours (ink `#1A1A18`, paper `#F1EFE8`), tints by opacity, no
-inline `style` attributes (the Content-Security-Policy forbids them), no CSS or component library.
+Styling is Tailwind 4 (`@tailwindcss/vite`) with the design tokens and the older hand-written classes in
+`src/styles.css` (two colours, ink `#1A1A18` and paper `#F1EFE8`, tints by opacity). Primitives are shadcn
+style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/utils.ts`, icons from
+`lucide-react`. No inline `style` attributes (the Content-Security-Policy forbids them).
 
 - `src/main.tsx` boots: parse env, start reporting, build the app, take the Invitation from the URL.
 - `src/app.ts` is the one composition root (HTTP clients, session, query cache, reporter). Screens
@@ -39,7 +41,12 @@ inline `style` attributes (the Content-Security-Policy forbids them), no CSS or 
   (generated).
 - `src/session/session.ts` holds the access token and restores the session; `src/screens/SessionGate.tsx`
   is the pending / could-not-reach screen; `src/report/` is the only door to Sentry.
-- `src/screens/` has the screens and their tests; `src/ui/` the small shared form pieces.
+- `src/screens/` has the screens and their tests. There are two component folders. **`src/ui/` is the
+  one new code uses** (`Field`, `Banner`, `Paged`, `Untrusted`, `useSubmit` and the other form and
+  feedback pieces; about ten times more imports than the other). `src/components/ui/` holds the
+  generated shadcn primitives (`button`, `input`, `select`, `alert`, ...): import one from there only
+  when it is already the primitive you need, and wrap it in `src/ui/` when a screen needs more. Do not
+  add new pieces to `src/components/ui/` by hand; a merge of the two folders is a separate change.
 - The portal imports only `tula-closeline-contract`, never server code (ADR 0006). The UI branches
   on an error's `area.reason` code, never its status.
 

@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react'
 import { cn } from '~/lib/utils'
+import { EASE, play } from '~/ui/motion'
 
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info'
 
@@ -23,6 +25,9 @@ const TONES: Record<string, Tone> = {
   deleted: 'neutral',
 }
 
+/** States where work is under way: their dot breathes slowly until the work ends. */
+const BUSY = new Set(['processing', 'transcribing', 'uploaded'])
+
 const DOT: Record<Tone, string> = {
   neutral: 'bg-muted-foreground',
   success: 'bg-success',
@@ -31,9 +36,33 @@ const DOT: Record<Tone, string> = {
   info: 'bg-info',
 }
 
-/** A state or Outcome as set text: a small dot in its colour and the word. A state this build does not know is neutral. */
+function toneOf(state: string): Tone {
+  return Object.hasOwn(TONES, state) ? (TONES[state] ?? 'neutral') : 'neutral'
+}
+
+/**
+ * A state or Outcome as set text: a small dot in its colour and the word. A state this build does
+ * not know is neutral. The dot breathes while work is under way, and when a shown state turns into a
+ * finished one a ring pulses out of it once; under reduced motion it only changes colour.
+ */
 export function StatusBadge(props: { readonly state: string; readonly children: string }) {
-  const tone = Object.hasOwn(TONES, props.state) ? (TONES[props.state] ?? 'neutral') : 'neutral'
+  const tone = toneOf(props.state)
+  const ring = useRef<HTMLSpanElement>(null)
+  const before = useRef(props.state)
+  useEffect(() => {
+    const was = before.current
+    before.current = props.state
+    if (was !== props.state && toneOf(props.state) === 'success') {
+      play(
+        ring.current,
+        [
+          { transform: 'scale(1)', opacity: 0.6 },
+          { transform: 'scale(2.4)', opacity: 0 },
+        ],
+        { duration: 600, easing: EASE.out }
+      )
+    }
+  }, [props.state])
   return (
     <span
       data-slot='status'
@@ -43,8 +72,14 @@ export function StatusBadge(props: { readonly state: string; readonly children: 
       <span
         aria-hidden='true'
         data-slot='status-dot'
-        className={cn('size-1.5 rounded-full', DOT[tone])}
-      />
+        className={cn(
+          'relative size-1.5 rounded-full transition-colors duration-300',
+          DOT[tone],
+          BUSY.has(props.state) && 'status-busy'
+        )}
+      >
+        <span ref={ring} className={cn('absolute inset-0 rounded-full opacity-0', DOT[tone])} />
+      </span>
       {props.children}
     </span>
   )
