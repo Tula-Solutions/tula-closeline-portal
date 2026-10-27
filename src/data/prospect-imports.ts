@@ -41,6 +41,8 @@ export const PROSPECT_IMPORT_FAILURE_WORDS: Record<ProspectImportFailureReason, 
   too_many_rows: `The file has more than ${MAX_ROWS_WORDS} rows. Split it into smaller files and upload each.`,
   unreadable:
     'The file could not be read as a CSV: a quote that does not close, or a cell that is too long. Fix it and upload it again.',
+  processing_failed:
+    'We could not process this file in time. Upload it again; the file itself was fine.',
 }
 
 /** The words for a whole-import failure, with a general sentence for a reason this build does not know. */
