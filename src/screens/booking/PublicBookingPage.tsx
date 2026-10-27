@@ -22,7 +22,7 @@ const PAGE_LIMIT = 60
 const TITLE = 'Book a time - Closeline'
 
 const MODES = { phone: 'Phone call', video: 'Video call' } as const
-const SECTION = 'border-t border-border-strong pt-6 pb-8'
+const SECTION = 'mt-0 border-t border-border-strong pt-6 pb-8'
 const H2 = 'm-0 font-serif text-2xl tracking-[-0.02em] outline-hidden'
 const LINK =
   'rounded-sm underline decoration-border-strong decoration-1 underline-offset-4 outline-hidden hover:decoration-current focus-visible:ring-2 focus-visible:ring-ring'
@@ -459,7 +459,7 @@ export function PublicBookingPage(props: { readonly token: string }) {
             <h1 className='m-0 mt-6 font-serif text-[clamp(2.25rem,7vw,4.5rem)] leading-[0.98] font-normal tracking-[-0.03em] text-balance'>
               {bookingType.name}
             </h1>
-            <dl className='mt-6'>
+            <dl className='mt-6 mb-0'>
               <Row label='Length'>{bookingType.lengthMinutes} minutes</Row>
               <Row label='How'>{MODES[bookingType.mode]}</Row>
             </dl>
