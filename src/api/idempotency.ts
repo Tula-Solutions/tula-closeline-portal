@@ -79,6 +79,12 @@ export const fingerprint = {
   /** Setting the controls of `kind` on `channel` with this body (as JSON). */
   agentControl: (kind: string, channel: string, body: string) =>
     JSON.stringify(['agent-control', kind, channel, body]),
+  /** Adding a Qualification question with this body (as JSON). */
+  agentQuestion: (body: string) => JSON.stringify(['agent-question', body]),
+  /** Putting the Qualification questions in this order (ids joined). */
+  agentQuestionOrder: (ids: string) => JSON.stringify(['agent-question-order', ids]),
+  /** Saving the Inbound Agent settings with this body (as JSON). */
+  agentSettings: (body: string) => JSON.stringify(['agent-settings', body]),
   /** Pausing (true) or resuming (false) every Agent. */
   agentPause: (paused: boolean) => JSON.stringify(['agent-pause', paused]),
   /** Adding an address to Suppression with this body (as JSON). */

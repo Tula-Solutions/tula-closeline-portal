@@ -1,4 +1,12 @@
-import type { AgentKind, ControlLevel, EscalationTrigger, Weekday } from 'tula-closeline-contract'
+import type {
+  AgentKind,
+  AgentVoiceStyle,
+  ControlLevel,
+  EscalationTrigger,
+  QualificationQuestionKind,
+  SkipCondition,
+  Weekday,
+} from 'tula-closeline-contract'
 import type { AgentControl } from '~/api/agent'
 
 type EscalationAction = AgentControl['escalationRules'][number]['action']
@@ -70,4 +78,29 @@ export function windowSummary(days: AgentControl['sendWindow']['days'], order: r
     return 'No day has a send window, so nothing is sent'
   }
   return [...groups].map(([hours, names]) => `${names.join(', ')} ${hours}`).join('; ')
+}
+
+/** The plain name of each kind of Qualification question. */
+export const QUESTION_KIND_WORD: Record<QualificationQuestionKind, string> = {
+  free_text: 'Free text',
+  choice: 'One choice',
+  number: 'A number',
+  yes_no: 'Yes or no',
+}
+
+/** How each skip test reads after the earlier question's name. */
+export const OPERATOR_WORD: Record<SkipCondition['operator'], string> = {
+  equals: 'is',
+  not_equals: 'is not',
+  greater_than: 'is more than',
+  less_than: 'is less than',
+  answered: 'is answered',
+  not_answered: 'is not answered',
+}
+
+/** The plain name of each voice style. */
+export const VOICE_STYLE_WORD: Record<AgentVoiceStyle, string> = {
+  warm: 'Warm',
+  neutral: 'Neutral',
+  crisp: 'Crisp',
 }

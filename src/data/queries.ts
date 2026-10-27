@@ -159,7 +159,8 @@ function pagedStateBy<T>(
   }
 }
 
-function useOrganizationId(): string {
+/** The id of the signed-in Organization, or an empty string when nobody is signed in. */
+export function useOrganizationId(): string {
   const session = useSessionState()
   return session.status === 'signed_in' ? session.organization.id : ''
 }
@@ -1515,4 +1516,33 @@ export function useSourcePerformance(flag: SourceFlag | undefined, enabled: bool
     enabled: enabled && organizationId !== '',
   })
   return pagedStateBy(query, (row) => JSON.stringify(row.source))
+}
+
+/** The Inbound Agent settings (voice service); no request unless `enabled`. */
+export function useVoiceSettings(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.agent(organizationId), 'voice-settings'],
+    queryFn: ({ signal }) => app.voice.getSettings(signal),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+}
+
+/** The query key of the Qualification questions, which the editor updates in place while a reorder is in flight. */
+export function questionsKey(organizationId: string) {
+  return [...KEYS.agent(organizationId), 'questions'] as const
+}
+
+/** The Qualification questions in the order the Inbound Agent asks them. */
+export function useQualificationQuestions(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: questionsKey(organizationId),
+    queryFn: ({ signal }) => app.voice.listQuestions(signal),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
 }
