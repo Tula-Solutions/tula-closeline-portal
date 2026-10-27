@@ -70,10 +70,6 @@ function ConnectionSection(props: {
       setLocal(undefined)
       await refreshCalendar(app)
       props.onDone('Your calendar is connected.')
-      if (handled.current) {
-        // Back from Google: leave the callback address for the calendar page itself.
-        void navigate({ to: '/calendar', replace: true })
-      }
     },
     {
       onError(failure) {

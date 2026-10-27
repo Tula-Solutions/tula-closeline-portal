@@ -123,9 +123,16 @@ describe('Calendar: connection', () => {
       { staging: true }
     )
     expect(await screen.findByText('Healthy')).toBeTruthy()
+    expect(await screen.findByText('Your calendar is connected.')).toBeTruthy()
     const post = back.calls.find((call) => call.path.endsWith('/complete'))
     expect(post?.body).toEqual({ state: 'st-1', code: 'SECRET-CODE' })
-    expect(back.router.state.location.href).toBe('/calendar')
+    expect(back.router.state.location.href).toBe('/calendar/callback')
+  })
+
+  test('the time inputs are wide enough to show a full 12-hour value on a phone', async () => {
+    visit('rep', '/calendar', [notConnected, hours])
+    const from = await screen.findByLabelText('Monday window 1 from')
+    expect(from.className).toContain('w-36')
   })
 
   test('the code and state leave the address before the call is answered', async () => {

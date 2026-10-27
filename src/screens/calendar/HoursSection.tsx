@@ -180,7 +180,7 @@ function HoursForm(props: {
                   <div key={index} className='flex flex-wrap items-center gap-2'>
                     <input
                       type='time'
-                      className='input'
+                      className='input w-36'
                       aria-label={`${word.long} window ${index + 1} from`}
                       value={window.start}
                       onChange={(event) =>
@@ -195,7 +195,7 @@ function HoursForm(props: {
                     <span aria-hidden='true'>to</span>
                     <input
                       type='time'
-                      className='input'
+                      className='input w-36'
                       aria-label={`${word.long} window ${index + 1} until`}
                       value={window.end}
                       onChange={(event) =>
