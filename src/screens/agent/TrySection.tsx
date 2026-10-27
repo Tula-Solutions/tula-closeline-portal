@@ -30,6 +30,7 @@ export function TrySection(props: { readonly manage: boolean }) {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState<'starting' | 'thinking' | undefined>()
   const [failure, setFailure] = useState<unknown>()
+  const [failedText, setFailedText] = useState<string | undefined>()
   const [pausedByError, setPausedByError] = useState(false)
   const starts = useRef(0)
   const sent = useRef(0)
@@ -79,14 +80,13 @@ export function TrySection(props: { readonly manage: boolean }) {
     }
   }
 
-  const send = async (event: FormEvent) => {
-    event.preventDefault()
-    const message = text.trim()
+  const submit = async (message: string) => {
     if (session === undefined || busy !== undefined || paused || message === '') {
       return
     }
     setBusy('thinking')
     setFailure(undefined)
+    setFailedText(undefined)
     const attempt = app.keys.begin(fingerprint.tryMessage(session.id, sent.current, message))
     try {
       const reply = await app.voice.sendTryMessage(session.id, message, attempt.key)
@@ -100,10 +100,16 @@ export function TrySection(props: { readonly manage: boolean }) {
       setText('')
     } catch (error) {
       attempt.failed(error)
+      setFailedText(message)
       fail(error)
     } finally {
       setBusy(undefined)
     }
+  }
+
+  const send = (event: FormEvent) => {
+    event.preventDefault()
+    void submit(text.trim())
   }
 
   const startOver = () => {
@@ -111,6 +117,7 @@ export function TrySection(props: { readonly manage: boolean }) {
     setLines([])
     setText('')
     setFailure(undefined)
+    setFailedText(undefined)
     sent.current = 0
   }
 
@@ -121,7 +128,16 @@ export function TrySection(props: { readonly manage: boolean }) {
       description='Talk to the Inbound Agent in text, on the live instructions and Playbook. No call is placed and nothing is sent. Beside each answer are the Documents and tools behind it. This conversation is not kept: leave the page or start over and it is gone.'
       actions={
         session === undefined ? null : (
-          <button type='button' className='button' onClick={startOver}>
+          <button
+            type='button'
+            className='button'
+            aria-disabled={busy !== undefined}
+            onClick={() => {
+              if (busy === undefined) {
+                startOver()
+              }
+            }}
+          >
             Start over
           </button>
         )
@@ -139,7 +155,11 @@ export function TrySection(props: { readonly manage: boolean }) {
             <button type='button' className='button' onClick={() => void start()}>
               Try again
             </button>
-          ) : null}
+          ) : failedText === undefined ? null : (
+            <button type='button' className='button' onClick={() => void submit(failedText)}>
+              Try again
+            </button>
+          )}
         </div>
       )}
       {session === undefined ? (
@@ -185,7 +205,7 @@ export function TrySection(props: { readonly manage: boolean }) {
               The Agent is thinking...
             </p>
           ) : null}
-          <form onSubmit={(event) => void send(event)} className='mt-4'>
+          <form onSubmit={send} className='mt-4'>
             <TextAreaField
               label='Say something to the Agent'
               value={text}

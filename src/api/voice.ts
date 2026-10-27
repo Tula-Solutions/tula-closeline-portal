@@ -66,6 +66,9 @@ export type VoiceApi = {
 
 const segment = encodeURIComponent
 
+/** A text turn asks a model and the Playbook; no budget is stated in the spec, so allow 30 s before the portal gives up (the key makes a retry safe). */
+const TRY_TURN_TIMEOUT_MS = 30_000
+
 /** Builds the voice routes over an HTTP client for same-origin paths, which sends the access token. */
 export function createVoiceApi(http: HttpClient): VoiceApi {
   return {
@@ -172,6 +175,7 @@ export function createVoiceApi(http: HttpClient): VoiceApi {
         method: 'POST',
         path: `/v1/agent/try-sessions/${segment(sessionId)}/messages`,
         body: sendTryMessageRequestSchema.parse({ text }),
+        timeoutMs: TRY_TURN_TIMEOUT_MS,
         headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
         auth: true,
         parse: (json) => tryReplySchema.parse(json).reply,

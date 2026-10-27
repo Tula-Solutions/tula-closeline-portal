@@ -209,6 +209,102 @@ describe('Try your Agent: a conversation', () => {
   })
 })
 
+describe('Try your Agent: guards and retries', () => {
+  const region = () => within(screen.getByRole('region', { name: 'Try your Agent' }))
+  const posts = (portal: ReturnType<typeof visit>, path: string) =>
+    portal.calls.filter((call) => call.method === 'POST' && call.path === path)
+
+  test('Send makes no request while the Agents are paused', async () => {
+    let answered = 0
+    const portal = visit(
+      'owner',
+      route('GET', '/v1/agent-controls/organization-pause', failure(500, 'service.unavailable')),
+      route('POST', SESSIONS, session),
+      route('POST', MESSAGES, () => {
+        answered += 1
+        return failure(409, 'agent.paused')
+      })
+    )
+    await start(portal)
+    await say(portal, 'first')
+    await screen.findByText(/The Agents are paused, so the Agent will not answer/)
+    await portal.user.type(screen.getByLabelText('Say something to the Agent'), 'second')
+    await portal.user.click(screen.getByRole('button', { name: 'Send' }))
+    expect(posts(portal, MESSAGES)).toHaveLength(1)
+    expect(answered).toBe(1)
+  })
+
+  test('a paused answer does not stick once the pause switch says running', async () => {
+    let tries = 0
+    const portal = visit(
+      'owner',
+      running,
+      route('POST', SESSIONS, () => {
+        tries += 1
+        return tries === 1 ? failure(409, 'agent.paused') : session()
+      })
+    )
+    await portal.user.click(await screen.findByRole('button', { name: 'Start a conversation' }))
+    await screen.findByText(/The Agents are paused\. Resume them/)
+    await portal.user.click(region().getByRole('button', { name: 'Start a conversation' }))
+    await screen.findByText('Hi, I am an AI assistant.')
+    expect(posts(portal, SESSIONS)).toHaveLength(2)
+  })
+
+  test('Start over is disabled while a reply is in flight and keeps focus', async () => {
+    let release: (answer: Response) => void = () => {}
+    const portal = visit(
+      'owner',
+      running,
+      route('POST', SESSIONS, session),
+      route('POST', MESSAGES, () => new Promise<Response>((resolve) => (release = resolve)))
+    )
+    await start(portal)
+    await say(portal, 'slow one')
+    await screen.findByText('The Agent is thinking...')
+    const over = screen.getByRole('button', { name: 'Start over' })
+    expect(over.getAttribute('aria-disabled')).toBe('true')
+    await portal.user.click(over)
+    expect(screen.getByText('Hi, I am an AI assistant.')).toBeTruthy()
+    release(json(200, { reply: turn() }))
+    await screen.findByText('Our Pro plan is 49 dollars a seat.')
+  })
+
+  test('Try again after a failed send resends the same text with the same key', async () => {
+    let tries = 0
+    const portal = visit(
+      'owner',
+      running,
+      route('POST', SESSIONS, session),
+      route('POST', MESSAGES, () => {
+        tries += 1
+        return tries === 1 ? failure(503, 'service.unavailable') : json(200, { reply: turn() })
+      })
+    )
+    await start(portal)
+    await say(portal, 'What does Pro cost?')
+    await portal.user.click(await region().findByRole('button', { name: 'Try again' }))
+    await screen.findByText('Our Pro plan is 49 dollars a seat.')
+    const sent = posts(portal, MESSAGES)
+    expect(sent).toHaveLength(2)
+    expect(sent[1]?.body).toEqual(sent[0]?.body)
+    expect(sent[1]?.headers.get('idempotency-key')).toBe(sent[0]?.headers.get('idempotency-key'))
+  })
+
+  test('no Try again is offered once the Agents are paused', async () => {
+    const portal = visit(
+      'owner',
+      running,
+      route('POST', SESSIONS, session),
+      route('POST', MESSAGES, () => failure(409, 'agent.paused'))
+    )
+    await start(portal)
+    await say(portal, 'What does Pro cost?')
+    await screen.findByText(/The Agents are paused/)
+    expect(region().queryByRole('button', { name: 'Try again' })).toBeNull()
+  })
+})
+
 describe('Try your Agent: accessibility', () => {
   test.each(['light', 'dark'] as const)('passes axe in %s with a conversation', async (theme) => {
     if (theme === 'dark') {
