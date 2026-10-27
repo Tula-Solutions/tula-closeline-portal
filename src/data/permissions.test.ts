@@ -18,6 +18,15 @@ describe('role gates, as core serves them', () => {
     expect(can.importProspects(role)).toBe(allowed)
   })
 
+  test.each<[Role, boolean]>([
+    ['owner', true],
+    ['admin', true],
+    ['manager', false],
+    ['rep', false],
+  ])('%s: reviewing assessments %p', (role, allowed) => {
+    expect(can.reviewAssessments(role)).toBe(allowed)
+  })
+
   test.each<[Role, boolean, boolean, boolean]>([
     ['owner', true, true, true],
     ['admin', true, true, true],

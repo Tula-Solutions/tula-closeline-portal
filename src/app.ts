@@ -4,6 +4,7 @@ import { type AgentApi, createAgentApi } from '~/api/agent'
 import { type AnalyticsApi, createAnalyticsApi } from '~/api/analytics'
 import { type ApiKeysApi, createApiKeysApi } from '~/api/api-keys'
 import { type ApprovalsApi, createApprovalsApi } from '~/api/approvals'
+import { type AssessmentsApi, createAssessmentsApi } from '~/api/assessments'
 import { type AuditApi, createAuditApi } from '~/api/audit'
 import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
 import { type ConsentApi, createConsentApi } from '~/api/consent'
@@ -37,6 +38,8 @@ export type App = {
   readonly escalation: EscalationApi
   /** The analytics dashboards: series, comparison tables and their CSV. */
   readonly analytics: AnalyticsApi
+  /** The review of assessed Agent output: flagged assessments, feedback and failure rates (Owner, Admin). */
+  readonly assessments: AssessmentsApi
   /** The audit log: events, the CSV and the hash-chain check. */
   readonly audit: AuditApi
   /** The Organization data export: request, watch, download. */
@@ -165,6 +168,7 @@ export function createApp(init: AppInit): App {
     approvals: createApprovalsApi(coreHttp),
     escalation: createEscalationApi(coreHttp),
     analytics: createAnalyticsApi(coreHttp),
+    assessments: createAssessmentsApi(coreHttp),
     audit: createAuditApi(coreHttp),
     exports: createExportsApi(coreHttp),
     agent: createAgentApi(coreHttp),
