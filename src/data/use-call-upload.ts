@@ -2,11 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { SALES_HISTORY_ERRORS } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import { fingerprint } from '~/api/idempotency'
-import { outcomeUnknown } from '~/api/manage-messages'
 import type { CallUpload } from '~/api/sales-history'
 import { presentSales } from '~/api/sales-messages'
-import { useApp } from '~/app-context'
-import { refresh } from '~/data/queries'
+import { useUploadRunner } from '~/data/use-upload'
 
 /** Where the Transcript being sent stands. */
 export type CallUploadState =
@@ -40,23 +38,16 @@ export type CallSendResult = 'accepted' | 'failed' | 'rights'
  * of the errors (the size limit differs).
  */
 export function useCallUpload(kind: 'transcript' | 'recording' = 'transcript') {
-  const app = useApp()
+  const { app, isAlive, run, afterWait, refreshList } = useUploadRunner()
   const [state, setState] = useState<CallUploadState>({ kind: 'idle' })
   const last = useRef<CallUpload | null>(null)
-  const alive = useRef(true)
   const busy = useRef(false)
   const lastPercent = useRef(-1)
   // The request in flight: leaving the screen and Cancel both abort it.
   const sending = useRef<AbortController | null>(null)
   const cancelled = useRef(false)
 
-  useEffect(() => {
-    alive.current = true
-    return () => {
-      alive.current = false
-      sending.current?.abort()
-    }
-  }, [])
+  useEffect(() => () => sending.current?.abort(), [])
 
   const send = useCallback(
     async (upload: CallUpload): Promise<CallSendResult> => {
@@ -71,84 +62,68 @@ export function useCallUpload(kind: 'transcript' | 'recording' = 'transcript') {
       const own = new AbortController()
       sending.current = own
       setState({ kind: 'uploading', name, progress: null })
-      const attempt = app.keys.begin(
+      const done = await run(
         fingerprint.call(
           name,
           upload.file.size,
           upload.file.lastModified,
           upload.dealId,
           upload.rep === null ? '' : JSON.stringify(upload.rep)
-        )
-      )
-      try {
-        const result = await app.salesHistory.uploadCall(
-          upload,
-          attempt.key,
-          own.signal,
-          (sent, total) => {
+        ),
+        (key, signal) =>
+          app.salesHistory.uploadCall(upload, key, signal, (sent, total) => {
             // The browser reports many times a second; the screen shows whole percents only.
             const percent = total === 0 ? 0 : Math.floor((sent / total) * 100)
-            if (alive.current && percent !== lastPercent.current) {
+            if (isAlive() && percent !== lastPercent.current) {
               lastPercent.current = percent
               setState({ kind: 'uploading', name, progress: { sent, total } })
             }
-          }
-        )
-        attempt.succeeded()
+          }),
+        own.signal
+      )
+      busy.current = false
+      if (done.ok) {
         last.current = null
-        busy.current = false
-        if (alive.current) {
-          setState({ kind: result.duplicate ? 'duplicate' : 'stored', name })
+        if (isAlive()) {
+          setState({ kind: done.result.duplicate ? 'duplicate' : 'stored', name })
         }
-        try {
-          await refresh(app, 'calls')
-        } catch {
-          // The Call is stored whatever happens to the list: a failed refresh is the list's own error.
-        }
+        await refreshList('calls')
         return 'accepted'
-      } catch (error) {
-        attempt.failed(error)
-        busy.current = false
-        if (!alive.current) {
-          return 'failed'
-        }
-        if (cancelled.current) {
-          last.current = null
-          setState({ kind: 'cancelled', name })
-          return 'failed'
-        }
-        if (
-          error instanceof ApiError &&
-          error.code === SALES_HISTORY_ERRORS['rights.confirmation_required'].code
-        ) {
-          setState({ kind: 'idle' })
-          return 'rights'
-        }
-        const retry = outcomeUnknown(error) || (error instanceof ApiError && error.status === 429)
-        const wait = error instanceof ApiError ? error.retryAfterSeconds : undefined
-        const waiting = retry && wait !== undefined
-        if (!retry) {
-          last.current = null
-        }
-        setState({
-          kind: 'failed',
-          name,
-          message: presentSales(error, kind === 'recording' ? 'recording-upload' : 'call-upload')
-            .message,
-          retry,
-          waiting,
-        })
-        if (waiting) {
-          void app.sleep(wait * 1000).then(() => {
-            if (alive.current) {
-              setState((now) => (now.kind === 'failed' ? { ...now, waiting: false } : now))
-            }
-          })
-        }
+      }
+      if (!isAlive()) {
         return 'failed'
       }
+      if (cancelled.current) {
+        last.current = null
+        setState({ kind: 'cancelled', name })
+        return 'failed'
+      }
+      if (
+        done.error instanceof ApiError &&
+        done.error.code === SALES_HISTORY_ERRORS['rights.confirmation_required'].code
+      ) {
+        setState({ kind: 'idle' })
+        return 'rights'
+      }
+      if (!done.retry) {
+        last.current = null
+      }
+      setState({
+        kind: 'failed',
+        name,
+        message: presentSales(done.error, kind === 'recording' ? 'recording-upload' : 'call-upload')
+          .message,
+        retry: done.retry,
+        waiting: done.waitSeconds !== undefined,
+      })
+      if (done.waitSeconds !== undefined) {
+        afterWait(done.waitSeconds, () =>
+          setState((now) => (now.kind === 'failed' ? { ...now, waiting: false } : now))
+        )
+      }
+      return 'failed'
     },
-    [app, kind]
+    [afterWait, isAlive, app, kind, refreshList, run]
   )
 
   const retry = useCallback(() => {

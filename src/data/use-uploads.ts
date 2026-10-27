@@ -1,12 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { checkUploadFile } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import { fingerprint } from '~/api/idempotency'
-import { outcomeUnknown } from '~/api/manage-messages'
-import type { UploadResult } from '~/api/playbook'
 import { presentDocument } from '~/api/playbook-messages'
-import { useApp } from '~/app-context'
-import { refresh } from '~/data/queries'
+import { useUploadRunner } from '~/data/use-upload'
 
 /** Where one chosen file stands. */
 export type UploadOutcome =
@@ -31,9 +28,6 @@ export type UploadEntry = {
   readonly outcome: UploadOutcome
 }
 
-/** The status codes after which the same upload is worth sending again, besides "no answer" and 5xx. */
-const RETRYABLE_STATUS = 429
-
 /**
  * Uploads chosen files one at a time. Each file is checked with the contract's `checkUploadFile`
  * before anything is sent. A file's idempotency key lives in the app-level key map, so it survives
@@ -41,16 +35,12 @@ const RETRYABLE_STATUS = 429
  * no upload progress, so a file is "uploading" until the service answers.
  */
 export function useUploads() {
-  const app = useApp()
+  const { app, isAlive, run, afterWait, refreshList } = useUploadRunner()
   const [entries, setEntries] = useState<readonly UploadEntry[]>([])
   const latest = useRef<readonly UploadEntry[]>([])
   const files = useRef(new Map<number, File>())
   const nextId = useRef(1)
   const running = useRef(false)
-  const alive = useRef(true)
-  // Made when the screen mounts and aborted when it unmounts; a new one on each mount, because
-  // React (StrictMode) may mount, clean up and mount again, and an aborted signal stays aborted.
-  const controller = useRef<AbortController | null>(null)
 
   const change = useCallback(
     (update: (current: readonly UploadEntry[]) => readonly UploadEntry[]) => {
@@ -70,55 +60,44 @@ export function useUploads() {
   const send = useCallback(
     async (id: number, file: File) => {
       setOutcome(id, { kind: 'uploading' })
-      const attempt = app.keys.begin(fingerprint.document(file.name, file.size, file.lastModified))
-      let result: UploadResult
-      try {
-        result = await app.playbook.uploadDocument(file, attempt.key, controller.current?.signal)
-        attempt.succeeded()
-        files.current.delete(id)
-      } catch (error) {
-        attempt.failed(error)
-        if (!alive.current) {
+      const done = await run(
+        fingerprint.document(file.name, file.size, file.lastModified),
+        (key, signal) => app.playbook.uploadDocument(file, key, signal)
+      )
+      if (!done.ok) {
+        if (!isAlive()) {
           return
         }
-        const retry =
-          outcomeUnknown(error) || (error instanceof ApiError && error.status === RETRYABLE_STATUS)
-        const wait = error instanceof ApiError ? error.retryAfterSeconds : undefined
-        const waiting = retry && wait !== undefined
-        if (!retry) {
+        const waiting = done.waitSeconds !== undefined
+        if (!done.retry) {
           files.current.delete(id)
         }
         setOutcome(id, {
           kind: 'failed',
-          message: presentDocument(error, 'upload').message,
-          retry,
+          message: presentDocument(done.error, 'upload').message,
+          retry: done.retry,
           waiting,
         })
-        if (waiting) {
-          void app.sleep(wait * 1000).then(() => {
+        if (done.waitSeconds !== undefined) {
+          afterWait(done.waitSeconds, () => {
             const entry = latest.current.find((candidate) => candidate.id === id)
-            if (alive.current && entry?.outcome.kind === 'failed') {
+            if (entry?.outcome.kind === 'failed') {
               setOutcome(id, { ...entry.outcome, waiting: false })
             }
           })
         }
         return
       }
-      if (alive.current) {
+      files.current.delete(id)
+      if (isAlive()) {
         setOutcome(id, {
-          kind: result.duplicate ? 'duplicate' : 'stored',
-          storedName: result.document.fileName,
+          kind: done.result.duplicate ? 'duplicate' : 'stored',
+          storedName: done.result.document.fileName,
         })
       }
-      // The file is stored whatever happens to the list: a refresh that fails is the list's own
-      // error (it has a Try again), not this upload's.
-      try {
-        await refresh(app, 'documents')
-      } catch {
-        // Nothing more to say about the upload.
-      }
+      await refreshList('documents')
     },
-    [app, setOutcome]
+    [app, afterWait, isAlive, refreshList, run, setOutcome]
   )
 
   const pump = useCallback(async () => {
@@ -130,7 +109,7 @@ export function useUploads() {
       for (;;) {
         const next = latest.current.find((entry) => entry.outcome.kind === 'queued')
         const file = next === undefined ? undefined : files.current.get(next.id)
-        if (next === undefined || !alive.current) {
+        if (next === undefined || !isAlive()) {
           return
         }
         if (file === undefined) {
@@ -142,17 +121,7 @@ export function useUploads() {
     } finally {
       running.current = false
     }
-  }, [change, send])
-
-  useEffect(() => {
-    alive.current = true
-    const abort = new AbortController()
-    controller.current = abort
-    return () => {
-      alive.current = false
-      abort.abort()
-    }
-  }, [])
+  }, [change, send, isAlive])
 
   const add = useCallback(
     (chosen: readonly File[]) => {
