@@ -51,18 +51,20 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/agent', service: 'voice' },
   { prefix: '/v1/calls', service: 'voice' },
   { prefix: '/v1/softphone', service: 'voice' },
-  { prefix: '/webhooks/twilio', service: 'voice' },
 ]
 
 /**
  * Paths no browser needs and the table leaves out: `/healthz` and `/readyz` are served by both
  * services (a collision, so a probe must address a service directly), and `/.well-known/jwks.json`
- * is auth's key set, fetched service to service. Anything under `/internal` is never routed.
+ * is auth's key set, fetched service to service, and `/webhooks/twilio/*` is called by Twilio on
+ * voice directly. Anything under `/internal` is never routed.
  */
 export const NOT_ROUTED_FROM_BROWSER: readonly string[] = [
   '/healthz',
   '/readyz',
   '/.well-known/jwks.json',
+  '/webhooks/twilio/recording',
+  '/webhooks/twilio/status',
 ]
 
 /** Dot segments, doubled slashes and encoded dots or slashes in a path: never routed, so `/v1/client/../internal/...` cannot slip past the prefix. */
