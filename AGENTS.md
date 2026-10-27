@@ -110,6 +110,12 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
   published text and the settings. Publish, rollback and pause are confirmed with their effect
   (the core audit log records them). Contact Consent and the AI and recording disclosure are listed
   as fixed rules and have no switch (ADR 0003).
+- Calendar (`/calendar`, `/calendar/callback`, `src/screens/calendar/`, `src/api/calendar.ts`): every
+  role has its own calendar and hours, so there is no permission gate. Connect sends the Rep to the
+  consent address only when it is `https:`; the return reads `code` and `state`, takes them out of
+  the address at once, and never logs or reports them. In `local` Google cannot return to the
+  portal, so the page also takes the code pasted. `calendar.not_connected` is the empty state, not
+  an error. Saving hours sends back the loaded `dailyCap` and `awayUntil` unchanged (PUT replaces).
 - Developers (`src/screens/DevelopersScreen.tsx`): renders the vendored public OpenAPI document
   (`openapi/public.openapi.json`, refreshed with `bun run vendor:public -- --from <hub clone>`) and
   calls no private route. Visible to every role.

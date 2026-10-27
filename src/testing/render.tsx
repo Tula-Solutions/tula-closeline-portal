@@ -6,7 +6,7 @@ import type { RightsWording } from 'tula-closeline-contract'
 import { AppRoot } from '~/AppRoot'
 import type { SessionTokens } from '~/api/auth'
 import { createApp } from '~/app'
-import { parseEnv } from '~/env'
+import { type Env, parseEnv } from '~/env'
 import { createReporter } from '~/report/reporter'
 import { createAppRouter } from '~/router'
 import type { SessionChannel } from '~/session/session'
@@ -75,6 +75,8 @@ export function renderPortal(
     strict?: boolean
     /** Stands in `location.assign`, which leaves the page for another origin. */
     assign?: (url: string) => void
+    /** Replaces the configuration, for a screen that behaves differently outside `local`. */
+    env?: Env
     /** Local-only host of the fake Google issuer, as the env variable would set it. */
     googleFakeIssuerHost?: string
   } = {}
@@ -83,12 +85,14 @@ export function renderPortal(
   const reports: Error[] = []
   const double = fakeFetch(...(options.handlers ?? []), ...defaultReads())
   const app = createApp({
-    env: options.googleFakeIssuerHost
-      ? parseEnv({
-          VITE_ENVIRONMENT: 'local',
-          VITE_GOOGLE_FAKE_ISSUER_HOST: options.googleFakeIssuerHost,
-        })
-      : TEST_ENV,
+    env:
+      options.env ??
+      (options.googleFakeIssuerHost
+        ? parseEnv({
+            VITE_ENVIRONMENT: 'local',
+            VITE_GOOGLE_FAKE_ISSUER_HOST: options.googleFakeIssuerHost,
+          })
+        : TEST_ENV),
     ...(options.assign ? { assign: options.assign } : {}),
     reporter: createReporter((error) => reports.push(error)),
     fetch: double.fetch,
