@@ -136,7 +136,9 @@ export function outcomeUnknown(error: unknown): boolean {
     return true
   }
   return (
-    error.status === 0 ||
+    error.code === CLIENT_ERRORS.network ||
+    error.code === CLIENT_ERRORS.timeout ||
+    // Every area has its own 5xx codes and the contract has no list of them, so the class stays.
     error.status >= 500 ||
     error.code === CLIENT_ERRORS.badResponse ||
     error.code === ERRORS['request.idempotency_in_progress'].code
