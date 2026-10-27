@@ -71,6 +71,16 @@ export const fingerprint = {
   /** Writing a Consent Wording with this body (as JSON), or its next version when `wordingId` is given. */
   consentWording: (wordingId: string, body: string) =>
     JSON.stringify(['consent-wording', wordingId, body]),
+  /** Saving `text` as a new draft of the `kind` Agent's instructions. */
+  agentInstruction: (kind: string, text: string) =>
+    JSON.stringify(['agent-instruction', kind, text]),
+  /** Publishing version `number` of the `kind` Agent's instructions (a rollback when it is an earlier one). */
+  agentPublish: (kind: string, number: number) => JSON.stringify(['agent-publish', kind, number]),
+  /** Setting the controls of `kind` on `channel` with this body (as JSON). */
+  agentControl: (kind: string, channel: string, body: string) =>
+    JSON.stringify(['agent-control', kind, channel, body]),
+  /** Pausing (true) or resuming (false) every Agent. */
+  agentPause: (paused: boolean) => JSON.stringify(['agent-pause', paused]),
   /** Adding an address to Suppression with this body (as JSON). */
   suppression: (body: string) => JSON.stringify(['suppression', body]),
   /** Deciding the Draft `draftId`: `kind` is approve, edit-approve or reject, `body` the request as JSON text (so the same decision is the same intent). */

@@ -103,6 +103,12 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
   their own, but has no owner filter, so other roles see "Escalated" over everything they may see.
   Escalation rules (`/inbox/escalation`, Owner and Admin, `src/api/escalation.ts`) use a local
   schema because the contract has none yet; replace it when the contract adds one.
+- Agent (`/agent`, `src/screens/agent/`, `src/api/agent.ts`): Owner, Admin and Manager open it
+  (`can.viewAgent`); a Rep gets a notice and no request. Only Owner and Admin (`can.manageAgent`)
+  see the editor, versions, publish/roll back, control level edits and pause; a Manager reads the
+  published text and the settings. Publish, rollback and pause are confirmed with their effect
+  (the core audit log records them). Contact Consent and the AI and recording disclosure are listed
+  as fixed rules and have no switch (ADR 0003).
 - Developers (`src/screens/DevelopersScreen.tsx`): renders the vendored public OpenAPI document
   (`openapi/public.openapi.json`, refreshed with `bun run vendor:public -- --from <hub clone>`) and
   calls no private route. Visible to every role.

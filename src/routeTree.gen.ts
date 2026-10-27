@@ -13,6 +13,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as SiteRouteImport } from './routes/_site'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppAgentRouteImport } from './routes/_app/agent'
 import { Route as AppApiKeysRouteImport } from './routes/_app/api-keys'
 import { Route as AppAssessmentsRouteImport } from './routes/_app/assessments'
 import { Route as AppAuditRouteImport } from './routes/_app/audit'
@@ -78,6 +79,11 @@ const SiteRoute = SiteRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAgentRoute = AppAgentRouteImport.update({
+  id: '/agent',
+  path: '/agent',
   getParentRoute: () => AppRoute,
 } as any)
 const AppApiKeysRoute = AppApiKeysRouteImport.update({
@@ -336,6 +342,7 @@ const AppSalesHistoryImportsImportIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/agent': typeof AppAgentRoute
   '/api-keys': typeof AppApiKeysRoute
   '/assessments': typeof AppAssessmentsRoute
   '/audit': typeof AppAuditRoute
@@ -388,6 +395,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
+  '/agent': typeof AppAgentRoute
   '/api-keys': typeof AppApiKeysRoute
   '/assessments': typeof AppAssessmentsRoute
   '/audit': typeof AppAuditRoute
@@ -440,6 +448,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
   '/_site': typeof SiteRouteWithChildren
+  '/_app/agent': typeof AppAgentRoute
   '/_app/api-keys': typeof AppApiKeysRoute
   '/_app/assessments': typeof AppAssessmentsRoute
   '/_app/audit': typeof AppAuditRoute
@@ -495,6 +504,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/agent'
     | '/api-keys'
     | '/assessments'
     | '/audit'
@@ -547,6 +557,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/agent'
     | '/api-keys'
     | '/assessments'
     | '/audit'
@@ -598,6 +609,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_public'
     | '/_site'
+    | '/_app/agent'
     | '/_app/api-keys'
     | '/_app/assessments'
     | '/_app/audit'
@@ -684,6 +696,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/agent': {
+      id: '/_app/agent'
+      path: '/agent'
+      fullPath: '/agent'
+      preLoaderRoute: typeof AppAgentRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/api-keys': {
@@ -1088,6 +1107,7 @@ const AppProspectsImportsRouteWithChildren =
   AppProspectsImportsRoute._addFileChildren(AppProspectsImportsRouteChildren)
 
 interface AppRouteChildren {
+  AppAgentRoute: typeof AppAgentRoute
   AppApiKeysRoute: typeof AppApiKeysRoute
   AppAssessmentsRoute: typeof AppAssessmentsRoute
   AppAuditRoute: typeof AppAuditRoute
@@ -1118,6 +1138,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAgentRoute: AppAgentRoute,
   AppApiKeysRoute: AppApiKeysRoute,
   AppAssessmentsRoute: AppAssessmentsRoute,
   AppAuditRoute: AppAuditRoute,

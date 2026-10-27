@@ -1,4 +1,6 @@
 import {
+  AGENT_CONTROL_ADMIN_ROLES,
+  AGENT_CONTROL_READ_ROLES,
   ANALYTICS_ADMIN_ROLES,
   ANALYTICS_READ_ROLES,
   APIKEY_ADMIN_ROLES,
@@ -68,6 +70,10 @@ export const can = {
   manageSuppression: (role: Role) => CONSENT_ADMIN_ROLES.some((allowed) => allowed === role),
   /** The roles the contract gives the Consent Wording write routes (Owner and Admin); every role reads them. */
   manageConsentWording: (role: Role) => CONSENT_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** The roles the contract gives the Agent read routes (Owner, Admin, Manager) read the published instructions and controls. */
+  viewAgent: (role: Role) => AGENT_CONTROL_READ_ROLES.some((allowed) => allowed === role),
+  /** The roles the contract gives the Agent write routes (Owner and Admin) edit instructions, controls and the pause switch. */
+  manageAgent: (role: Role) => AGENT_CONTROL_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner and Admin upload, delete and restore Playbook documents; every role reads them. */
   managePlaybook: (role: Role) => roleAtLeast(role, 'admin'),
   /** Owner and Admin see and manage sales history (Deals, imports, Calls, the rights confirmation); Manager and Rep never reach it. */
