@@ -24,6 +24,7 @@ describe('the routing table', () => {
   test('lists the prefixes, each for exactly one service', () => {
     expect(SERVICE_ROUTES.map((route) => `${route.prefix} -> ${route.service}`)).toEqual([
       '/v1/client -> auth',
+      '/v1/token -> auth',
       '/v1/organization -> core',
       '/v1/members -> core',
       '/v1/invitations -> core',
@@ -51,8 +52,15 @@ describe('the routing table', () => {
       '/v1/exports -> core',
       '/v1/audit-verification -> core',
       '/v1/analytics -> core',
+      '/v1/agent-controls -> core',
+      '/v1/assessments -> core',
+      '/v1/assessment-rates -> core',
       '/v1/playbook -> playbook',
       '/v1/lines -> voice',
+      '/v1/agent -> voice',
+      '/v1/calls -> voice',
+      '/v1/softphone -> voice',
+      '/webhooks/twilio -> voice',
     ])
     expect(new Set(SERVICE_ROUTES.map((route) => route.prefix)).size).toBe(SERVICE_ROUTES.length)
   })
