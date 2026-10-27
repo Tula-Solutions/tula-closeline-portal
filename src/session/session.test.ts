@@ -155,6 +155,26 @@ describe('a refresh that fails', () => {
     }
   )
 
+  test('inside the skew is tried again only after the minimum gap, not on every call', async () => {
+    let attempts = 0
+    const { session, advance } = setup({
+      refresh: async () => {
+        attempts += 1
+        throw new ApiError({ code: 'server.unavailable', status: 503 })
+      },
+    })
+    session.start(tokens({ now: T0, accessToken: 'access-1' }))
+    advance(46_000)
+    for (let call = 0; call < 3; call += 1) {
+      expect(await session.accessToken()).toBe('access-1')
+      advance(1_000)
+    }
+    expect(attempts).toBe(1)
+    advance(10_000)
+    expect(await session.accessToken()).toBe('access-1')
+    expect(attempts).toBe(2)
+  })
+
   test.each([0, 500, 503])(
     'with status %d past the expiry fails but keeps the session',
     async (status) => {
