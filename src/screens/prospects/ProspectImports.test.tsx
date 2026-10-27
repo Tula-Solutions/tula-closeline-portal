@@ -489,13 +489,15 @@ describe('Prospect import: step 3, read the report', () => {
     const text =
       'row_number,result,reason,prospect_id\r\n2,created,,prs_1\r\n3,rejected,invalid_email,\r\n'
     let blob: Blob | undefined
+    let createdAt = 0
     URL.createObjectURL = (made: Blob | MediaSource) => {
       blob = made as Blob
+      createdAt = performance.now()
       return 'blob:report'
     }
-    let revoked = false
+    let revokedAt: number | undefined
     URL.revokeObjectURL = () => {
-      revoked = true
+      revokedAt = performance.now()
     }
     const done = prospectImportBody(1)
     const portal = open(`/prospects/imports/${done.id}`, 'owner', [
@@ -512,8 +514,9 @@ describe('Prospect import: step 3, read the report', () => {
     )
     await waitFor(() => expect(blob).toBeDefined())
     // The browser may start the save after click() returns, so the URL must outlive the click.
-    expect(revoked).toBe(false)
-    await waitFor(() => expect(revoked).toBe(true), { timeout: 3_000 })
+    // Compare timestamps, not a flag read after a wait whose length depends on the runner.
+    await waitFor(() => expect(revokedAt).toBeDefined(), { timeout: 3_000 })
+    expect((revokedAt as number) - createdAt).toBeGreaterThanOrEqual(900)
     expect(await (blob as Blob).text()).toBe(text)
     const call = portal.calls.find((c) => c.path.endsWith('/report.csv'))
     expect(call?.headers.get('accept')).toContain('text/csv')
