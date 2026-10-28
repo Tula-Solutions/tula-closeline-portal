@@ -10,7 +10,6 @@ import {
   type Deal,
   type DealAttribution,
   type DocumentState,
-  ERRORS,
   type GetSeriesResponse,
   type ListDealImportRowsResponse,
   type ListDealImportsResponse,
@@ -49,7 +48,6 @@ import type {
   SuppressionPage,
 } from '~/api/consent'
 import type { ProspectFilter } from '~/api/core'
-import { ApiError } from '~/api/errors'
 import type { ExportsPage } from '~/api/exports'
 import type { ConversationFilter, ConversationsPage, MessagesPage } from '~/api/inbox'
 import type { SuggestionsPage } from '~/api/playbook'
@@ -342,18 +340,6 @@ export function useBookings(window: 'upcoming' | 'past', boundary: string) {
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: organizationId !== '',
   })
-  // Core refuses a cursor it did not issue for this order (request.invalid): start over from page one.
-  const refused =
-    query.data !== undefined &&
-    query.error instanceof ApiError &&
-    query.error.code === ERRORS['request.invalid'].code
-  useEffect(() => {
-    if (refused) {
-      void app.queryClient.resetQueries({
-        queryKey: [...KEYS.bookings(organizationId), 'list', window, order, boundary],
-      })
-    }
-  }, [refused, app.queryClient, organizationId, window, order, boundary])
   return pagedState(query)
 }
 

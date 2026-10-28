@@ -146,39 +146,6 @@ describe('Bookings: the lists', () => {
     ).toEqual(['desc'])
   })
 
-  test('a refused cursor (request.invalid) starts the list again from page one', async () => {
-    let upcomingReads = 0
-    const portal = visit(
-      'owner',
-      lists((call) => {
-        upcomingReads += 1
-        if (param(call.url, 'cursor') === 'c2') {
-          return failure(400, 'request.invalid')
-        }
-        return json(200, page([bookingBody(1)], upcomingReads === 1 ? 'c2' : null))
-      })
-    )
-    await portal.user.click(await screen.findByRole('button', { name: 'Load more Bookings' }))
-    const upcoming = await screen.findByRole('list', { name: 'Upcoming Bookings' })
-    await waitFor(() => expect(upcomingReads).toBeGreaterThanOrEqual(3))
-    await waitFor(() => expect(within(upcoming).getAllByRole('listitem')).toHaveLength(1))
-    expect(screen.queryByRole('alert')).toBeNull()
-    const last = portal.calls
-      .filter((c) => c.path === BOOKINGS && param(c.url, 'from') !== null)
-      .at(-1)
-    expect(last && param(last.url, 'cursor')).toBeNull()
-  })
-
-  test('a page-one request.invalid is an error, not a retry loop', async () => {
-    const portal = visit('owner', lists(failure(400, 'request.invalid')))
-    await screen.findAllByRole('alert')
-    await new Promise((done) => setTimeout(done, 300))
-    const upcomingReads = portal.calls.filter(
-      (c) => c.path === BOOKINGS && param(c.url, 'from') !== null
-    )
-    expect(upcomingReads.length).toBeLessThanOrEqual(2)
-  })
-
   test('one Members request serves every row of the page', async () => {
     const portal = visit(
       'owner',
