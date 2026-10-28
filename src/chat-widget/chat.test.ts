@@ -368,4 +368,20 @@ describe('callback consent', () => {
     expect(t.q<HTMLInputElement>('input[type=checkbox]').checked).toBe(false)
     expect(t.q('.note').textContent).toContain('wording changed')
   })
+
+  test('a failed refetch after a changed wording leaves no ticked box to resend', async () => {
+    const t = await withCallback([
+      json(200, WORDING),
+      json(422, err('chat.consent_wording_missing')),
+      json(503, err('server.unavailable')),
+    ])
+    await t.ask()
+    t.fill('Ada', '+14155550100')
+    t.tick()
+    await t.submit()
+    expect(t.q<HTMLInputElement>('input[type=checkbox]').checked).toBe(false)
+    expect(t.q<HTMLButtonElement>('form.cb .send').disabled).toBe(true)
+    await t.submit()
+    expect(t.h.calls).toHaveLength(4)
+  })
 })

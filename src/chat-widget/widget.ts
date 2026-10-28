@@ -130,9 +130,10 @@ export function mountChatWidget(
   let shown: { id: string; version: number } | undefined
   let attempt: { signature: string; key: string } | undefined
 
-  async function openCallback() {
+  /** Shows the current wording, unticked; false when it could not (the old wording is then dropped). */
+  async function openCallback(): Promise<boolean> {
     if (busy || token === undefined) {
-      return
+      return false
     }
     lock(true)
     note.textContent = 'Loading.'
@@ -151,10 +152,16 @@ export function mountChatWidget(
       ask.hidden = true
       cb.hidden = false
       nameInput.focus()
+      lock(false)
+      return true
     } catch (error) {
+      shown = undefined
+      agree.checked = false
+      cbSend.disabled = true
       fail(error, 'callback')
+      lock(false)
+      return false
     }
-    lock(false)
   }
 
   function closeCallback() {
@@ -202,7 +209,10 @@ export function mountChatWidget(
       lock(false)
       // The wording moved on: show the new one, unticked, and say why.
       if (error instanceof Error && error.message === CODES.wordingMissing) {
-        await openCallback()
+        if (await openCallback()) {
+          fail(error, 'callback')
+        }
+        return
       }
       fail(error, 'callback')
     }
