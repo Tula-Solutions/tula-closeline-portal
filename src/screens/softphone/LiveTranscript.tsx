@@ -53,11 +53,13 @@ export function LiveTranscript(props: { readonly callId: string }) {
     let finished = false
     const run = async () => {
       while (!signal.aborted && !finished && failures < MAX_FAILURES) {
+        let got = false
         try {
           await app.calls.stream(
             props.callId,
             lastId,
             (message) => {
+              got = true
               failures = 0
               lastId = message.id
               if (message.event === 'copilot.status') {
@@ -78,6 +80,10 @@ export function LiveTranscript(props: { readonly callId: string }) {
             },
             signal
           )
+          // A clean close that carried nothing is a dead connection too.
+          if (!got && !finished) {
+            failures += 1
+          }
         } catch (caught) {
           if (signal.aborted) {
             return

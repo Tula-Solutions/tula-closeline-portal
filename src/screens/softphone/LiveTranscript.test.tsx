@@ -160,6 +160,13 @@ describe('Live Transcript', () => {
     expect(open[1]?.headers.get('last-event-id')).toBe('t1')
   })
 
+  test('a stream that closes at once with nothing in it is given up after a few tries', async () => {
+    const { user, calls } = mount(route('GET', `/v1/calls/${ID}/copilot/stream`, sse()))
+    await dial(user)
+    await screen.findByText(/connection was lost/i)
+    expect(streams(calls).length).toBeLessThanOrEqual(6)
+  })
+
   test('a failing speech-to-text leaves the Call and says the Transcript is unavailable', async () => {
     const { user } = mount(
       route(
