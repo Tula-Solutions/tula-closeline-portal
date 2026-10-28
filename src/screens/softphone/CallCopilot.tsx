@@ -80,7 +80,7 @@ export function CallCopilot(props: { readonly callId: string }) {
             {cards.length > 0 ? 'Every card was dismissed.' : EMPTY_WORDS[why ?? 'unknown']}
           </p>
         ) : (
-          <ol className='m-0 mt-3 max-h-80 list-none divide-y overflow-y-auto border-y p-0'>
+          <ol className='m-0 mt-3 list-none divide-y border-y p-0'>
             {shown.map((card) => (
               <CardRow key={card.id} card={card} canMark onChange={(body) => mark(card, body)} />
             ))}
