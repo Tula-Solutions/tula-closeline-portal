@@ -12,7 +12,7 @@ import { pagedState, useOrganizationId } from '~/data/queries'
 type Cards = InfiniteData<CardsPage, string | undefined>
 
 /** The card state a change asks for; dismissing clears the pin and pinning clears the dismissal, as the service does. */
-function applied(card: CopilotCard, body: MarkCopilotCardRequest): CopilotCard {
+export function applied(card: CopilotCard, body: MarkCopilotCardRequest): CopilotCard {
   return {
     ...card,
     ...(body.rating !== undefined ? { rating: body.rating } : {}),

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { COPILOT_ERRORS } from 'tula-closeline-contract'
+import { COPILOT_ERRORS, type CopilotStreamMessage } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import { useApp } from '~/app-context'
 import { cn } from '~/lib/utils'
@@ -37,12 +37,21 @@ const RESUME_MS = 1000
 const BACKOFF_MAX_MS = 8000
 
 /** The live Transcript of a Call the Rep placed with the Copilot on: scrolls to the newest turn, resumes after a dropped connection from the last event, and says in words what state it is in. */
-export function LiveTranscript(props: { readonly callId: string }) {
+export function LiveTranscript(props: {
+  readonly callId: string
+  /** Told of every stream message (the cards ride the same stream). */
+  readonly onMessage?: (message: CopilotStreamMessage) => void
+  /** Told when the service says the Copilot is off for this Call. */
+  readonly onOff?: () => void
+}) {
   const app = useApp()
   const [turns, setTurns] = useState<readonly Turn[]>([])
   const [state, setState] = useState<State>('connecting')
   const list = useRef<HTMLDivElement>(null)
   const stick = useRef(true)
+  // The callbacks are read when called, so a new one never reopens the stream.
+  const handlers = useRef(props)
+  handlers.current = props
 
   useEffect(() => {
     const control = new AbortController()
@@ -60,6 +69,7 @@ export function LiveTranscript(props: { readonly callId: string }) {
             lastId,
             (message) => {
               got = true
+              handlers.current.onMessage?.(message)
               failures = 0
               lastId = message.id
               if (message.event === 'copilot.status') {
@@ -93,6 +103,7 @@ export function LiveTranscript(props: { readonly callId: string }) {
             caught.code === COPILOT_ERRORS['copilot.disabled'].code
           ) {
             setState('off')
+            handlers.current.onOff?.()
             return
           }
           failures += 1

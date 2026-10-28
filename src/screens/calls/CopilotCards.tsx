@@ -77,7 +77,8 @@ export function CopilotCards(props: { readonly callId: string; readonly canMark:
   )
 }
 
-function CardRow(props: {
+/** One card with its marks (useful, not useful, pin, dismiss) when the viewer may mark; each quote links to its source Call. */
+export function CardRow(props: {
   readonly card: CopilotCard
   readonly canMark: boolean
   readonly onChange: (body: {
@@ -102,6 +103,10 @@ function CardRow(props: {
           Prospect: {quote.prospect}
           <br />
           Rep next: {quote.repNext}
+          <br />
+          <a href={`/calls/${encodeURIComponent(quote.callId)}`} target='_blank' rel='noopener'>
+            Source Call
+          </a>
         </blockquote>
       ))}
       {props.canMark ? (
