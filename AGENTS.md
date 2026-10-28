@@ -196,9 +196,7 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
   `POST /v1/calls/{id}/answer`, both after a microphone check (`getUserMedia`; a denial shows a plain message and
   a retry). The Call schema is local in `src/api/calls.ts` because the contract has none yet. Inbound Calls are
   found by polling `GET /v1/calls?state=ringing` every 3 s, not filtered to the Rep (the membership id is not in
-  the session); a lost race ends in `call.not_ringing`, which is worded. Voice has no hang-up, mute or hold route and the
-  Twilio Voice SDK is not added: those act on the local microphone only, and the Call is read until its state is
-  terminal. The status line is a plain `aria-live` paragraph, not `role=status`, so screens that query one status
+  the session); a lost race ends in `call.not_ringing`, which is worded. The Twilio Voice SDK (`voice-device.ts`, loaded on demand, skipped when the browser has no WebRTC) registers a Device with `POST /v1/softphone/token` (asked again on `tokenWillExpire`) and accepts the bridged leg; mute and hold mute that leg (hold is a mute, voice has no server-side hold), and Hang up calls `POST /v1/calls/{id}/hangup` before dropping the leg. The in-call read backs off (x2 per miss, up to x16). `connect-src` allows `https://*.twilio.com` and `wss://*.twilio.com` for the SDK. The Call is read until its state is terminal. The status line is a plain `aria-live` paragraph, not `role=status`, so screens that query one status
   keep working. The Rep picks a country (default United States, `countries.ts`, libphonenumber-js/min) and types only the
   national number; the portal builds the E.164 string, and a pasted `+…` number is split into country and national
   number. Close always clears the open flag, the last error and a finished Call.

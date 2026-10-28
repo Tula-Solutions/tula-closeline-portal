@@ -1,4 +1,4 @@
-import { IDEMPOTENCY_KEY_HEADER } from 'tula-closeline-contract'
+import { IDEMPOTENCY_KEY_HEADER, softphoneTokenSchema } from 'tula-closeline-contract'
 import { z } from 'zod'
 import type { HttpClient } from '~/api/http'
 
@@ -31,6 +31,10 @@ export type CallsApi = {
   get(callId: string, signal?: AbortSignal): Promise<SoftphoneCall>
   /** Answers a ringing inbound Call; the Disclosure plays, then the Rep is bridged. */
   answer(callId: string): Promise<SoftphoneCall>
+  /** Ends the Call at the provider; a live Call becomes ended. */
+  hangUp(callId: string): Promise<SoftphoneCall>
+  /** Mints a short-lived Voice SDK token for the caller's browser. */
+  token(): Promise<string>
   /** The inbound Calls ringing for the caller now (one small page). */
   listRinging(signal?: AbortSignal): Promise<readonly SoftphoneCall[]>
 }
@@ -57,6 +61,20 @@ export function createCallsApi(http: HttpClient): CallsApi {
         path: `${path(callId)}/answer`,
         auth: true,
         parse: (j) => callSchema.parse(j),
+      }),
+    hangUp: (callId) =>
+      http.request({
+        method: 'POST',
+        path: `${path(callId)}/hangup`,
+        auth: true,
+        parse: (j) => callSchema.parse(j),
+      }),
+    token: () =>
+      http.request({
+        method: 'POST',
+        path: '/v1/softphone/token',
+        auth: true,
+        parse: (j) => softphoneTokenSchema.parse(j).token,
       }),
     listRinging: (signal) =>
       http.request({

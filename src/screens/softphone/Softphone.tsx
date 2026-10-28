@@ -12,10 +12,11 @@ import { Select } from '~/components/ui/select'
 import { cn } from '~/lib/utils'
 import { Untrusted } from '~/ui/Untrusted'
 import { buildE164, COUNTRY_OPTIONS, DEFAULT_COUNTRY, splitInternational } from './countries'
+import type { VoiceConnector, VoiceLeg } from './voice-device'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'] as const
 const TERMINAL = ['ended', 'failed', 'missed']
-/** Ringing Calls and the Call in hand are read this often; a push channel replaces this when the Twilio Voice SDK is wired. */
+/** Ringing Calls and the Call in hand are read this often; the Voice SDK carries audio only, so state still comes from here. */
 const POLL_MS = 3000
 /** Longest national number the field takes (E.164 is 15 digits in all, with room for spaces). */
 const MAX_NUMBER = 24
@@ -54,7 +55,11 @@ const STATE_WORDS: Record<SoftphoneCall['state'], string> = {
 }
 
 /** A Rep's phone, docked under every page: a microphone check, number and dial pad, ring and answer, mute, hold and hang up, and the Disclosure state of the Call. */
-export function Softphone(props: { readonly pollMs?: number }) {
+export function Softphone(props: {
+  readonly pollMs?: number
+  /** Registers the browser for Call audio (the Twilio Voice SDK); without it the panel places and reads Calls but carries no audio. */
+  readonly connect?: VoiceConnector
+}) {
   const pollMs = props.pollMs ?? POLL_MS
   const app = useApp()
   const [open, setOpen] = useState(false)
@@ -76,6 +81,8 @@ export function Softphone(props: { readonly pollMs?: number }) {
   const [ringing, setRinging] = useState<readonly SoftphoneCall[]>([])
   const [dismissed, setDismissed] = useState<readonly string[]>([])
   const stream = useRef<MediaStream | null>(null)
+  const leg = useRef<VoiceLeg | null>(null)
+  const [audio, setAudio] = useState<'off' | 'ready' | 'failed'>('off')
   const inCall = call !== null && !TERMINAL.includes(call.state) && !hungUp
   const busy = placing || answering || inCall
 
@@ -90,12 +97,48 @@ export function Softphone(props: { readonly pollMs?: number }) {
   }, [])
   useEffect(() => release, [release])
 
-  // The microphone is silent while muted or on hold.
+  // The Rep's microphone is silent while muted or on hold; the SDK leg carries the audio.
+  const silent = useRef(false)
   useEffect(() => {
+    silent.current = muted || held
+    leg.current?.mute(muted || held)
     for (const track of stream.current?.getAudioTracks() ?? []) {
       track.enabled = !(muted || held)
     }
   }, [muted, held])
+
+  // Register the browser for Call audio; the token is asked for again before it runs out.
+  const connect = props.connect
+  useEffect(() => {
+    if (connect === undefined) {
+      return undefined
+    }
+    let handle: { destroy: () => void } | null = null
+    let gone = false
+    connect({
+      getToken: () => app.calls.token(),
+      onLeg: (next) => {
+        leg.current = next
+        // The Rep may have muted before the leg arrived.
+        next?.mute(silent.current)
+      },
+      onReady: (ready) => setAudio(ready ? 'ready' : 'failed'),
+    }).then(
+      (made) => {
+        if (gone) {
+          made?.destroy()
+        } else {
+          handle = made
+          setAudio(made === null ? 'failed' : 'ready')
+        }
+      },
+      () => setAudio('failed')
+    )
+    return () => {
+      gone = true
+      handle?.destroy()
+    }
+  }, [app, connect])
 
   const checkMic = useCallback(async (): Promise<boolean> => {
     if (stream.current !== null) {
@@ -161,17 +204,20 @@ export function Softphone(props: { readonly pollMs?: number }) {
     }
     const control = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
+    let failures = 0
     const tick = async () => {
       try {
         const next = await app.calls.get(callId, control.signal)
+        failures = 0
         if (!control.signal.aborted) {
           setCall(next)
         }
       } catch {
-        // The next read tries again; a Call that really ended is told by a later answer.
+        // The next read tries again, waiting longer after each miss; a Call that really ended is told by a later answer.
+        failures = Math.min(failures + 1, 4)
       }
       if (!control.signal.aborted) {
-        timer = setTimeout(tick, pollMs)
+        timer = setTimeout(tick, pollMs * 2 ** failures)
       }
     }
     timer = setTimeout(tick, pollMs)
@@ -227,6 +273,20 @@ export function Softphone(props: { readonly pollMs?: number }) {
       release()
     } finally {
       setAnswering(false)
+    }
+  }
+
+  async function hangUp() {
+    if (call === null) {
+      return
+    }
+    setError(null)
+    try {
+      setCall(await app.calls.hangUp(call.id))
+      leg.current?.disconnect()
+      setHungUp(true)
+    } catch (caught) {
+      setError(presentCall(caught))
     }
   }
 
@@ -309,6 +369,12 @@ export function Softphone(props: { readonly pollMs?: number }) {
                 Retry the microphone
               </Button>
             ) : null}
+            {audio === 'failed' ? (
+              <p className='mt-2 text-sm text-destructive'>
+                Call audio could not connect, so you will not hear Calls. Reload the page to try
+                again.
+              </p>
+            ) : null}
             {mic === 'idle' && !busy ? (
               <Button className='mt-2' size='sm' variant='outline' onClick={probeMic}>
                 Check the microphone
@@ -367,7 +433,7 @@ export function Softphone(props: { readonly pollMs?: number }) {
                 >
                   {held ? 'Resume' : 'Hold'}
                 </Button>
-                <Button variant='destructive' size='sm' onClick={() => setHungUp(true)}>
+                <Button variant='destructive' size='sm' onClick={() => void hangUp()}>
                   Hang up
                 </Button>
               </div>
