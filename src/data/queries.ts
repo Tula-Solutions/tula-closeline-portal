@@ -324,7 +324,9 @@ export function useBookingTypes(enabled: boolean) {
 export function useBookings(window: 'upcoming' | 'past', boundary: string) {
   const app = useApp()
   const organizationId = useOrganizationId()
-  const range = window === 'upcoming' ? { from: boundary } : { to: boundary }
+  // Upcoming reads soonest first; a cursor belongs to its order, so the order is part of the key.
+  const order = window === 'upcoming' ? ('asc' as const) : ('desc' as const)
+  const range = window === 'upcoming' ? { from: boundary, order } : { to: boundary, order }
   const query = useInfiniteQuery<
     BookingsPage,
     Error,
@@ -332,7 +334,7 @@ export function useBookings(window: 'upcoming' | 'past', boundary: string) {
     readonly string[],
     string | undefined
   >({
-    queryKey: [...KEYS.bookings(organizationId), 'list', window, boundary],
+    queryKey: [...KEYS.bookings(organizationId), 'list', window, order, boundary],
     queryFn: ({ pageParam, signal }) => app.bookings.list(range, { cursor: pageParam, signal }),
     initialPageParam: undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,

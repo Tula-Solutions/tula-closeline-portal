@@ -119,6 +119,58 @@ describe('Bookings: the lists', () => {
     expect(cursors[0]).not.toBeNull()
   })
 
+  test('Upcoming asks soonest first, Past latest first, and shows the rows as core sent them', async () => {
+    const portal = visit(
+      'owner',
+      lists(
+        json(
+          200,
+          page([
+            bookingBody(1, { startsAt: '2099-01-05T15:00:00Z', endsAt: '2099-01-05T15:30:00Z' }),
+            bookingBody(3, { startsAt: '2099-03-05T15:00:00Z', endsAt: '2099-03-05T15:30:00Z' }),
+          ])
+        ),
+        json(200, page([bookingBody(2, { startsAt: PAST, endsAt: PAST_END })]))
+      )
+    )
+    const upcoming = await screen.findByRole('list', { name: 'Upcoming Bookings' })
+    await waitFor(() => expect(within(upcoming).getAllByRole('listitem')).toHaveLength(2))
+    const times = [...upcoming.querySelectorAll('time')].map((t) => t.getAttribute('datetime'))
+    expect(times).toEqual(['2099-01-05T15:00:00Z', '2099-03-05T15:00:00Z'])
+    const reads = portal.calls.filter((call) => call.path === BOOKINGS)
+    expect(
+      reads.filter((c) => param(c.url, 'from') !== null).map((c) => param(c.url, 'order'))
+    ).toEqual(['asc'])
+    expect(
+      reads.filter((c) => param(c.url, 'to') !== null).map((c) => param(c.url, 'order'))
+    ).toEqual(['desc'])
+  })
+
+  test('one Members request serves every row of the page', async () => {
+    const portal = visit(
+      'owner',
+      lists(
+        json(
+          200,
+          page([
+            bookingBody(1, { repMembershipId: hexId('mem', 1) }),
+            bookingBody(2, { repMembershipId: hexId('mem', 2) }),
+            bookingBody(3, { repMembershipId: hexId('mem', 1) }),
+          ])
+        ),
+        json(200, page([bookingBody(4, { startsAt: PAST, endsAt: PAST_END })]))
+      )
+    )
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole('list', { name: 'Upcoming Bookings' })).getAllByRole('listitem')
+      ).toHaveLength(3)
+    )
+    await screen.findAllByText('Ada Rep')
+    const members = portal.calls.filter((c) => c.path === '/v1/members')
+    expect(members).toHaveLength(1)
+  })
+
   test('says when there are none', async () => {
     visit('owner', lists(json(200, page([]))))
     expect(await screen.findByText('There are no upcoming Bookings.')).toBeTruthy()
