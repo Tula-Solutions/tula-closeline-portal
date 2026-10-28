@@ -34,6 +34,19 @@ function securityHeaders(raw: Record<string, string | undefined>): Plugin {
   }
 }
 
+/** Wraps the Chat widget in a function so its names never join a host page's global scope. */
+function wrapChatWidget(): Plugin {
+  return {
+    name: 'wrap-chat-widget',
+    generateBundle(_, bundle) {
+      const file = bundle['chat-widget.js']
+      if (file?.type === 'chunk') {
+        file.code = `(()=>{${file.code}})()\n`
+      }
+    },
+  }
+}
+
 export default defineConfig(({ command, mode }) => {
   const raw = { ...loadEnv(mode, process.cwd(), 'VITE_'), ...process.env }
   // Dev server settings (no VITE_ prefix, so they never reach the bundle): where auth and core listen.
@@ -57,7 +70,7 @@ export default defineConfig(({ command, mode }) => {
       tanstackRouter({ target: 'react', autoCodeSplitting: true }),
       react(),
       tailwindcss(),
-      ...(command === 'build' ? [securityHeaders(raw)] : []),
+      ...(command === 'build' ? [securityHeaders(raw), wrapChatWidget()] : []),
     ],
     resolve: { alias: { '~': new URL('./src', import.meta.url).pathname } },
     // Same origin: no CORS headers, from this server or the services. `allowedHosts` adds exact
@@ -68,6 +81,22 @@ export default defineConfig(({ command, mode }) => {
       allowedHosts: parseAllowedHosts(process.env.PORTAL_DEV_ALLOWED_HOSTS),
     },
     preview: { proxy },
-    build: { chunkSizeWarningLimit: 600, outDir: 'out', sourcemap: 'hidden', assetsInlineLimit: 0 },
+    build: {
+      chunkSizeWarningLimit: 600,
+      outDir: 'out',
+      sourcemap: 'hidden',
+      assetsInlineLimit: 0,
+      // The embeddable Chat widget is a second, self-contained entry at a fixed, unhashed address.
+      rolldownOptions: {
+        input: {
+          index: new URL('./index.html', import.meta.url).pathname,
+          'chat-widget': new URL('./src/chat-widget/entry.ts', import.meta.url).pathname,
+        },
+        output: {
+          entryFileNames: (chunk) =>
+            chunk.name === 'chat-widget' ? 'chat-widget.js' : 'assets/[name]-[hash].js',
+        },
+      },
+    },
   }
 })

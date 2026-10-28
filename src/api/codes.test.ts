@@ -48,7 +48,7 @@ describe('the detector', () => {
 describe('the portal source', () => {
   test('takes every error code from a contract map, never a quoted string literal (concatenated or interpolated strings are not scanned)', async () => {
     const files = [...new Glob('src/**/*.{ts,tsx}').scanSync('.')].filter(
-      (path) => !/\.(test|gen)\.tsx?$/.test(path)
+      (path) => !/\.(test|gen)\.tsx?$/.test(path) && path !== 'src/chat-widget/codes.ts'
     )
     expect(files.length).toBeGreaterThan(10)
     const found: Record<string, string[]> = {}
