@@ -89,6 +89,7 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
   anyone else the nav link is hidden and the page shows a notice and makes no request. A Line's number
   and label are untrusted text (`Untrusted`, `plain`). Errors are worded by `presentLine`
   (`src/api/voice-messages.ts`) from `VOICE_ERRORS`, falling back to `presentManage`.
+- Call history (`src/screens/calls/`, voice `/v1/calls`): every role; core scopes the list (Rep own, Manager Team, Admin all), so the portal sends a Rep filter only from Manager up. Wrap-up is for the Rep, Owner and Admin (`can.wrapUpCalls`); Delete Recording for Owner and Admin. The signed Recording URL is a bearer credential: it stays in component state, is never stored or logged, and playback stops at `expiresAt`. The CSP `media-src` allows `https:` for it.
 - API keys (`src/screens/ApiKeysScreen.tsx`, core): Owners and Admins only (`can.manageApiKeys`); for
   anyone else the nav link is hidden and the page shows a notice and makes no request. The secret
   returned by create lives only in the dialog's component state: never stored, logged or put in a

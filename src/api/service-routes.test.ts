@@ -66,6 +66,7 @@ describe('the routing table', () => {
       '/v1/agent -> voice',
       '/v1/calls -> voice',
       '/v1/softphone -> voice',
+      '/v1/handoffs -> voice',
     ])
     expect(new Set(SERVICE_ROUTES.map((route) => route.prefix)).size).toBe(SERVICE_ROUTES.length)
   })

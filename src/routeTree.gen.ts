@@ -46,6 +46,8 @@ import { Route as AppAnalyticsCampaignsRouteImport } from './routes/_app/analyti
 import { Route as AppAnalyticsRepsRouteImport } from './routes/_app/analytics/reps'
 import { Route as AppAnalyticsSourcesRouteImport } from './routes/_app/analytics/sources'
 import { Route as AppCalendarCallbackRouteImport } from './routes/_app/calendar_.callback'
+import { Route as AppCallsIndexRouteImport } from './routes/_app/calls/index'
+import { Route as AppCallsCallIdRouteImport } from './routes/_app/calls/$callId'
 import { Route as AppInboxIndexRouteImport } from './routes/_app/inbox/index'
 import { Route as AppInboxConversationIdRouteImport } from './routes/_app/inbox/$conversationId'
 import { Route as AppInboxEscalationRouteImport } from './routes/_app/inbox/escalation'
@@ -257,6 +259,16 @@ const AppCalendarCallbackRoute = AppCalendarCallbackRouteImport.update({
   path: '/calendar/callback',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCallsIndexRoute = AppCallsIndexRouteImport.update({
+  id: '/calls/',
+  path: '/calls/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCallsCallIdRoute = AppCallsCallIdRouteImport.update({
+  id: '/calls/$callId',
+  path: '/calls/$callId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppInboxIndexRoute = AppInboxIndexRouteImport.update({
   id: '/inbox/',
   path: '/inbox/',
@@ -441,6 +453,7 @@ export interface FileRoutesByFullPath {
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/analytics/sources': typeof AppAnalyticsSourcesRoute
   '/calendar/callback': typeof AppCalendarCallbackRoute
+  '/calls/$callId': typeof AppCallsCallIdRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/inbox/escalation': typeof AppInboxEscalationRoute
   '/inbox/policy': typeof AppInboxPolicyRoute
@@ -456,6 +469,7 @@ export interface FileRoutesByFullPath {
   '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
   '/book/manage/$token': typeof BookManageTokenRoute
   '/analytics/': typeof AppAnalyticsIndexRoute
+  '/calls/': typeof AppCallsIndexRoute
   '/inbox/': typeof AppInboxIndexRoute
   '/playbook/': typeof AppPlaybookIndexRoute
   '/prospects/': typeof AppProspectsIndexRoute
@@ -503,6 +517,7 @@ export interface FileRoutesByTo {
   '/analytics/reps': typeof AppAnalyticsRepsRoute
   '/analytics/sources': typeof AppAnalyticsSourcesRoute
   '/calendar/callback': typeof AppCalendarCallbackRoute
+  '/calls/$callId': typeof AppCallsCallIdRoute
   '/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/inbox/escalation': typeof AppInboxEscalationRoute
   '/inbox/policy': typeof AppInboxPolicyRoute
@@ -517,6 +532,7 @@ export interface FileRoutesByTo {
   '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
   '/book/manage/$token': typeof BookManageTokenRoute
   '/analytics': typeof AppAnalyticsIndexRoute
+  '/calls': typeof AppCallsIndexRoute
   '/inbox': typeof AppInboxIndexRoute
   '/playbook': typeof AppPlaybookIndexRoute
   '/prospects': typeof AppProspectsIndexRoute
@@ -570,6 +586,7 @@ export interface FileRoutesById {
   '/_app/analytics/reps': typeof AppAnalyticsRepsRoute
   '/_app/analytics/sources': typeof AppAnalyticsSourcesRoute
   '/_app/calendar_/callback': typeof AppCalendarCallbackRoute
+  '/_app/calls/$callId': typeof AppCallsCallIdRoute
   '/_app/inbox/$conversationId': typeof AppInboxConversationIdRoute
   '/_app/inbox/escalation': typeof AppInboxEscalationRoute
   '/_app/inbox/policy': typeof AppInboxPolicyRoute
@@ -585,6 +602,7 @@ export interface FileRoutesById {
   '/_site/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
   '/book/manage/$token': typeof BookManageTokenRoute
   '/_app/analytics/': typeof AppAnalyticsIndexRoute
+  '/_app/calls/': typeof AppCallsIndexRoute
   '/_app/inbox/': typeof AppInboxIndexRoute
   '/_app/playbook/': typeof AppPlaybookIndexRoute
   '/_app/prospects/': typeof AppProspectsIndexRoute
@@ -636,6 +654,7 @@ export interface FileRouteTypes {
     | '/analytics/reps'
     | '/analytics/sources'
     | '/calendar/callback'
+    | '/calls/$callId'
     | '/inbox/$conversationId'
     | '/inbox/escalation'
     | '/inbox/policy'
@@ -651,6 +670,7 @@ export interface FileRouteTypes {
     | '/unsubscribe/$token'
     | '/book/manage/$token'
     | '/analytics/'
+    | '/calls/'
     | '/inbox/'
     | '/playbook/'
     | '/prospects/'
@@ -698,6 +718,7 @@ export interface FileRouteTypes {
     | '/analytics/reps'
     | '/analytics/sources'
     | '/calendar/callback'
+    | '/calls/$callId'
     | '/inbox/$conversationId'
     | '/inbox/escalation'
     | '/inbox/policy'
@@ -712,6 +733,7 @@ export interface FileRouteTypes {
     | '/unsubscribe/$token'
     | '/book/manage/$token'
     | '/analytics'
+    | '/calls'
     | '/inbox'
     | '/playbook'
     | '/prospects'
@@ -764,6 +786,7 @@ export interface FileRouteTypes {
     | '/_app/analytics/reps'
     | '/_app/analytics/sources'
     | '/_app/calendar_/callback'
+    | '/_app/calls/$callId'
     | '/_app/inbox/$conversationId'
     | '/_app/inbox/escalation'
     | '/_app/inbox/policy'
@@ -779,6 +802,7 @@ export interface FileRouteTypes {
     | '/_site/unsubscribe/$token'
     | '/book/manage/$token'
     | '/_app/analytics/'
+    | '/_app/calls/'
     | '/_app/inbox/'
     | '/_app/playbook/'
     | '/_app/prospects/'
@@ -1064,6 +1088,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCalendarCallbackRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/calls/': {
+      id: '/_app/calls/'
+      path: '/calls'
+      fullPath: '/calls/'
+      preLoaderRoute: typeof AppCallsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/calls/$callId': {
+      id: '/_app/calls/$callId'
+      path: '/calls/$callId'
+      fullPath: '/calls/$callId'
+      preLoaderRoute: typeof AppCallsCallIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/inbox/': {
       id: '/_app/inbox/'
       path: '/inbox'
@@ -1343,6 +1381,7 @@ interface AppRouteChildren {
   AppAnalyticsRepsRoute: typeof AppAnalyticsRepsRoute
   AppAnalyticsSourcesRoute: typeof AppAnalyticsSourcesRoute
   AppCalendarCallbackRoute: typeof AppCalendarCallbackRoute
+  AppCallsCallIdRoute: typeof AppCallsCallIdRoute
   AppInboxConversationIdRoute: typeof AppInboxConversationIdRoute
   AppInboxEscalationRoute: typeof AppInboxEscalationRoute
   AppInboxPolicyRoute: typeof AppInboxPolicyRoute
@@ -1350,6 +1389,7 @@ interface AppRouteChildren {
   AppProspectsImportsRoute: typeof AppProspectsImportsRouteWithChildren
   AppProspectsNewRoute: typeof AppProspectsNewRoute
   AppAnalyticsIndexRoute: typeof AppAnalyticsIndexRoute
+  AppCallsIndexRoute: typeof AppCallsIndexRoute
   AppInboxIndexRoute: typeof AppInboxIndexRoute
   AppProspectsIndexRoute: typeof AppProspectsIndexRoute
   AppAnalyticsDealsDealRecordIdRoute: typeof AppAnalyticsDealsDealRecordIdRoute
@@ -1382,6 +1422,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRepsRoute: AppAnalyticsRepsRoute,
   AppAnalyticsSourcesRoute: AppAnalyticsSourcesRoute,
   AppCalendarCallbackRoute: AppCalendarCallbackRoute,
+  AppCallsCallIdRoute: AppCallsCallIdRoute,
   AppInboxConversationIdRoute: AppInboxConversationIdRoute,
   AppInboxEscalationRoute: AppInboxEscalationRoute,
   AppInboxPolicyRoute: AppInboxPolicyRoute,
@@ -1389,6 +1430,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProspectsImportsRoute: AppProspectsImportsRouteWithChildren,
   AppProspectsNewRoute: AppProspectsNewRoute,
   AppAnalyticsIndexRoute: AppAnalyticsIndexRoute,
+  AppCallsIndexRoute: AppCallsIndexRoute,
   AppInboxIndexRoute: AppInboxIndexRoute,
   AppProspectsIndexRoute: AppProspectsIndexRoute,
   AppAnalyticsDealsDealRecordIdRoute: AppAnalyticsDealsDealRecordIdRoute,

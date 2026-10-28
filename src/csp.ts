@@ -7,11 +7,14 @@ export function buildCsp(env: Env, options: { readonly meta: boolean }): string 
   if (env.sentryDsn !== undefined) {
     connect.push(originOf(env.sentryDsn))
   }
+  // A Recording plays from a signed storage URL (https; plain http only on a local stand-in).
+  const media = env.environment === 'local' ? "'self' https: http:" : "'self' https:"
   const directives: string[] = [
     "default-src 'none'",
     "script-src 'self'",
     "style-src 'self'",
     "img-src 'self'",
+    `media-src ${media}`,
     "font-src 'self'",
     `connect-src ${[...new Set(connect)].join(' ')}`,
     "manifest-src 'self'",

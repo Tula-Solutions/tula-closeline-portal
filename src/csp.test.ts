@@ -48,6 +48,9 @@ describe('buildCsp', () => {
     })
     expect(directive(buildCsp(local, { meta: true }), 'connect-src')).toBe("connect-src 'self'")
     expect(buildCsp(local, { meta: true })).not.toContain('upgrade-insecure-requests')
+    expect(directive(buildCsp(local, { meta: true }), 'media-src')).toBe(
+      "media-src 'self' https: http:"
+    )
   })
 
   test.each([
@@ -56,6 +59,7 @@ describe('buildCsp', () => {
     ['style-src', "style-src 'self'"],
     ['img-src', "img-src 'self'"],
     ['font-src', "font-src 'self'"],
+    ['media-src', "media-src 'self' https:"],
     ['manifest-src', "manifest-src 'self'"],
     ['base-uri', "base-uri 'none'"],
     ['form-action', "form-action 'self'"],
@@ -73,6 +77,7 @@ describe('buildCsp', () => {
       "script-src 'self'",
       "style-src 'self'",
       "img-src 'self'",
+      "media-src 'self' https:",
       "font-src 'self'",
       "connect-src 'self' https://o1.ingest.sentry.io",
       "manifest-src 'self'",

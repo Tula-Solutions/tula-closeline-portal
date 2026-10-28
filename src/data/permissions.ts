@@ -46,6 +46,10 @@ export const can = {
   manageTeams: (role: Role) => roleAtLeast(role, 'admin'),
   /** The roles the contract gives the Line routes (Owner and Admin) add, assign and release Lines. */
   manageLines: (role: Role) => VOICE_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** Owner and Admin delete a Call's Recording. */
+  deleteRecording: (role: Role) => roleAtLeast(role, 'admin'),
+  /** The Rep who took a Call, an Owner and an Admin wrap it up; a Manager only reads. */
+  wrapUpCalls: (role: Role) => role !== 'manager',
   /** Owner and Admin define, change and retire Booking Types. */
   manageBookingTypes: (role: Role) => BOOKING_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner, Admin and Manager (the contract's routing roles) list and try Routing Rules; a Manager changes only those sending to their own Team, which core enforces. */

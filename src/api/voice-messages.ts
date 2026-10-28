@@ -66,3 +66,23 @@ export function presentCall(error: unknown): ShownFailure {
   }
   return presentManage(error)
 }
+
+/** Turns a failure of the Calls history, wrap-up or Recording calls into plain words, branching on the contract's code. */
+export function presentCallHistory(error: unknown): ShownFailure {
+  if (error instanceof ApiError) {
+    switch (error.code) {
+      // Not in the contract's error maps yet, though the call routes answer it.
+      case 'call.not_found':
+        return { message: 'That Call is not available to you. Go back to the list.' }
+      case VOICE_ERRORS['call.not_ended'].code:
+        return { message: 'That Call has not ended yet. Wrap it up once it has.' }
+      case VOICE_ERRORS['recording.not_found'].code:
+        return { message: 'There is no Recording for this Call.' }
+      case VOICE_ERRORS['recording.not_ready'].code:
+        return { message: 'The Recording is still being stored. Try again in a minute.' }
+      default:
+        break
+    }
+  }
+  return presentManage(error)
+}
