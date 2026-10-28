@@ -64,7 +64,7 @@ export function CopilotScreen() {
           ) : (
             <>
               {manage ? (
-                <Form key={settings.dataUpdatedAt} initial={settings.data} />
+                <Form initial={settings.data} />
               ) : (
                 <dl className='m-0 grid max-w-md grid-cols-[1fr_auto] gap-y-2'>
                   <dt>Copilot</dt>

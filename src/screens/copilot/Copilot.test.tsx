@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { cleanup, fireEvent, screen } from '@testing-library/react'
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import { hexId } from '~/testing/core-bodies'
 import { failure, json, route, tokens } from '~/testing/fixtures'
 import { renderPortal } from '~/testing/render'
@@ -62,6 +62,22 @@ describe('Copilot settings', () => {
     await portal.user.click(screen.getByRole('button', { name: 'Save settings' }))
     expect(await screen.findByText(/no more Deals than Moments/)).toBeTruthy()
     expect(portal.calls.some((call) => call.method === 'PUT')).toBe(false)
+  })
+
+  test('the Saved confirmation survives the refetch after a save', async () => {
+    const portal = visit(
+      'admin',
+      route('PUT', PATH, json(200, settings({ enabled: true }))),
+      route('GET', PATH, json(200, settings({ enabled: true })))
+    )
+    await portal.user.click(await screen.findByRole('checkbox', { name: /Let Reps use/ }))
+    await portal.user.click(screen.getByRole('button', { name: 'Save settings' }))
+    await waitFor(() =>
+      expect(portal.calls.filter((c) => c.method === 'GET').length).toBeGreaterThan(1)
+    )
+    expect(screen.getByRole('button', { name: 'Save settings' }).hasAttribute('data-saved')).toBe(
+      true
+    )
   })
 
   test('words copilot.min_evidence_invalid from its code', async () => {
