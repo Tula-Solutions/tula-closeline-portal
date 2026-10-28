@@ -66,6 +66,14 @@ describe('the routing table', () => {
       '/v1/agent -> voice',
       '/v1/calls -> voice',
       '/v1/softphone -> voice',
+      '/v1/enrichment -> outbound',
+      '/v1/enrichment-runs -> outbound',
+      '/v1/enrichment-run-sets -> outbound',
+      '/v1/signals -> outbound',
+      '/v1/signal-settings -> outbound',
+      '/v1/signal-webhook -> outbound',
+      '/v1/fit-criteria -> outbound',
+      '/v1/fit-scores -> outbound',
     ])
     expect(new Set(SERVICE_ROUTES.map((route) => route.prefix)).size).toBe(SERVICE_ROUTES.length)
   })
@@ -149,12 +157,23 @@ describe('the routing table', () => {
     ['/v1/lines', 'voice'],
     ['/v1/lines/line_1/release', 'voice'],
     ['/v1/linesx', null],
+    ['/v1/enrichment-runs', 'outbound'],
+    ['/v1/enrichment/budget', 'outbound'],
+    ['/v1/fit-criteria/fcr_1', 'outbound'],
+    ['/v1/prospects/prs_1/enrichment', 'outbound'],
+    ['/v1/prospects/prs_1/signals', 'outbound'],
+    ['/v1/prospects/prs_1/fit', 'outbound'],
+    ['/v1/prospects/prs_1', 'core'],
+    ['/v1/prospects/prs_1/consent', 'core'],
+    ['/v1/prospects/prs_1/fit/x', 'core'],
     ['/v1/marketing/demo-requests', 'core'],
     ['/v1/playbooks', null],
     ['/', null],
     ['/sign-in', null],
   ])('%s is matched on a path-segment boundary: %s', (path, service) => {
-    expect(serviceFor(path)).toBe(service as 'auth' | 'core' | 'playbook' | 'voice' | null)
+    expect(serviceFor(path)).toBe(
+      service as 'auth' | 'core' | 'playbook' | 'voice' | 'outbound' | null
+    )
   })
 
   test("the refresh cookie's Path is under the auth prefix, so the browser's request reaches auth unchanged", () => {
@@ -165,17 +184,34 @@ describe('the routing table', () => {
 })
 
 describe('the dev proxy', () => {
+  test("sends a Prospect's enrichment, signals and fit to outbound, and the rest of /v1/prospects to core", () => {
+    const proxy = devProxy({
+      auth: 'a',
+      core: 'http://core',
+      playbook: 'p',
+      voice: 'v',
+      outbound: 'http://outbound',
+    })
+    const first = (path: string) =>
+      Object.entries(proxy).find(([pattern]) => new RegExp(pattern).test(path))?.[1].target
+    expect(first('/v1/prospects/prs_1/enrichment?x=1')).toBe('http://outbound')
+    expect(first('/v1/prospects/prs_1/signals')).toBe('http://outbound')
+    expect(first('/v1/prospects/prs_1/consent')).toBe('http://core')
+    expect(first('/v1/prospects/prs_1')).toBe('http://core')
+  })
+
   const proxy = devProxy({
     auth: 'http://127.0.0.1:3001',
     core: 'http://127.0.0.1:3002',
     playbook: 'http://127.0.0.1:3003',
     voice: 'http://127.0.0.1:3004',
+    outbound: 'http://127.0.0.1:3005',
   })
   const matching = (path: string) =>
     Object.entries(proxy).filter(([pattern]) => new RegExp(pattern).test(path))
 
   test('has one entry per prefix, none rewriting or stripping the path', () => {
-    expect(Object.keys(proxy)).toHaveLength(SERVICE_ROUTES.length)
+    expect(Object.keys(proxy)).toHaveLength(SERVICE_ROUTES.length + 1)
     for (const entry of Object.values(proxy)) {
       expect(Object.keys(entry).sort()).toEqual(['changeOrigin', 'target'])
     }
@@ -196,6 +232,7 @@ describe('the dev proxy', () => {
               core: 'http://127.0.0.1:3002',
               playbook: 'http://127.0.0.1:3003',
               voice: 'http://127.0.0.1:3004',
+              outbound: 'http://127.0.0.1:3005',
             }[service],
           ],
         ])
@@ -236,6 +273,7 @@ describe('the proxy targets (server-side dev settings)', () => {
       core: 'http://127.0.0.1:3002',
       playbook: 'http://127.0.0.1:3003',
       voice: 'http://127.0.0.1:3004',
+      outbound: 'http://127.0.0.1:3005',
     })
   })
 
@@ -246,6 +284,7 @@ describe('the proxy targets (server-side dev settings)', () => {
         CORE_PROXY_TARGET: 'https://core.dev.example',
         PLAYBOOK_PROXY_TARGET: 'http://localhost:4003',
         VOICE_PROXY_TARGET: 'http://localhost:4004',
+        OUTBOUND_PROXY_TARGET: 'http://localhost:4005',
         VITE_AUTH_BASE_URL: 'http://ignored.example',
       })
     ).toEqual({
@@ -253,6 +292,7 @@ describe('the proxy targets (server-side dev settings)', () => {
       core: 'https://core.dev.example',
       playbook: 'http://localhost:4003',
       voice: 'http://localhost:4004',
+      outbound: 'http://localhost:4005',
     })
   })
 

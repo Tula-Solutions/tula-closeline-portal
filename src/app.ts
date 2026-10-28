@@ -25,6 +25,7 @@ import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
 import { createInboxApi, type InboxApi } from '~/api/inbox'
 import { createMarketingApi, type MarketingApi } from '~/api/marketing'
+import { createOutboundApi, type OutboundApi } from '~/api/outbound'
 import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
 import { createPublicBookingApi, type PublicBookingApi } from '~/api/public-booking'
 import { createRoutingApi, type RoutingApi } from '~/api/routing'
@@ -68,6 +69,8 @@ export type App = {
   readonly routing: RoutingApi
   /** Contact Consent on a Prospect, and the Suppression list. */
   readonly consent: ConsentApi
+  /** Enrichment, Signals and Fit, served by outbound. */
+  readonly outbound: OutboundApi
   /** Hosted consent forms: draft, publish and close (Owner, Admin). */
   readonly consentForms: ConsentFormsApi
   /** The public hosted consent page's routes (a link from a message); send no token. */
@@ -204,6 +207,7 @@ export function createApp(init: AppInit): App {
     bookings: createBookingsApi(coreHttp),
     routing: createRoutingApi(coreHttp),
     consent: createConsentApi(coreHttp),
+    outbound: createOutboundApi(coreHttp),
     consentForms: createConsentFormsApi(coreHttp),
     hostedConsent: createHostedConsentApi(coreHttp),
     marketing: createMarketingApi(coreHttp),

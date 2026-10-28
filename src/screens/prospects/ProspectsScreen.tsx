@@ -12,6 +12,8 @@ import { fieldValue, prospectName, SOURCE_CHOICES, sourceLabel } from '~/data/pr
 import { useMembersByIdsState, useProspectCompanyNames, useProspects } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { cn } from '~/lib/utils'
+import { EnrichProgress, useEnrich } from '~/screens/enrichment/useEnrich'
+import { Confirm } from '~/ui/Confirm'
 import { Field } from '~/ui/Field'
 import { OwnerCombobox } from '~/ui/OwnerCombobox'
 import { Paged } from '~/ui/Paged'
@@ -29,6 +31,9 @@ const STATUS_CHOICES = [
   { value: 'archived', text: 'Archived' },
 ]
 
+/** The most Prospects one Enrich request names. */
+const MAX_ENRICH_PROSPECTS = 500
+
 /** The Prospects the signed-in member may see: searched, narrowed and read a page at a time. */
 export function ProspectsScreen() {
   useDocumentTitle('Prospects')
@@ -43,6 +48,7 @@ export function ProspectsScreen() {
     ownerMembershipId: search.owner,
     companyId: search.company,
   })
+  const enrich = useEnrich({ onFail: () => {} })
   const showOwner = role !== null && can.viewMembers(role)
   const [ownerName, setOwnerName] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -93,6 +99,7 @@ export function ProspectsScreen() {
       Add a Prospect
     </Link>
   )
+  const enrichIds = prospects.items.slice(0, MAX_ENRICH_PROSPECTS).map((prospect) => prospect.id)
   return (
     <>
       <PageHeader
@@ -102,6 +109,18 @@ export function ProspectsScreen() {
         actions={
           canImport || !bareEmpty ? (
             <>
+              {bareEmpty || prospects.items.length === 0 ? null : (
+                <Confirm
+                  label='Enrich these'
+                  accessibleName='Enrich the Prospects on this page'
+                  pendingAccessibleName='Enriching the Prospects on this page'
+                  pendingLabel='Enriching...'
+                  question={`Ask the enabled providers about ${enrichIds.length} ${enrichIds.length === 1 ? 'Prospect' : 'Prospects'}? Each lookup costs money, up to your monthly budget.`}
+                  confirmLabel='Enrich'
+                  pending={enrich.pending}
+                  onConfirm={() => enrich.start(enrichIds)}
+                />
+              )}
               {canImport ? (
                 <Link to='/prospects/imports' className='button button-quiet'>
                   Import Prospects
@@ -112,6 +131,7 @@ export function ProspectsScreen() {
           ) : undefined
         }
       />
+      <EnrichProgress progress={enrich.progress} error={enrich.error} />
       <div className='flex flex-col gap-4'>
         <search aria-label='Prospect search'>
           <form

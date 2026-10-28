@@ -24,6 +24,7 @@ import {
   sourcePhrase,
 } from '~/data/prospects'
 import { refresh, useProspect, useProspectCompany } from '~/data/queries'
+import { EnrichmentPanel } from '~/screens/enrichment/EnrichmentPanel'
 import { ConsentPanel } from '~/screens/prospects/ConsentPanel'
 import {
   CompanyChoice,
@@ -103,6 +104,7 @@ export function ProspectScreen() {
             onFail={feedback.failed}
           />
         </Section>
+        <EnrichmentPanel prospectId={record.id} onFail={feedback.failed} />
         <ConsentPanel prospectId={record.id} onDone={feedback.done} onFail={feedback.failed} />
         <Section id='notes-tags' title='Notes and tags' description='Private to your Organization.'>
           <NotesForm
