@@ -1680,6 +1680,18 @@ export function useVoiceSettings(enabled: boolean) {
   })
 }
 
+/** The Copilot settings (voice service); every role reads them. */
+export function useCopilotSettings(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  return useQuery({
+    queryKey: [...KEYS.agent(organizationId), 'copilot-settings'],
+    queryFn: ({ signal }) => app.voice.getCopilotSettings(signal),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+}
+
 /** The query key of the Qualification questions, which the editor updates in place while a reorder is in flight. */
 export function questionsKey(organizationId: string) {
   return [...KEYS.agent(organizationId), 'questions'] as const

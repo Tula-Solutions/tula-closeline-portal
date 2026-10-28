@@ -91,6 +91,8 @@ export const can = {
   viewAgent: (role: Role) => AGENT_CONTROL_READ_ROLES.some((allowed) => allowed === role),
   /** The roles the contract gives the Agent write routes (Owner and Admin) edit instructions, controls and the pause switch. */
   manageAgent: (role: Role) => AGENT_CONTROL_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** The roles the contract gives the Copilot settings write route (Owner and Admin); every role reads them. */
+  manageCopilot: (role: Role) => roleAtLeast(role, 'admin'),
   /** Owner and Admin upload, delete and restore Playbook documents; every role reads them. */
   managePlaybook: (role: Role) => roleAtLeast(role, 'admin'),
   /** Owner and Admin see and manage sales history (Deals, imports, Calls, the rights confirmation); Manager and Rep never reach it. */
