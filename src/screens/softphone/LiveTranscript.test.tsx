@@ -208,3 +208,155 @@ describe('Live Transcript', () => {
     expect(streams(calls)).toHaveLength(1)
   })
 })
+
+const SOURCE = `call_${'9'.repeat(32)}`
+const card = (n: number, extra: Record<string, unknown> = {}) => ({
+  id: `ccard_${String(n).repeat(32)}`,
+  callId: ID,
+  sequence: n,
+  evidence: { moments: 4, deals: 3 },
+  citedMoments: [{ callId: SOURCE, dealRecordId: `deal_${'1'.repeat(32)}` }],
+  quotes: [
+    {
+      callId: SOURCE,
+      dealRecordId: `deal_${'1'.repeat(32)}`,
+      prospect: `Too dear <i>${n}</i>`,
+      repNext: 'We showed the ROI',
+    },
+  ],
+  shownAt: '2026-10-28T10:01:00Z',
+  rating: null,
+  dismissed: false,
+  pinned: false,
+  kind: 'similar_moment',
+  ...extra,
+})
+const shownCard = (id: string, n: number, extra: Record<string, unknown> = {}) =>
+  ({ id, event: 'copilot.card', data: { card: card(n, extra) } }) as CopilotStreamMessage
+const PATCH = (n: number) => `/v1/calls/${ID}/copilot/cards/ccard_${String(n).repeat(32)}`
+
+describe('Copilot cards in the Softphone', () => {
+  test('a card shows its quote, what the Rep said next, evidence and a source Call link as text', async () => {
+    const { user } = mount(
+      route('GET', `/v1/calls/${ID}/copilot/stream`, sse(status('live', 's1'), shownCard('c1', 1)))
+    )
+    await dial(user)
+    const panel = await screen.findByRole('region', { name: 'Copilot cards' })
+    await within(panel).findByText(/Too dear/)
+    expect(panel.textContent).toContain('Too dear <i>1</i>')
+    expect(panel.querySelector('i')).toBeNull()
+    expect(panel.textContent).toContain('We showed the ROI')
+    expect(panel.textContent).toContain('based on 4 Moments from 3 Deals')
+    expect(within(panel).getByRole('link', { name: 'Source Call' }).getAttribute('href')).toBe(
+      `/calls/${SOURCE}`
+    )
+  })
+
+  test('a rating goes out as a PATCH and a repeat of the same press sends the same end state', async () => {
+    const { user, calls } = mount(
+      route('GET', `/v1/calls/${ID}/copilot/stream`, sse(status('live', 's1'), shownCard('c1', 1))),
+      route('PATCH', PATCH(1), json(200, card(1, { rating: 'useful' })))
+    )
+    await dial(user)
+    const useful = await screen.findByRole('button', { name: 'Useful' })
+    await user.click(useful)
+    await waitFor(() => expect(useful.getAttribute('aria-pressed')).toBe('true'))
+    expect(calls.find((c) => c.method === 'PATCH')?.body).toEqual({ rating: 'useful' })
+  })
+
+  test('dismissing sends dismissed and takes the card off the panel', async () => {
+    const { user, calls } = mount(
+      route('GET', `/v1/calls/${ID}/copilot/stream`, sse(status('live', 's1'), shownCard('c1', 1))),
+      route('PATCH', PATCH(1), json(200, card(1, { dismissed: true })))
+    )
+    await dial(user)
+    await user.click(await screen.findByRole('button', { name: 'Dismiss' }))
+    await screen.findByText('Every card was dismissed.')
+    expect(calls.find((c) => c.method === 'PATCH')?.body).toEqual({ dismissed: true })
+  })
+
+  test('a refused mark is put back and shows the words for its code', async () => {
+    const { user } = mount(
+      route('GET', `/v1/calls/${ID}/copilot/stream`, sse(status('live', 's1'), shownCard('c1', 1))),
+      route('PATCH', PATCH(1), failure(404, 'card.not_found'))
+    )
+    await dial(user)
+    await user.click(await screen.findByRole('button', { name: 'Pin' }))
+    await screen.findByText('That card is no longer available. Reload the cards.')
+    expect(screen.getByRole('button', { name: 'Pin' }).getAttribute('aria-pressed')).toBe('false')
+  })
+
+  test('a pinned card stays on top when a newer card arrives', async () => {
+    const { user } = mount(
+      route(
+        'GET',
+        `/v1/calls/${ID}/copilot/stream`,
+        sse(
+          status('live', 's1'),
+          shownCard('c1', 1, { pinned: true }),
+          shownCard('c2', 2),
+          shownCard('c3', 3)
+        )
+      )
+    )
+    await dial(user)
+    const panel = await screen.findByRole('region', { name: 'Copilot cards' })
+    await waitFor(() => expect(within(panel).getAllByRole('listitem')).toHaveLength(3))
+    const rows = within(panel).getAllByRole('listitem')
+    expect(rows[0]?.textContent).toContain('Too dear <i>1</i>')
+    expect(rows[1]?.textContent).toContain('Too dear <i>3</i>')
+  })
+
+  test('card_updated changes a card in place and a replayed card is not shown twice', async () => {
+    const { user } = mount(
+      route(
+        'GET',
+        `/v1/calls/${ID}/copilot/stream`,
+        sse(status('live', 's1'), shownCard('c1', 1), shownCard('c1b', 1), {
+          id: 'c1c',
+          event: 'copilot.card_updated',
+          data: { card: card(1, { rating: 'useful' }) },
+        } as CopilotStreamMessage)
+      )
+    )
+    await dial(user)
+    const useful = await screen.findByRole('button', { name: 'Useful' })
+    await waitFor(() => expect(useful.getAttribute('aria-pressed')).toBe('true'))
+    expect(screen.getAllByRole('button', { name: 'Useful' })).toHaveLength(1)
+  })
+
+  const quiet = (reason: 'not_enough_won_moments' | 'playbook_unavailable') =>
+    ({
+      id: 'q1',
+      event: 'copilot.status',
+      data: { callId: ID, state: 'live', quietReason: reason },
+    }) as CopilotStreamMessage
+
+  test.each([
+    ['not_enough_won_moments', /does not have enough won Moments/],
+    ['playbook_unavailable', /Playbook could not be reached/],
+  ] as const)('an empty panel says why: %s', async (reason, words) => {
+    const { user } = mount(route('GET', `/v1/calls/${ID}/copilot/stream`, sse(quiet(reason))))
+    await dial(user)
+    const panel = await screen.findByRole('region', { name: 'Copilot cards' })
+    await within(panel).findByText(words)
+  })
+
+  test('with the Copilot off the panel says so', async () => {
+    const { user } = mount(
+      route('GET', `/v1/calls/${ID}/copilot/stream`, failure(409, 'copilot.disabled'))
+    )
+    await dial(user)
+    const panel = await screen.findByRole('region', { name: 'Copilot cards' })
+    await within(panel).findByText(/Copilot is off for this Call/)
+  })
+
+  test('with no reason from the service the panel does not invent one', async () => {
+    const { user } = mount(
+      route('GET', `/v1/calls/${ID}/copilot/stream`, sse(status('live', 's1')))
+    )
+    await dial(user)
+    const panel = await screen.findByRole('region', { name: 'Copilot cards' })
+    await within(panel).findByText(/No cards yet/)
+  })
+})

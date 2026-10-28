@@ -11,8 +11,8 @@ import { Button } from '~/components/ui/button'
 import { Select } from '~/components/ui/select'
 import { cn } from '~/lib/utils'
 import { Untrusted } from '~/ui/Untrusted'
+import { CallCopilot } from './CallCopilot'
 import { buildE164, COUNTRY_OPTIONS, DEFAULT_COUNTRY, splitInternational } from './countries'
-import { LiveTranscript } from './LiveTranscript'
 import type { VoiceConnector, VoiceLeg } from './voice-device'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'] as const
@@ -540,7 +540,7 @@ export function Softphone(props: {
               </Button>
             </div>
           </form>
-          {call !== null && callCopilot ? <LiveTranscript key={call.id} callId={call.id} /> : null}
+          {call !== null && callCopilot ? <CallCopilot key={call.id} callId={call.id} /> : null}
         </div>
       ) : null}
     </section>
