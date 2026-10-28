@@ -78,7 +78,12 @@ export function HandoffCard(props: { readonly pollMs?: number }) {
     app.voice.getHandoffContext(offerId, control.signal).then(
       (context) => setLoaded({ id: offerId, context }),
       (caught) => {
-        if (!control.signal.aborted) {
+        if (control.signal.aborted) {
+          return
+        }
+        if (caught instanceof ApiError && caught.code === AGENT_ERRORS['handoff.not_found'].code) {
+          setDone((now) => [...now, offerId]) // gone before the Rep saw it: drop it quietly
+        } else {
           setLoaded({ id: offerId, failed: presentHandoff(caught).message })
         }
       }
@@ -89,6 +94,9 @@ export function HandoffCard(props: { readonly pollMs?: number }) {
   const context =
     loaded?.id === offerId && loaded !== null && 'context' in loaded ? loaded.context : null
   const prospect = useProspect(context?.prospectId ?? '')
+
+  const named = prospect.data ? prospectName(prospect.data) : null
+  const caller = named === null || named === 'Unnamed Prospect' ? null : named
 
   async function answer(handoff: Handoff, verb: 'accept' | 'decline') {
     setBusy(true)
@@ -168,9 +176,7 @@ export function HandoffCard(props: { readonly pollMs?: number }) {
               <>
                 <dl className='grid grid-cols-[auto_1fr] content-start gap-x-6 gap-y-1 text-sm'>
                   <dt className='label-mono'>Prospect</dt>
-                  <dd>
-                    {prospect.data ? <Untrusted value={prospectName(prospect.data)} /> : 'Prospect'}
-                  </dd>
+                  <dd>{caller === null ? 'Unknown caller' : <Untrusted value={caller} />}</dd>
                   <dt className='label-mono'>Qualified</dt>
                   <dd>
                     {answered} of {context.qualification.answers.length} questions answered

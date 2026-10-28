@@ -165,4 +165,17 @@ describe('HandoffCard', () => {
     await user.click(await screen.findByRole('button', { name: 'Accept' }))
     await waitFor(() => expect(screen.getByRole('button', { name: 'Accept' })).toBeTruthy())
   })
+
+  test('an offer whose context is gone is dropped quietly', async () => {
+    mount(route('GET', `/v1/handoffs/${ID}`, failure(404, AGENT_ERRORS['handoff.not_found'].code)))
+    await new Promise((r) => setTimeout(r, 80))
+    expect(screen.queryByLabelText('Incoming Handoff')).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  test('a caller whose Prospect cannot be read is called Unknown caller', async () => {
+    mount(route('GET', `/v1/prospects/${hexId('prs', 1)}`, failure(404, 'prospect.not_found')))
+    expect(await screen.findByText('I want a person.')).toBeTruthy()
+    expect(screen.getByText('Unknown caller')).toBeTruthy()
+  })
 })
