@@ -185,6 +185,15 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
   only, because core cannot yet filter Conversations by Campaign, Rep or day, and the screen says so.
   The CSV loops `table.csv` by `x-next-cursor`, one header, at most 20 pages.
 
+- Softphone (`src/screens/softphone/`, docked in `Shell`): dials with `POST /v1/calls` and answers with
+  `POST /v1/calls/{id}/answer`, both after a microphone check (`getUserMedia`; a denial shows a plain message and
+  a retry). The Call schema is local in `src/api/calls.ts` because the contract has none yet. Inbound Calls are
+  found by polling `GET /v1/calls?state=ringing` every 3 s, not filtered to the Rep (the membership id is not in
+  the session); a lost race ends in `call.not_ringing`, which is worded. Voice has no hang-up, mute or hold route and the
+  Twilio Voice SDK is not added: those act on the local microphone only, and the Call is read until its state is
+  terminal. The status line is a plain `aria-live` paragraph, not `role=status`, so screens that query one status
+  keep working.
+
 ## Hot paths
 
 None: this is a dashboard. Add one here, with a budget, if the portal gains live audio or a large

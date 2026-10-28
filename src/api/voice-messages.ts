@@ -40,3 +40,26 @@ export function presentLine(error: unknown): ShownFailure {
   }
   return presentManage(error)
 }
+
+/** Turns a failure of placing or answering a Call into plain words, branching on the contract's code. */
+export function presentCall(error: unknown): ShownFailure {
+  if (error instanceof ApiError) {
+    switch (error.code) {
+      case VOICE_ERRORS['call.number_invalid'].code:
+        return { message: 'That number cannot be called. Check it, with the country code.' }
+      case VOICE_ERRORS['call.line_unavailable'].code:
+        return { message: 'Your Organization has no active Line you can call from. Ask an Admin.' }
+      case VOICE_ERRORS['call.limit_reached'].code:
+        return { message: 'Too many Calls are in progress. Try again in a moment.' }
+      case VOICE_ERRORS['call.disclosure_failed'].code:
+        return { message: 'The Disclosure could not be played, so the Call did not go ahead.' }
+      case VOICE_ERRORS['call.not_ringing'].code:
+        return { message: 'Someone else answered, or the Call was missed.' }
+      case ERRORS['server.unavailable'].code:
+        return { message: 'The phone service is not available right now. Try again shortly.' }
+      default:
+        break
+    }
+  }
+  return presentManage(error)
+}

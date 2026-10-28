@@ -39,6 +39,8 @@ export const fingerprint = {
     JSON.stringify(['try-message', sessionId, index, text]),
   /** Inviting `email` for `role`. */
   invitation: (email: string, role: string) => JSON.stringify(['invitation', email, role]),
+  /** Placing a Call to `to`; a retry of the same press reuses the key. */
+  softphoneCall: (to: string) => JSON.stringify(['softphone-call', to]),
   /** Creating a Team called `name`. */
   team: (name: string) => JSON.stringify(['team', name]),
   /** Creating a Prospect from this body (as JSON text, so the same details are the same intent). */
