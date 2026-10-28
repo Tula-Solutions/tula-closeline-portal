@@ -48,7 +48,10 @@ export function presentCall(error: unknown): ShownFailure {
       case VOICE_ERRORS['call.number_invalid'].code:
         return { message: 'That number cannot be called. Check it, with the country code.' }
       case VOICE_ERRORS['call.line_unavailable'].code:
-        return { message: 'Your Organization has no active Line you can call from. Ask an Admin.' }
+        return {
+          message: 'Your Organization has no active Line you can call from. Ask an Admin.',
+          link: 'lines',
+        }
       case VOICE_ERRORS['call.limit_reached'].code:
         return { message: 'Too many Calls are in progress. Try again in a moment.' }
       case VOICE_ERRORS['call.disclosure_failed'].code:

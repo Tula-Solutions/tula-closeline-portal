@@ -199,7 +199,9 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
   the session); a lost race ends in `call.not_ringing`, which is worded. Voice has no hang-up, mute or hold route and the
   Twilio Voice SDK is not added: those act on the local microphone only, and the Call is read until its state is
   terminal. The status line is a plain `aria-live` paragraph, not `role=status`, so screens that query one status
-  keep working.
+  keep working. The Rep picks a country (default United States, `countries.ts`, libphonenumber-js/min) and types only the
+  national number; the portal builds the E.164 string, and a pasted `+…` number is split into country and national
+  number. Close always clears the open flag, the last error and a finished Call.
 
 ## Hot paths
 

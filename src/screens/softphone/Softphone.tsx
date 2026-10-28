@@ -1,3 +1,5 @@
+import { useRouter } from '@tanstack/react-router'
+import type { CountryCode } from 'libphonenumber-js/min'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { VOICE_ERRORS } from 'tula-closeline-contract'
 import type { SoftphoneCall } from '~/api/calls'
@@ -6,14 +8,16 @@ import { fingerprint } from '~/api/idempotency'
 import { presentCall } from '~/api/voice-messages'
 import { useApp } from '~/app-context'
 import { Button } from '~/components/ui/button'
+import { Select } from '~/components/ui/select'
 import { cn } from '~/lib/utils'
 import { Untrusted } from '~/ui/Untrusted'
+import { buildE164, COUNTRY_OPTIONS, DEFAULT_COUNTRY, splitInternational } from './countries'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'] as const
 const TERMINAL = ['ended', 'failed', 'missed']
 /** Ringing Calls and the Call in hand are read this often; a push channel replaces this when the Twilio Voice SDK is wired. */
 const POLL_MS = 3000
-/** Longest number the field takes (E.164 is 15 digits plus a plus sign and room for spaces). */
+/** Longest national number the field takes (E.164 is 15 digits in all, with room for spaces). */
 const MAX_NUMBER = 24
 
 type Mic = 'idle' | 'checking' | 'ready' | 'denied' | 'unavailable'
@@ -54,14 +58,20 @@ export function Softphone(props: { readonly pollMs?: number }) {
   const pollMs = props.pollMs ?? POLL_MS
   const app = useApp()
   const [open, setOpen] = useState(false)
+  const router = useRouter({ warn: false })
+  const [country, setCountry] = useState<CountryCode>(DEFAULT_COUNTRY)
   const [number, setNumber] = useState('')
+  const e164 = buildE164(country, number)
   const [call, setCall] = useState<SoftphoneCall | null>(null)
   const [placing, setPlacing] = useState(false)
   const [answering, setAnswering] = useState(false)
   const [hungUp, setHungUp] = useState(false)
   const [muted, setMuted] = useState(false)
   const [held, setHeld] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<{
+    readonly message: string
+    readonly link?: 'conversation' | 'lines'
+  } | null>(null)
   const [mic, setMic] = useState<Mic>('idle')
   const [ringing, setRinging] = useState<readonly SoftphoneCall[]>([])
   const [dismissed, setDismissed] = useState<readonly string[]>([])
@@ -181,19 +191,19 @@ export function Softphone(props: { readonly pollMs?: number }) {
 
   async function dial() {
     setError(null)
-    if (number.trim() === '' || !(await checkMic())) {
+    if (e164 === '' || !(await checkMic())) {
       return
     }
     setPlacing(true)
     setHungUp(false)
     setCall(null)
-    const attempt = app.keys.begin(fingerprint.softphoneCall(number.trim()))
+    const attempt = app.keys.begin(fingerprint.softphoneCall(e164))
     try {
-      setCall(await app.calls.place(number.trim(), attempt.key))
+      setCall(await app.calls.place(e164, attempt.key))
       attempt.succeeded()
     } catch (caught) {
       attempt.failed(caught)
-      setError(presentCall(caught).message)
+      setError(presentCall(caught))
       release()
     } finally {
       setPlacing(false)
@@ -210,7 +220,7 @@ export function Softphone(props: { readonly pollMs?: number }) {
     try {
       setCall(await app.calls.answer(ringingCall.id))
     } catch (caught) {
-      setError(presentCall(caught).message)
+      setError(presentCall(caught))
       if (caught instanceof ApiError && caught.code === VOICE_ERRORS['call.not_ringing'].code) {
         setDismissed((now) => [...now, ringingCall.id])
       }
@@ -220,9 +230,21 @@ export function Softphone(props: { readonly pollMs?: number }) {
     }
   }
 
+  // Close puts away everything the panel kept: the open flag, the last error and a finished Call.
+  function toggle() {
+    if (expanded) {
+      setOpen(false)
+      setError(null)
+      setCall(null)
+      setHungUp(false)
+    } else {
+      setOpen(true)
+    }
+  }
+
   const incoming = ringing.filter((item) => !dismissed.includes(item.id))[0]
   const status = placing
-    ? `Calling ${number.trim()}. The Disclosure plays before you are connected.`
+    ? `Calling ${e164}. The Disclosure plays before you are connected.`
     : answering
       ? 'Answering. The Disclosure plays before you are connected.'
       : call !== null
@@ -230,7 +252,7 @@ export function Softphone(props: { readonly pollMs?: number }) {
         : incoming !== undefined && !busy
           ? `Incoming call from ${incoming.prospectNumber}.`
           : 'Idle.'
-  const expanded = open || busy || incoming !== undefined || call !== null || error !== null
+  const expanded = open || busy || call !== null || error !== null
 
   return (
     <section
@@ -262,7 +284,7 @@ export function Softphone(props: { readonly pollMs?: number }) {
           aria-expanded={expanded}
           aria-controls='softphone-body'
           disabled={busy}
-          onClick={() => setOpen((now) => !now)}
+          onClick={toggle}
         >
           {expanded ? 'Close' : 'Open'}
         </Button>
@@ -295,7 +317,24 @@ export function Softphone(props: { readonly pollMs?: number }) {
             {error !== null ? (
               <p role='alert' className='mt-4 text-sm font-medium text-destructive'>
                 <strong>Error: </strong>
-                {error}
+                {error.message}
+                {error.link === 'lines' ? (
+                  <>
+                    {' '}
+                    <a
+                      href='/lines'
+                      className='underline'
+                      onClick={(event) => {
+                        if (router !== undefined) {
+                          event.preventDefault()
+                          void router.navigate({ to: '/lines' })
+                        }
+                      }}
+                    >
+                      Open Lines
+                    </a>
+                  </>
+                ) : null}
               </p>
             ) : null}
             {call !== null ? (
@@ -341,7 +380,18 @@ export function Softphone(props: { readonly pollMs?: number }) {
               void dial()
             }}
           >
-            <label className='label-mono' htmlFor='softphone-number'>
+            <label className='label-mono' htmlFor='softphone-country'>
+              Country calling code
+            </label>
+            <Select
+              id='softphone-country'
+              options={COUNTRY_OPTIONS}
+              value={country}
+              disabled={busy}
+              className='mt-1 max-w-xs'
+              onValueChange={(next) => setCountry(next as CountryCode)}
+            />
+            <label className='label-mono mt-4 block' htmlFor='softphone-number'>
               Number to call
             </label>
             <input
@@ -352,9 +402,18 @@ export function Softphone(props: { readonly pollMs?: number }) {
               maxLength={MAX_NUMBER}
               value={number}
               disabled={busy}
-              placeholder='+1 555 0100'
+              placeholder='555 010 0100'
               className='mt-1 block h-11 w-full max-w-xs border-b border-rule-strong bg-transparent font-mono text-base outline-hidden focus-visible:border-foreground'
-              onChange={(event) => setNumber(event.target.value)}
+              onChange={(event) => {
+                // A pasted +… number picks its own country; the field keeps only the national part.
+                const split = splitInternational(event.target.value, country)
+                if (split === null) {
+                  setNumber(event.target.value)
+                } else {
+                  setCountry(split.iso)
+                  setNumber(split.national)
+                }
+              }}
             />
             <fieldset className='mt-4 grid max-w-xs grid-cols-3 border-t border-l min-w-0 p-0'>
               <legend className='sr-only'>Dial pad</legend>
@@ -373,8 +432,8 @@ export function Softphone(props: { readonly pollMs?: number }) {
             <div className='mt-4 flex gap-4'>
               <Button
                 type='submit'
-                aria-disabled={busy || number.trim() === ''}
-                onClick={(e) => (busy || number.trim() === '') && e.preventDefault()}
+                aria-disabled={busy || e164 === ''}
+                onClick={(e) => (busy || e164 === '') && e.preventDefault()}
               >
                 Call
               </Button>
