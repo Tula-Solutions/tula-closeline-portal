@@ -29,7 +29,8 @@ export function hexId(
     | 'tch'
     | 'bkt'
     | 'bkg'
-    | 'rrl',
+    | 'rrl'
+    | 'ccard',
   n: number
 ): string {
   return `${prefix}_${n.toString(16).padStart(32, '0')}`

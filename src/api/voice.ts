@@ -4,13 +4,19 @@ import {
   type AgentTurn,
   type AssignLineRequest,
   agentSettingsSchema,
+  type CopilotCard,
   type CopilotSettings,
   type CreateQualificationQuestionRequest,
+  copilotCardPageSchema,
+  copilotCardSchema,
   copilotSettingsSchema,
   IDEMPOTENCY_KEY_HEADER,
   type Line,
+  type ListCopilotCardsQuery,
   linePageSchema,
   lineSchema,
+  type MarkCopilotCardRequest,
+  markCopilotCardRequestSchema,
   type QualificationQuestion,
   qualificationQuestionPageSchema,
   qualificationQuestionSchema,
@@ -32,6 +38,15 @@ import type { HttpClient } from '~/api/http'
 /** One page of Lines, newest first. */
 export type LinesPage = { readonly items: readonly Line[]; readonly nextCursor: string | null }
 
+/** One page of a Call's cards, oldest first. */
+export type CardsPage = {
+  readonly items: readonly CopilotCard[]
+  readonly nextCursor: string | null
+}
+
+/** What a Call's card list can be narrowed by. */
+export type CardKind = NonNullable<ListCopilotCardsQuery['kind']>
+
 /** The voice service routes the portal uses (the Lines admin). */
 export type VoiceApi = {
   /** One page of the Organization's Lines (Owner, Admin); released ones are listed too. */
@@ -50,6 +65,18 @@ export type VoiceApi = {
   getCopilotSettings(signal?: AbortSignal): Promise<CopilotSettings>
   /** Replaces the Copilot settings; a repeat of the same body changes nothing, so no key (Owner, Admin). */
   setCopilotSettings(body: SetCopilotSettingsRequest): Promise<CopilotSettings>
+  /** One page of a Call's Copilot cards, oldest first, optionally of one kind (the Call's visibility rules apply). */
+  listCopilotCards(
+    callId: string,
+    kind: CardKind | undefined,
+    page: PageRequest
+  ): Promise<CardsPage>
+  /** Sets the rating, dismissal or pin of a card to the state wanted (the Rep who took the Call only). */
+  markCopilotCard(
+    callId: string,
+    cardId: string,
+    body: MarkCopilotCardRequest
+  ): Promise<CopilotCard>
   /** The Qualification questions in the order the Agent asks them: one page of at most 100, which holds all 50 an Organization may keep. */
   listQuestions(signal?: AbortSignal): Promise<readonly QualificationQuestion[]>
   /** Adds a question, last unless the body says otherwise; the key makes a repeat add one (Owner, Admin). */
@@ -142,6 +169,22 @@ export function createVoiceApi(http: HttpClient): VoiceApi {
         body: setCopilotSettingsRequestSchema.parse(body),
         auth: true,
         parse: (json) => copilotSettingsSchema.parse(json),
+      }),
+    listCopilotCards: (callId, kind, page) =>
+      http.request({
+        path: `/v1/calls/${segment(callId)}/copilot/cards`,
+        query: { cursor: page.cursor, limit: page.limit ?? PAGE_SIZE, kind },
+        auth: true,
+        ...(page.signal ? { signal: page.signal } : {}),
+        parse: (json) => copilotCardPageSchema.parse(json),
+      }),
+    markCopilotCard: (callId, cardId, body) =>
+      http.request({
+        method: 'PATCH',
+        path: `/v1/calls/${segment(callId)}/copilot/cards/${segment(cardId)}`,
+        body: markCopilotCardRequestSchema.parse(body),
+        auth: true,
+        parse: (json) => copilotCardSchema.parse(json),
       }),
     listQuestions: (signal) =>
       http.request({

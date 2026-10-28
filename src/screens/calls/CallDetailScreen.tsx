@@ -8,6 +8,7 @@ import { Section } from '~/components/app/section'
 import { useCall, useTranscript } from '~/data/calls'
 import { can } from '~/data/permissions'
 import { useRole } from '~/data/session-role'
+import { CopilotCards } from '~/screens/calls/CopilotCards'
 import { CALL_STATE_WORD, formatDuration, formatOffset } from '~/screens/calls/format'
 import { Banner } from '~/ui/Banner'
 import { Confirm } from '~/ui/Confirm'
@@ -123,6 +124,9 @@ export function CallDetailScreen() {
                 : 'The Transcript is not ready yet.'}
             </p>
           )}
+        </Section>
+        <Section id='copilot-cards' title='Copilot cards'>
+          <CopilotCards callId={call.id} canMark={can.markCopilotCards(role)} />
         </Section>
         <Section id='recording' title='Recording'>
           <Playback
