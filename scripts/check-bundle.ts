@@ -31,4 +31,15 @@ if (offenders.length > 0) {
   )
   process.exit(1)
 }
+// The embeddable widget is loaded by other sites as a classic script, so it must import nothing.
+const widget = readFileSync(join(directory, 'chat-widget.js'), 'utf8')
+if (/^import[\s{]/m.test(widget)) {
+  console.error('chat-widget.js imports a chunk; it must be self-contained')
+  process.exit(1)
+}
+// A classic script's top-level names land in the host page's global scope.
+if (!widget.startsWith('(()=>{')) {
+  console.error('chat-widget.js must be wrapped in a function')
+  process.exit(1)
+}
 console.log(`No service address in ${directory}`)
