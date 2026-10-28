@@ -9,6 +9,7 @@ import {
   AUDIT_READ_ROLES,
   BOOKING_ADMIN_ROLES,
   CONSENT_ADMIN_ROLES,
+  ENRICHMENT_ADMIN_ROLES,
   EXPORT_ROLES,
   INBOX_ADMIN_ROLES,
   INBOX_REVIEW_ROLES,
@@ -34,6 +35,8 @@ export const ROLE_LABEL: Record<Role, string> = {
  * the authority and a 403 from it is always handled.
  */
 export const can = {
+  /** The roles the contract gives the enrichment settings (Owner and Admin) set providers, keys, the budget and Fit Criteria. */
+  manageEnrichment: (role: Role) => ENRICHMENT_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner, Admin and Manager list members. */
   viewMembers: (role: Role) => roleAtLeast(role, 'manager'),
   /** Owner and Admin change roles and remove members (within the limits of `assignableRoles`). */
