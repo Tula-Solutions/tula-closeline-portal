@@ -201,6 +201,11 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
   keep working. The Rep picks a country (default United States, `countries.ts`, libphonenumber-js/min) and types only the
   national number; the portal builds the E.164 string, and a pasted `+…` number is split into country and national
   number. Close always clears the open flag, the last error and a finished Call.
+- Handoff card (`src/screens/handoff/HandoffCard.tsx`, voice `/v1/handoffs`, docked in `Shell`): every role. Polls
+  `GET /v1/handoffs?state=pending` every 3 s, reads the context (`GET /v1/handoffs/{id}`: Qualification so far, the last
+  20 turns; no email or number) once per offer, and Accept or Decline posts the answer (the Rep is the token's; a repeat
+  is safe). The bridge after the Disclosure line is voice's; the Rep takes the audio in the Softphone. Turn text and the
+  summary are untrusted and shown through `plain()`. Errors are worded by `presentHandoff`.
 
 ## Hot paths
 

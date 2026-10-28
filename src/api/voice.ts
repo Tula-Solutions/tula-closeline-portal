@@ -5,6 +5,11 @@ import {
   type AssignLineRequest,
   agentSettingsSchema,
   type CreateQualificationQuestionRequest,
+  type Handoff,
+  type HandoffContext,
+  handoffContextSchema,
+  handoffPageSchema,
+  handoffSchema,
   IDEMPOTENCY_KEY_HEADER,
   type Line,
   linePageSchema,
@@ -62,6 +67,12 @@ export type VoiceApi = {
   startTrySession(idempotencyKey: string): Promise<TrySession>
   /** Says something in a try-it session and returns the Agent's reply turn (Owner, Admin). */
   sendTryMessage(sessionId: string, text: string, idempotencyKey: string): Promise<AgentTurn>
+  /** The Handoffs offered to the caller that still wait for an answer (one small page, latest first). */
+  listPendingHandoffs(signal?: AbortSignal): Promise<readonly Handoff[]>
+  /** What the Rep sees before answering a Handoff: the Prospect, the Qualification so far and the last turns. */
+  getHandoffContext(handoffId: string, signal?: AbortSignal): Promise<HandoffContext>
+  /** Accepts or declines a Handoff offered to the caller; the Disclosure plays, then the Rep is bridged. */
+  answerHandoff(handoffId: string, answer: 'accept' | 'decline'): Promise<Handoff>
 }
 
 const segment = encodeURIComponent
@@ -179,6 +190,28 @@ export function createVoiceApi(http: HttpClient): VoiceApi {
         headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
         auth: true,
         parse: (json) => tryReplySchema.parse(json).reply,
+      }),
+    listPendingHandoffs: (signal) =>
+      http.request({
+        path: '/v1/handoffs',
+        query: { state: 'pending', limit: 5 },
+        auth: true,
+        signal,
+        parse: (json) => handoffPageSchema.parse(json).items,
+      }),
+    getHandoffContext: (handoffId, signal) =>
+      http.request({
+        path: `/v1/handoffs/${segment(handoffId)}`,
+        auth: true,
+        signal,
+        parse: (json) => handoffContextSchema.parse(json),
+      }),
+    answerHandoff: (handoffId, answer) =>
+      http.request({
+        method: 'POST',
+        path: `/v1/handoffs/${segment(handoffId)}/${answer}`,
+        auth: true,
+        parse: (json) => handoffSchema.parse(json),
       }),
   }
 }
