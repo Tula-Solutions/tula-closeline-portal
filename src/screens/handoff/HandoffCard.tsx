@@ -176,7 +176,17 @@ export function HandoffCard(props: { readonly pollMs?: number }) {
               <>
                 <dl className='grid grid-cols-[auto_1fr] content-start gap-x-6 gap-y-1 text-sm'>
                   <dt className='label-mono'>Prospect</dt>
-                  <dd>{caller === null ? 'Unknown caller' : <Untrusted value={caller} />}</dd>
+                  <dd>
+                    {caller === null ? (
+                      prospect.isPending ? (
+                        'Loading...'
+                      ) : (
+                        'Unknown caller'
+                      )
+                    ) : (
+                      <Untrusted value={caller} />
+                    )}
+                  </dd>
                   <dt className='label-mono'>Qualified</dt>
                   <dd>
                     {answered} of {context.qualification.answers.length} questions answered

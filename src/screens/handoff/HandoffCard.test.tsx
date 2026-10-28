@@ -178,4 +178,20 @@ describe('HandoffCard', () => {
     expect(await screen.findByText('I want a person.')).toBeTruthy()
     expect(screen.getByText('Unknown caller')).toBeTruthy()
   })
+
+  test('the caller is not called unknown while the Prospect still loads', async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    mount((call) =>
+      call.path === `/v1/prospects/${hexId('prs', 1)}`
+        ? gate.then(() => failure(404, 'prospect.not_found'))
+        : null
+    )
+    expect(await screen.findByText('I want a person.')).toBeTruthy()
+    expect(screen.queryByText('Unknown caller')).toBeNull()
+    release()
+    expect(await screen.findByText('Unknown caller')).toBeTruthy()
+  })
 })
