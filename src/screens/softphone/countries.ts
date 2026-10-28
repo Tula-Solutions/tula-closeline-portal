@@ -28,7 +28,13 @@ export const COUNTRY_OPTIONS: readonly SelectOption[] = getCountries()
 /** The E.164 string for a national number in a country: `+` , the calling code and the digits; empty when no digits. */
 export function buildE164(iso: CountryCode, national: string): string {
   const digits = national.replace(/\D/g, '')
-  return digits === '' ? '' : `+${getCountryCallingCode(iso)}${digits}`
+  if (digits === '') {
+    return ''
+  }
+  // Parsing for the country drops a trunk zero (UK 020…); an unparsable number is sent as typed and the server judges it.
+  return (
+    parsePhoneNumberFromString(digits, iso)?.number ?? `+${getCountryCallingCode(iso)}${digits}`
+  )
 }
 
 /**
