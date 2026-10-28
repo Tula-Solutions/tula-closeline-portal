@@ -111,6 +111,8 @@ export const KEYS = {
   bookings: (organizationId: string) => [organizationId, 'bookings'] as const,
   /** The Organization's Routing Rules. */
   routingRules: (organizationId: string) => [organizationId, 'routing-rules'] as const,
+  /** Every cached read about Mailboxes (the list, health, domain checks, limits) and the send log. */
+  mail: (organizationId: string) => [organizationId, 'mail'] as const,
   /** The rights confirmation. */
   rights: (organizationId: string) => [organizationId, 'rights'] as const,
 }
@@ -138,7 +140,8 @@ export async function refreshCalendar(app: App): Promise<void> {
 
 type Page<T> = { readonly items: readonly T[]; readonly nextCursor: string | null }
 
-function pagedState<T extends { readonly id: string }>(query: PagedQuery<T>) {
+/** Folds an infinite query's pages into the `Paged` state and one de-duplicated list. */
+export function pagedState<T extends { readonly id: string }>(query: PagedQuery<T>) {
   return pagedStateBy(query, (item) => item.id)
 }
 

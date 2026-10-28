@@ -14,6 +14,7 @@ import {
   INBOX_REVIEW_ROLES,
   INVITABLE_ROLES,
   type InvitableRole,
+  MAIL_ADMIN_ROLES,
   ROUTING_ROLES,
   type Role,
   roleAtLeast,
@@ -46,6 +47,8 @@ export const can = {
   manageTeams: (role: Role) => roleAtLeast(role, 'admin'),
   /** The roles the contract gives the Line routes (Owner and Admin) add, assign and release Lines. */
   manageLines: (role: Role) => VOICE_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** Owner and Admin (the contract's mail roles) connect shared Mailboxes, check a domain and resume an auto-paused Mailbox; every role has its own Mailboxes. */
+  manageMail: (role: Role) => MAIL_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner and Admin define, change and retire Booking Types. */
   manageBookingTypes: (role: Role) => BOOKING_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner, Admin and Manager (the contract's routing roles) list and try Routing Rules; a Manager changes only those sending to their own Team, which core enforces. */

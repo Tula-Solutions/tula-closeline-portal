@@ -49,7 +49,7 @@ Nothing under `/internal` is forwarded. `/healthz` and `/readyz` exist on both s
 not routed; probe a service on its own port. Where the services listen comes from three dev-server
 settings, not `VITE_*` (see `.env.example`): `AUTH_PROXY_TARGET` (default `http://127.0.0.1:3001`),
 `CORE_PROXY_TARGET` (default `http://127.0.0.1:3002`), `PLAYBOOK_PROXY_TARGET` (default `http://127.0.0.1:3003`)
-and `VOICE_PROXY_TARGET` (default `http://127.0.0.1:3004`).
+`VOICE_PROXY_TARGET` (default `http://127.0.0.1:3004`) and `OUTBOUND_PROXY_TARGET` (default `http://127.0.0.1:3005`).
 The dev server answers 403 to a Host header it does not know; `PORTAL_DEV_ALLOWED_HOSTS` adds hosts (for
 example a tunnel) as a comma-separated list of exact hostnames (no port). Unset keeps Vite's default; `true`, `*` and
 wildcard or suffix entries are refused.
