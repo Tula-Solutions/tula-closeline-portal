@@ -16,6 +16,7 @@
     '/security',
     '/the-playbook',
     '/unsubscribe',
+    '/consent',
   ]
   const path = location.pathname
   const visitorOnly = visitorPages.some((p) => path === p || path.startsWith(`${p}/`))

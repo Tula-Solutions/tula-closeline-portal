@@ -11,6 +11,12 @@ import { type BookingTypesApi, createBookingTypesApi } from '~/api/booking-types
 import { type BookingsApi, createBookingsApi } from '~/api/bookings'
 import { type CalendarApi, createCalendarApi } from '~/api/calendar'
 import { type ConsentApi, createConsentApi } from '~/api/consent'
+import {
+  type ConsentFormsApi,
+  createConsentFormsApi,
+  createHostedConsentApi,
+  type HostedConsentApi,
+} from '~/api/consent-forms'
 import { type CoreApi, createCoreApi } from '~/api/core'
 import { createEscalationApi, type EscalationApi } from '~/api/escalation'
 import { createExportsApi, type ExportsApi } from '~/api/exports'
@@ -60,6 +66,10 @@ export type App = {
   readonly routing: RoutingApi
   /** Contact Consent on a Prospect, and the Suppression list. */
   readonly consent: ConsentApi
+  /** Hosted consent forms: draft, publish and close (Owner, Admin). */
+  readonly consentForms: ConsentFormsApi
+  /** The public hosted consent page's routes (a link from a message); send no token. */
+  readonly hostedConsent: HostedConsentApi
   /** The public marketing route (the Demo Request form); sends no token. */
   readonly marketing: MarketingApi
   /** The public unsubscribe routes (a link from a message); send no token. */
@@ -191,6 +201,8 @@ export function createApp(init: AppInit): App {
     bookings: createBookingsApi(coreHttp),
     routing: createRoutingApi(coreHttp),
     consent: createConsentApi(coreHttp),
+    consentForms: createConsentFormsApi(coreHttp),
+    hostedConsent: createHostedConsentApi(coreHttp),
     marketing: createMarketingApi(coreHttp),
     unsubscribe: createUnsubscribeApi(coreHttp),
     publicBooking: createPublicBookingApi(coreHttp),
