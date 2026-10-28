@@ -69,7 +69,7 @@ describe('connectVoice', () => {
     }
   })
 
-  test('re-registers with a fresh token when the Device unregisters, and reports ready', async () => {
+  test('re-registers (token refresh is left to expiry and token errors) when the Device unregisters, and reports ready', async () => {
     const ready: boolean[] = []
     let n = 0
     await connectVoice({
@@ -82,7 +82,7 @@ describe('connectVoice', () => {
     device.emit('unregistered')
     await settle()
     expect(device.registers).toBe(2)
-    expect(device.tokens).toEqual(['t1'])
+    expect(device.tokens).toEqual([])
     expect(ready).toEqual([true])
   })
 
@@ -118,6 +118,50 @@ describe('connectVoice', () => {
     device.emit('error', new Error('registration'), undefined)
     await settle()
     expect(device.registers).toBe(2)
+  })
+
+  test('a transport error (31009) re-registers without fetching a new token', async () => {
+    let fetched = 0
+    await connectVoice({
+      getToken: async () => `t${fetched++}`,
+      onLeg: () => undefined,
+      sleep,
+    })
+    const device = devices[0] as FakeDevice
+    device.emit('error', Object.assign(new Error('transport'), { code: 31009 }), undefined)
+    device.emit('unregistered')
+    await settle()
+    expect(fetched).toBe(1)
+    expect(device.tokens).toEqual([])
+    expect(device.registers).toBe(2)
+  })
+
+  test('a token error (31205) fetches a new token', async () => {
+    let fetched = 0
+    await connectVoice({ getToken: async () => `t${fetched++}`, onLeg: () => undefined, sleep })
+    const device = devices[0] as FakeDevice
+    device.emit('error', Object.assign(new Error('jwt'), { code: 31205 }), undefined)
+    await settle()
+    expect(fetched).toBe(2)
+  })
+
+  test('a storm of registration errors waits a growing, capped, jittered time between rounds', async () => {
+    const waits: number[] = []
+    await connectVoice({
+      getToken: async () => 't',
+      onLeg: () => undefined,
+      sleep: async (ms) => void waits.push(ms),
+    })
+    const device = devices[0] as FakeDevice
+    device.registerError = new Error('down')
+    for (let round = 0; round < 8; round++) {
+      device.emit('error', Object.assign(new Error('transport'), { code: 31009 }), undefined)
+      await settle()
+    }
+    expect(waits.length).toBeGreaterThan(8)
+    expect(Math.max(...waits)).toBeLessThanOrEqual(30_000)
+    // rounds back off well past the in-round retry waits (under 1s), up to the cap
+    expect(Math.max(...waits)).toBeGreaterThanOrEqual(5_000)
   })
 
   test('does not recover after destroy', async () => {

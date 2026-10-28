@@ -20,6 +20,15 @@ export type VoiceConnectorInit = {
 
 const ATTEMPTS = 3
 const BASE_MS = 500
+const CAP_MS = 30_000
+// Voice SDK codes for a bad or expired token (31202 signature, 31204 invalid, 31205 expired), from
+// https://www.twilio.com/docs/voice/sdks/error-codes; any other registration error (31009 transport) leaves it valid.
+const TOKEN_ERRORS = new Set([31202, 31204, 31205])
+
+/** A jittered exponential wait for the nth failure, capped so a storm backs off to one try per ~30s. */
+function backoff(failures: number): number {
+  return Math.min(CAP_MS, BASE_MS * 2 ** failures) * (0.5 + Math.random() / 2)
+}
 
 /** Runs `step` up to ATTEMPTS times with jittered exponential waits, then rethrows the last failure. */
 async function retried(step: () => Promise<void>, sleep: (ms: number) => Promise<void>) {
@@ -30,7 +39,7 @@ async function retried(step: () => Promise<void>, sleep: (ms: number) => Promise
       if (attempt === ATTEMPTS) {
         throw error
       }
-      await sleep(BASE_MS * 2 ** (attempt - 1) * (0.5 + Math.random() / 2))
+      await sleep(backoff(attempt - 1))
     }
   }
 }
@@ -56,6 +65,9 @@ export const connectVoice: VoiceConnector = async ({ getToken, onLeg, onReady, s
   let closed = false
   let recovering = false
   const refresh = async () => device.updateToken(await getToken())
+  // Failed recovery rounds in a row, and whether the last error was a token error; expiry is refreshed ahead by tokenWillExpire.
+  let failures = 0
+  let tokenError = false
   // A lost registration (the token ran out, the socket dropped) is rebuilt with a fresh token.
   const recover = async () => {
     if (closed || recovering) {
@@ -63,12 +75,20 @@ export const connectVoice: VoiceConnector = async ({ getToken, onLeg, onReady, s
     }
     recovering = true
     try {
+      if (failures > 0) {
+        await wait(backoff(failures))
+      }
       await retried(async () => {
-        await refresh()
+        if (tokenError) {
+          await refresh()
+        }
         await device.register()
       }, wait)
+      failures = 0
+      tokenError = false
       onReady?.(true)
     } catch {
+      failures++
       onReady?.(false)
     } finally {
       recovering = false
@@ -87,8 +107,9 @@ export const connectVoice: VoiceConnector = async ({ getToken, onLeg, onReady, s
   })
   device.on('unregistered', () => void recover())
   // An error with no Call is about the registration itself; a Call error is handled on the leg.
-  device.on('error', (_error, call) => {
+  device.on('error', (error, call) => {
     if (call === undefined) {
+      tokenError = TOKEN_ERRORS.has((error as { code?: number }).code ?? 0)
       void recover()
     }
   })

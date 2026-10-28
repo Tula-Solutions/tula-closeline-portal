@@ -53,6 +53,12 @@ export const can = {
   deleteRecording: (role: Role) => roleAtLeast(role, 'admin'),
   /** The Rep who took a Call, an Owner and an Admin wrap it up; a Manager only reads. */
   wrapUpCalls: (role: Role) => role !== 'manager',
+  /**
+   * Rate, dismiss and pin a Call's Copilot cards: only the Rep who took the Call (the service refuses anyone else).
+   * The session holds no member id to compare with the Call's Rep, and a Rep sees only their own Calls, so the Rep
+   * role stands for it; an Owner, Admin or Manager reads the cards.
+   */
+  markCopilotCards: (role: Role) => role === 'rep',
   /** Owner and Admin define, change and retire Booking Types. */
   manageBookingTypes: (role: Role) => BOOKING_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner, Admin and Manager (the contract's routing roles) list and try Routing Rules; a Manager changes only those sending to their own Team, which core enforces. */
@@ -91,6 +97,8 @@ export const can = {
   viewAgent: (role: Role) => AGENT_CONTROL_READ_ROLES.some((allowed) => allowed === role),
   /** The roles the contract gives the Agent write routes (Owner and Admin) edit instructions, controls and the pause switch. */
   manageAgent: (role: Role) => AGENT_CONTROL_ADMIN_ROLES.some((allowed) => allowed === role),
+  /** The roles the contract gives the Copilot settings write route (Owner and Admin); every role reads them. */
+  manageCopilot: (role: Role) => roleAtLeast(role, 'admin'),
   /** Owner and Admin upload, delete and restore Playbook documents; every role reads them. */
   managePlaybook: (role: Role) => roleAtLeast(role, 'admin'),
   /** Owner and Admin see and manage sales history (Deals, imports, Calls, the rights confirmation); Manager and Rep never reach it. */

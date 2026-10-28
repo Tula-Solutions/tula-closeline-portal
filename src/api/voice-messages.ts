@@ -1,4 +1,4 @@
-import { ERRORS, VOICE_ERRORS } from 'tula-closeline-contract'
+import { COPILOT_ERRORS, ERRORS, VOICE_ERRORS } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import { presentManage, type ShownFailure } from '~/api/manage-messages'
 import { waitPhrase } from '~/api/messages'
@@ -75,6 +75,8 @@ export function presentCallHistory(error: unknown): ShownFailure {
       // Not in the contract's error maps yet, though the call routes answer it.
       case 'call.not_found':
         return { message: 'That Call is not available to you. Go back to the list.' }
+      case COPILOT_ERRORS['card.not_found'].code:
+        return { message: 'That card is no longer available. Reload the cards.' }
       case VOICE_ERRORS['call.not_ended'].code:
         return { message: 'That Call has not ended yet. Wrap it up once it has.' }
       case VOICE_ERRORS['recording.not_found'].code:

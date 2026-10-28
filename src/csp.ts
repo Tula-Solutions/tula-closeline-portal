@@ -10,13 +10,10 @@ export function buildCsp(env: Env, options: { readonly meta: boolean }): string 
   // A Recording plays from a signed storage URL (https; plain http only on a local stand-in); the
   // Voice SDK's ring and tone files (sdk.twilio.com) are https too.
   const media = env.environment === 'local' ? "'self' https: http:" : "'self' https:"
-  // The Voice SDK starts on the roaming edge, then moves to the edge and region the server reports:
-  // signalling is wss://voice-js.<edge>.twilio.com, event reporting https://eventgw.<region>.twilio.com.
-  connect.push(
-    'https://eventgw.twilio.com',
-    'https://eventgw.*.twilio.com',
-    'wss://voice-js.*.twilio.com'
-  )
+  // The Voice SDK signals over wss://voice-js.<edge>.twilio.com (or voice-js.twilio.com), reports events
+  // to eventgw[.<region>].twilio.com and fetches its sounds from sdk.twilio.com; a leading wildcard
+  // covers every edge and region.
+  connect.push('https://*.twilio.com', 'wss://*.twilio.com')
   const directives: string[] = [
     "default-src 'none'",
     "script-src 'self'",
