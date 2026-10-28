@@ -39,8 +39,8 @@ export const fingerprint = {
     JSON.stringify(['try-message', sessionId, index, text]),
   /** Inviting `email` for `role`. */
   invitation: (email: string, role: string) => JSON.stringify(['invitation', email, role]),
-  /** Placing a Call to `to`; a retry of the same press reuses the key. */
-  softphoneCall: (to: string) => JSON.stringify(['softphone-call', to]),
+  /** Placing a Call to `to` with the Copilot on or off; a retry of the same press reuses the key. */
+  softphoneCall: (to: string, copilot: boolean) => JSON.stringify(['softphone-call', to, copilot]),
   /** Enriching these Prospects (their ids as JSON text); a retry of the same press reuses the key. */
   enrichment: (ids: string) => JSON.stringify(['enrichment', ids]),
   /** An enrichment settings write: its kind, target and body (a key is hashed by the caller); a retry reuses its key. */

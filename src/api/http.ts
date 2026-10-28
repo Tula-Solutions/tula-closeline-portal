@@ -139,6 +139,8 @@ export type RequestOptions<T> = {
   readonly signal?: AbortSignal
   /** The answer is plain text (a CSV), not JSON: it is read as text and handed to `parse` as a string. */
   readonly text?: boolean
+  /** Reads the answer body itself (a stream) instead of JSON; give `timeoutMs` for the whole stream. */
+  readonly read?: (response: Response) => Promise<T>
   /** Checks and narrows the JSON answer (and sees the status, for a route with two success codes); a throw becomes `client.bad_response`. */
   readonly parse?: (json: unknown, status: number, headers: Headers) => T
 }
@@ -230,6 +232,9 @@ export function createHttpClient(config: HttpConfig): HttpClient {
       }
       if (response.status === 204) {
         return undefined as T
+      }
+      if (options.read) {
+        return await options.read(response)
       }
       const json: unknown = options.text ? await response.text() : await response.json()
       try {

@@ -12,6 +12,7 @@ import { Select } from '~/components/ui/select'
 import { cn } from '~/lib/utils'
 import { Untrusted } from '~/ui/Untrusted'
 import { buildE164, COUNTRY_OPTIONS, DEFAULT_COUNTRY, splitInternational } from './countries'
+import { LiveTranscript } from './LiveTranscript'
 import type { VoiceConnector, VoiceLeg } from './voice-device'
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'] as const
@@ -68,6 +69,9 @@ export function Softphone(props: {
   const [number, setNumber] = useState('')
   const e164 = buildE164(country, number)
   const [call, setCall] = useState<SoftphoneCall | null>(null)
+  const [copilot, setCopilot] = useState(true)
+  // The Copilot choice made for the Call in hand, so the Transcript follows the Call, not the box.
+  const [callCopilot, setCallCopilot] = useState(false)
   const [placing, setPlacing] = useState(false)
   const [answering, setAnswering] = useState(false)
   const [hungUp, setHungUp] = useState(false)
@@ -243,9 +247,10 @@ export function Softphone(props: {
     setPlacing(true)
     setHungUp(false)
     setCall(null)
-    const attempt = app.keys.begin(fingerprint.softphoneCall(e164))
+    setCallCopilot(copilot)
+    const attempt = app.keys.begin(fingerprint.softphoneCall(e164, copilot))
     try {
-      setCall(await app.calls.place(e164, attempt.key))
+      setCall(await app.calls.place(e164, copilot, attempt.key))
       attempt.succeeded()
     } catch (caught) {
       attempt.failed(caught)
@@ -296,6 +301,7 @@ export function Softphone(props: {
       setOpen(false)
       setError(null)
       setCall(null)
+      setCallCopilot(false)
       setHungUp(false)
     } else {
       setOpen(true)
@@ -481,6 +487,27 @@ export function Softphone(props: {
                 }
               }}
             />
+            <div className='mt-4 flex max-w-xs items-start gap-3'>
+              <input
+                id='softphone-copilot'
+                type='checkbox'
+                checked={copilot}
+                disabled={busy}
+                aria-describedby='softphone-copilot-help'
+                className='mt-1 size-4 accent-foreground'
+                onChange={(event) => setCopilot(event.target.checked)}
+              />
+              <div>
+                <label className='label-mono' htmlFor='softphone-copilot'>
+                  Copilot for this Call
+                </label>
+                <p id='softphone-copilot-help' className='mt-1 text-sm'>
+                  {copilot
+                    ? 'On: the Disclosure says the Call is recorded and AI-assisted, and you see a live Transcript.'
+                    : 'Off: the Disclosure says the Call is recorded only, and there is no Transcript.'}
+                </p>
+              </div>
+            </div>
             <fieldset className='mt-4 grid max-w-xs grid-cols-3 border-t border-l min-w-0 p-0'>
               <legend className='sr-only'>Dial pad</legend>
               {KEYS.map((key) => (
@@ -513,6 +540,7 @@ export function Softphone(props: {
               </Button>
             </div>
           </form>
+          {call !== null && callCopilot ? <LiveTranscript key={call.id} callId={call.id} /> : null}
         </div>
       ) : null}
     </section>
