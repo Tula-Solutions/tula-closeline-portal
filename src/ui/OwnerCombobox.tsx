@@ -2,6 +2,7 @@ import { Check, ChevronDown, CircleAlert } from 'lucide-react'
 import { type KeyboardEvent, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { MAX_MEMBER_QUERY_LENGTH, type Role } from 'tula-closeline-contract'
 import { Label } from '~/components/ui/label'
+import { ROLE_LABEL } from '~/data/permissions'
 import { useMemberSearch, useMembersByIds } from '~/data/queries'
 import { cn } from '~/lib/utils'
 import { plain } from '~/ui/plain'
@@ -30,6 +31,8 @@ export function OwnerCombobox(props: {
   readonly memberRole?: Role
   /** A further client-side filter for choices no single role covers (several roles). */
   readonly accept?: (member: { readonly role: string }) => boolean
+  /** Adds each member's role to the name ("Maya Chen (Admin)"), for a pick across all roles. */
+  readonly showRole?: boolean
 }) {
   const {
     label,
@@ -43,6 +46,7 @@ export function OwnerCombobox(props: {
     hint,
     memberRole,
     accept,
+    showRole,
   } = props
   const id = useId()
   const listId = `${id}-list`
@@ -57,23 +61,24 @@ export function OwnerCombobox(props: {
   const root = useRef<HTMLDivElement>(null)
 
   const choices = useMemo<readonly Choice[]>(() => {
+    const withRole = (member: { name: string | null; email: string; role: Role }) => {
+      const name = plain(member.name ?? member.email, 'Unnamed member')
+      return showRole ? `${name} (${ROLE_LABEL[member.role]})` : name
+    }
     const listed = members.items
       .filter((member) => accept === undefined || accept(member))
       .map((member) => ({
         id: member.id,
-        text: plain(member.name ?? member.email, 'Unnamed member'),
+        text: withRole(member),
       }))
     const found = resolved.get(value)
-    const keptText =
-      valueName ||
-      (found === undefined ? '' : plain(found.name ?? found.email, 'Unnamed member')) ||
-      'Selected owner'
+    const keptText = valueName || (found === undefined ? '' : withRole(found)) || 'Selected owner'
     const kept =
       value !== '' && !listed.some((choice) => choice.id === value)
         ? [{ id: value, text: keptText }]
         : []
     return [{ id: '', text: anyText }, ...kept, ...listed]
-  }, [members.items, accept, resolved, value, valueName, anyText])
+  }, [members.items, accept, resolved, value, valueName, anyText, showRole])
 
   const chosenText = choices.find((choice) => choice.id === value)?.text ?? anyText
 

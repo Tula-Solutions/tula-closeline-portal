@@ -368,6 +368,7 @@ export function lineBody(
       | { kind: 'unassigned' }
       | { kind: 'team'; teamId: string }
       | { kind: 'rep'; membershipId: string }
+      | { kind: 'role'; role: 'owner' | 'admin' | 'manager' | 'rep' }
   }> = {}
 ) {
   return {

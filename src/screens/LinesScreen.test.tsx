@@ -7,6 +7,10 @@ import { renderPortal } from '~/testing/render'
 import { param } from '~/testing/sales'
 import { choose, optionsOf } from '~/testing/select'
 
+/** The line's hint, whose text is split between the (isolated) name and the role. */
+const hint = (text: string) =>
+  screen.findByText((_, node) => node?.className === 'hint' && node.textContent === text)
+
 const LINES = '/v1/lines'
 const TEAMS = '/v1/teams'
 const MEMBERS = '/v1/members'
@@ -289,28 +293,27 @@ describe('Lines: assign', () => {
             )
           : json(
               200,
-              page(
-                param(call.url, 'role') === 'rep'
-                  ? [memberBody(3, { name: 'Zed Rep', role: 'rep' })]
-                  : [
-                      memberBody(2, { name: 'Omar Admin', role: 'admin' }),
-                      memberBody(3, { name: 'Zed Rep', role: 'rep' }),
-                    ]
-              )
+              page([
+                memberBody(2, { name: 'Omar Admin', role: 'admin' }),
+                memberBody(3, { name: 'Zed Rep', role: 'rep' }),
+                memberBody(4, { name: 'Olga Owner', role: 'owner' }),
+              ])
             )
       )
     )
     await screen.findByText('+14155550001')
     await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
-    await choose(portal.user, await screen.findByLabelText('Who answers'), 'rep')
-    const rep = await screen.findByLabelText('Rep')
+    await choose(portal.user, await screen.findByLabelText('Who answers'), 'person')
+    const rep = await screen.findByLabelText('Person')
     expect(rep.getAttribute('role')).toBe('combobox')
     await portal.user.click(rep)
-    await screen.findByRole('option', { name: 'Zed Rep' })
-    expect(screen.queryByRole('option', { name: 'Omar Admin' })).toBeNull()
+    await screen.findByRole('option', { name: 'Zed Rep (Rep)' })
+    await screen.findByRole('option', { name: 'Omar Admin (Admin)' })
+    await screen.findByRole('option', { name: 'Olga Owner (Owner)' })
+    expect(portal.calls.some((call) => param(call.url, 'role') !== null)).toBe(false)
     await portal.user.clear(rep)
     await portal.user.type(rep, 'maya@north')
-    await portal.user.click(await screen.findByRole('option', { name: 'Maya Chen' }))
+    await portal.user.click(await screen.findByRole('option', { name: 'Maya Chen (Rep)' }))
     await portal.user.click(screen.getByRole('button', { name: 'Save assignment' }))
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Line assigned.'))
     expect(portal.calls.some((call) => call.url.includes('q=maya%40north'))).toBe(true)
@@ -331,12 +334,12 @@ describe('Lines: assign', () => {
     )
     await screen.findByText('+14155550001')
     await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
-    await choose(portal.user, await screen.findByLabelText('Who answers'), 'rep')
-    const rep = (await screen.findByLabelText('Rep')) as HTMLInputElement
+    await choose(portal.user, await screen.findByLabelText('Who answers'), 'person')
+    const rep = (await screen.findByLabelText('Person')) as HTMLInputElement
     await portal.user.click(rep)
-    await screen.findByRole('option', { name: 'Maya Chen' })
+    await screen.findByRole('option', { name: 'Maya Chen (Rep)' })
     await portal.user.keyboard('{ArrowDown}{Enter}')
-    expect(rep.value).toBe('Maya Chen')
+    expect(rep.value).toBe('Maya Chen (Rep)')
     expect(portal.calls.filter((call) => call.method === 'PUT').length).toBe(0)
     await portal.user.click(screen.getByRole('button', { name: 'Save assignment' }))
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Line assigned.'))
@@ -346,14 +349,59 @@ describe('Lines: assign', () => {
     })
   })
 
-  test('saving as a Rep without choosing one asks for a Rep', async () => {
+  test('saving as a person without choosing one asks for a person', async () => {
     const portal = visit('admin', '/lines', lines, teams, members)
     await screen.findByText('+14155550001')
     await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
-    await choose(portal.user, await screen.findByLabelText('Who answers'), 'rep')
+    await choose(portal.user, await screen.findByLabelText('Who answers'), 'person')
     await portal.user.click(screen.getByRole('button', { name: 'Save assignment' }))
-    await screen.findByText(/Choose a Rep/)
+    await screen.findByText(/Choose a person/)
     expect(portal.calls.filter((call) => call.method === 'PUT').length).toBe(0)
+  })
+
+  test('assigns a Line to a whole role', async () => {
+    const portal = visit(
+      'admin',
+      '/lines',
+      route('PUT', assignment(1), json(200, lineBody(1))),
+      lines,
+      teams,
+      members
+    )
+    await screen.findByText('+14155550001')
+    await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550001' }))
+    await choose(portal.user, await screen.findByLabelText('Who answers'), 'role')
+    await choose(portal.user, await screen.findByLabelText('Role'), 'admin')
+    await portal.user.click(screen.getByRole('button', { name: 'Save assignment' }))
+    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Line assigned.'))
+    expect(portal.calls.find((call) => call.method === 'PUT')?.body).toEqual({
+      kind: 'role',
+      role: 'admin',
+    })
+  })
+
+  test('says in plain words who a Line rings', async () => {
+    visit(
+      'admin',
+      '/lines',
+      route(
+        'GET',
+        LINES,
+        json(
+          200,
+          page([
+            lineBody(1, { assignment: { kind: 'role', role: 'admin' } }),
+            lineBody(2, { assignment: { kind: 'team', teamId: hexId('team', 2) } }),
+            lineBody(3, { assignment: { kind: 'rep', membershipId: hexId('mem', 4) } }),
+          ])
+        )
+      ),
+      teams,
+      route('GET', MEMBERS, json(200, page([memberBody(4, { name: 'Olga Owner', role: 'owner' })])))
+    )
+    await screen.findByText('Everyone with role Admin')
+    await hint('Team: Southern')
+    await hint('Olga Owner (Owner)')
   })
 
   test('offers a Team that sits on a later page', async () => {
@@ -414,8 +462,8 @@ describe('Lines: assign', () => {
   })
 })
 
-describe('Lines: Rep names and the role filter', () => {
-  // A directory of 40 members where the Reps assigned to Lines are not on the first page.
+describe('Lines: member names', () => {
+  // A directory of 40 members where the members assigned to Lines are not on the first page.
   const directory = route('GET', MEMBERS, (call) => {
     const ids = param(call.url, 'ids')
     const role = param(call.url, 'role')
@@ -435,7 +483,10 @@ describe('Lines: Rep names and the role filter', () => {
       page(
         role === 'rep'
           ? [memberBody(3, { name: 'Zed Rep', role: 'rep' })]
-          : [memberBody(2, { name: 'Omar Admin', role: 'admin' })]
+          : [
+              memberBody(2, { name: 'Omar Admin', role: 'admin' }),
+              memberBody(3, { name: 'Zed Rep', role: 'rep' }),
+            ]
       )
     )
   })
@@ -447,8 +498,7 @@ describe('Lines: Rep names and the role filter', () => {
 
   test('names the Rep a Line rings with one ids lookup, not the first page of members', async () => {
     const portal = visit('admin', '/lines', lateLine, teams, directory)
-    await screen.findByText(/Rings the Rep/)
-    await screen.findByText(/Late Rep/)
+    await hint('Late Rep (Rep)')
     const lookups = portal.calls.filter((call) => param(call.url, 'ids') !== null)
     expect(lookups).toHaveLength(1)
     expect(param(lookups[0]?.url ?? '', 'ids')).toBe(hexId('mem', 31))
@@ -456,15 +506,13 @@ describe('Lines: Rep names and the role filter', () => {
 
   test('the Rep picker asks the server for Reps and shows the current Rep by name', async () => {
     const portal = visit('admin', '/lines', lateLine, teams, directory)
-    await screen.findByText(/Late Rep/)
+    await hint('Late Rep (Rep)')
     await portal.user.click(screen.getByRole('button', { name: 'Assign +14155550003' }))
-    const rep = (await screen.findByLabelText('Rep')) as HTMLInputElement
-    await waitFor(() => expect(rep.value).toBe('Late Rep'))
+    const rep = (await screen.findByLabelText('Person')) as HTMLInputElement
+    await waitFor(() => expect(rep.value).toBe('Late Rep (Rep)'))
     await portal.user.click(rep)
-    await screen.findByRole('option', { name: 'Zed Rep' })
-    expect(
-      portal.calls.some((call) => call.path === MEMBERS && param(call.url, 'role') === 'rep')
-    ).toBe(true)
+    await screen.findByRole('option', { name: 'Zed Rep (Rep)' })
+    await screen.findByRole('option', { name: 'Omar Admin (Admin)' })
   })
 })
 
