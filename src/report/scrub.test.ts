@@ -293,6 +293,12 @@ describe('a public booking link keeps its token out of reports', () => {
     )
   })
 
+  test('stripUrl masks the token of a hosted consent link', () => {
+    expect(stripUrl('https://app.example/consent/short-secret?x=1')).toBe(
+      'https://app.example/consent/[redacted]'
+    )
+  })
+
   test('stripUrl masks the last path segment of /book/', () => {
     expect(stripUrl(`https://app.example/book/${token}?x=1`)).toBe(
       'https://app.example/book/[redacted]'

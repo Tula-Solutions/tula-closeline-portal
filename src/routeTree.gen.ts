@@ -20,6 +20,7 @@ import { Route as AppAuditRouteImport } from './routes/_app/audit'
 import { Route as AppBookingTypesRouteImport } from './routes/_app/booking-types'
 import { Route as AppBookingsRouteImport } from './routes/_app/bookings'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
+import { Route as AppConsentFormsRouteImport } from './routes/_app/consent-forms'
 import { Route as AppConsentWordingsRouteImport } from './routes/_app/consent-wordings'
 import { Route as AppDevelopersRouteImport } from './routes/_app/developers'
 import { Route as AppExportRouteImport } from './routes/_app/export'
@@ -60,6 +61,7 @@ import { Route as AppSalesHistoryIndexRouteImport } from './routes/_app/sales-hi
 import { Route as AppSalesHistoryRightsRouteImport } from './routes/_app/sales-history/rights'
 import { Route as AppSalesHistorySearchRouteImport } from './routes/_app/sales-history/search'
 import { Route as PublicSignUpGoogleRouteImport } from './routes/_public/sign-up_.google'
+import { Route as SiteConsentTokenRouteImport } from './routes/_site/consent.$token'
 import { Route as SiteUnsubscribeTokenRouteImport } from './routes/_site/unsubscribe.$token'
 import { Route as BookManageTokenRouteImport } from './routes/book.manage.$token'
 import { Route as AppAnalyticsDealsDealRecordIdRouteImport } from './routes/_app/analytics/deals/$dealRecordId'
@@ -123,6 +125,11 @@ const AppBookingsRoute = AppBookingsRouteImport.update({
 const AppCalendarRoute = AppCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConsentFormsRoute = AppConsentFormsRouteImport.update({
+  id: '/consent-forms',
+  path: '/consent-forms',
   getParentRoute: () => AppRoute,
 } as any)
 const AppConsentWordingsRoute = AppConsentWordingsRouteImport.update({
@@ -325,6 +332,11 @@ const PublicSignUpGoogleRoute = PublicSignUpGoogleRouteImport.update({
   path: '/sign-up/google',
   getParentRoute: () => PublicRoute,
 } as any)
+const SiteConsentTokenRoute = SiteConsentTokenRouteImport.update({
+  id: '/consent/$token',
+  path: '/consent/$token',
+  getParentRoute: () => SiteRoute,
+} as any)
 const SiteUnsubscribeTokenRoute = SiteUnsubscribeTokenRouteImport.update({
   id: '/unsubscribe/$token',
   path: '/unsubscribe/$token',
@@ -404,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/booking-types': typeof AppBookingTypesRoute
   '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
+  '/consent-forms': typeof AppConsentFormsRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
   '/export': typeof AppExportRoute
@@ -439,6 +452,7 @@ export interface FileRoutesByFullPath {
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sign-up/google': typeof PublicSignUpGoogleRoute
+  '/consent/$token': typeof SiteConsentTokenRoute
   '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
   '/book/manage/$token': typeof BookManageTokenRoute
   '/analytics/': typeof AppAnalyticsIndexRoute
@@ -466,6 +480,7 @@ export interface FileRoutesByTo {
   '/booking-types': typeof AppBookingTypesRoute
   '/bookings': typeof AppBookingsRoute
   '/calendar': typeof AppCalendarRoute
+  '/consent-forms': typeof AppConsentFormsRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
   '/export': typeof AppExportRoute
@@ -498,6 +513,7 @@ export interface FileRoutesByTo {
   '/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sign-up/google': typeof PublicSignUpGoogleRoute
+  '/consent/$token': typeof SiteConsentTokenRoute
   '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
   '/book/manage/$token': typeof BookManageTokenRoute
   '/analytics': typeof AppAnalyticsIndexRoute
@@ -528,6 +544,7 @@ export interface FileRoutesById {
   '/_app/booking-types': typeof AppBookingTypesRoute
   '/_app/bookings': typeof AppBookingsRoute
   '/_app/calendar': typeof AppCalendarRoute
+  '/_app/consent-forms': typeof AppConsentFormsRoute
   '/_app/consent-wordings': typeof AppConsentWordingsRoute
   '/_app/developers': typeof AppDevelopersRoute
   '/_app/export': typeof AppExportRoute
@@ -564,6 +581,7 @@ export interface FileRoutesById {
   '/_app/sales-history/rights': typeof AppSalesHistoryRightsRoute
   '/_app/sales-history/search': typeof AppSalesHistorySearchRoute
   '/_public/sign-up_/google': typeof PublicSignUpGoogleRoute
+  '/_site/consent/$token': typeof SiteConsentTokenRoute
   '/_site/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
   '/book/manage/$token': typeof BookManageTokenRoute
   '/_app/analytics/': typeof AppAnalyticsIndexRoute
@@ -593,6 +611,7 @@ export interface FileRouteTypes {
     | '/booking-types'
     | '/bookings'
     | '/calendar'
+    | '/consent-forms'
     | '/consent-wordings'
     | '/developers'
     | '/export'
@@ -628,6 +647,7 @@ export interface FileRouteTypes {
     | '/sales-history/rights'
     | '/sales-history/search'
     | '/sign-up/google'
+    | '/consent/$token'
     | '/unsubscribe/$token'
     | '/book/manage/$token'
     | '/analytics/'
@@ -655,6 +675,7 @@ export interface FileRouteTypes {
     | '/booking-types'
     | '/bookings'
     | '/calendar'
+    | '/consent-forms'
     | '/consent-wordings'
     | '/developers'
     | '/export'
@@ -687,6 +708,7 @@ export interface FileRouteTypes {
     | '/sales-history/rights'
     | '/sales-history/search'
     | '/sign-up/google'
+    | '/consent/$token'
     | '/unsubscribe/$token'
     | '/book/manage/$token'
     | '/analytics'
@@ -716,6 +738,7 @@ export interface FileRouteTypes {
     | '/_app/booking-types'
     | '/_app/bookings'
     | '/_app/calendar'
+    | '/_app/consent-forms'
     | '/_app/consent-wordings'
     | '/_app/developers'
     | '/_app/export'
@@ -752,6 +775,7 @@ export interface FileRouteTypes {
     | '/_app/sales-history/rights'
     | '/_app/sales-history/search'
     | '/_public/sign-up_/google'
+    | '/_site/consent/$token'
     | '/_site/unsubscribe/$token'
     | '/book/manage/$token'
     | '/_app/analytics/'
@@ -856,6 +880,13 @@ declare module '@tanstack/react-router' {
       path: '/calendar'
       fullPath: '/calendar'
       preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/consent-forms': {
+      id: '/_app/consent-forms'
+      path: '/consent-forms'
+      fullPath: '/consent-forms'
+      preLoaderRoute: typeof AppConsentFormsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/consent-wordings': {
@@ -1138,6 +1169,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicSignUpGoogleRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_site/consent/$token': {
+      id: '/_site/consent/$token'
+      path: '/consent/$token'
+      fullPath: '/consent/$token'
+      preLoaderRoute: typeof SiteConsentTokenRouteImport
+      parentRoute: typeof SiteRoute
+    }
     '/_site/unsubscribe/$token': {
       id: '/_site/unsubscribe/$token'
       path: '/unsubscribe/$token'
@@ -1288,6 +1326,7 @@ interface AppRouteChildren {
   AppBookingTypesRoute: typeof AppBookingTypesRoute
   AppBookingsRoute: typeof AppBookingsRoute
   AppCalendarRoute: typeof AppCalendarRoute
+  AppConsentFormsRoute: typeof AppConsentFormsRoute
   AppConsentWordingsRoute: typeof AppConsentWordingsRoute
   AppDevelopersRoute: typeof AppDevelopersRoute
   AppExportRoute: typeof AppExportRoute
@@ -1326,6 +1365,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppBookingTypesRoute: AppBookingTypesRoute,
   AppBookingsRoute: AppBookingsRoute,
   AppCalendarRoute: AppCalendarRoute,
+  AppConsentFormsRoute: AppConsentFormsRoute,
   AppConsentWordingsRoute: AppConsentWordingsRoute,
   AppDevelopersRoute: AppDevelopersRoute,
   AppExportRoute: AppExportRoute,
@@ -1380,6 +1420,7 @@ interface SiteRouteChildren {
   SiteOutboundAgentRoute: typeof SiteOutboundAgentRoute
   SiteSecurityRoute: typeof SiteSecurityRoute
   SiteThePlaybookRoute: typeof SiteThePlaybookRoute
+  SiteConsentTokenRoute: typeof SiteConsentTokenRoute
   SiteUnsubscribeTokenRoute: typeof SiteUnsubscribeTokenRoute
 }
 
@@ -1390,6 +1431,7 @@ const SiteRouteChildren: SiteRouteChildren = {
   SiteOutboundAgentRoute: SiteOutboundAgentRoute,
   SiteSecurityRoute: SiteSecurityRoute,
   SiteThePlaybookRoute: SiteThePlaybookRoute,
+  SiteConsentTokenRoute: SiteConsentTokenRoute,
   SiteUnsubscribeTokenRoute: SiteUnsubscribeTokenRoute,
 }
 

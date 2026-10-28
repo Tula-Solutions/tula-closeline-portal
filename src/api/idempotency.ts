@@ -78,6 +78,10 @@ export const fingerprint = {
   /** Writing a Consent Wording with this body (as JSON), or its next version when `wordingId` is given. */
   consentWording: (wordingId: string, body: string) =>
     JSON.stringify(['consent-wording', wordingId, body]),
+  /** Creating a hosted consent form with this body (as JSON). */
+  consentFormCreate: (body: string) => JSON.stringify(['consent-form-create', body]),
+  /** Submitting the hosted consent page at `token` with this body (as JSON). */
+  hostedConsent: (token: string, body: string) => JSON.stringify(['hosted-consent', token, body]),
   /** Saving `text` as a new draft of the `kind` Agent's instructions. */
   agentInstruction: (kind: string, text: string) =>
     JSON.stringify(['agent-instruction', kind, text]),

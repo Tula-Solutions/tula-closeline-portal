@@ -121,6 +121,13 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
   `app.reporter.redact`, masked by `/book/` in `src/report/scrub.ts`, never in the title. Times show
   in the browser's zone; the booking sends `timeZone`, the honeypot `website` (a filled one is still
   sent; the server decides) and an Idempotency-Key kept on retry. The confirmation links to the manage page and tells the Prospect to keep it.
+- Consent forms: admin screen `/consent-forms` (`ConsentFormsScreen.tsx`, Owner/Admin only, no request for other roles;
+  `src/api/consent-forms.ts`) and the public page `/consent/$token` (`src/marketing/ConsentFormPage.tsx`, copy in
+  `copy/consent-form.ts`). Publishing locks the wording, so the screen says so first; the token is shown only inside
+  the copied link, registered with `app.reporter.redact`, masked by `/consent/` in `scrub.ts`, never in the title.
+  The page ticks nothing by default, never offers LinkedIn, and claims only what ADR 0003 backs: no consent, no
+  Agent call or text on that channel; every Agent call says it is an AI and recorded; email follows unsubscribe.
+  The receipt shows channels and time, never an address.
 - Manage page (`/book/manage/$token`, `src/screens/booking/ManageBookingPage.tsx`, `src/api/public-booking.ts`): the
   token in the address is a bearer secret for one Booking, handled like the Booking Type token (redacted,
   masked by `/book/` in `scrub.ts`, never in the title). Cancel asks first; reschedule shares the slot picker

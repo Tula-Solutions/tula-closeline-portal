@@ -16,6 +16,7 @@ export function hexId(
     | 'akey'
     | 'cev'
     | 'cwd'
+    | 'cfm'
     | 'sup'
     | 'cnv'
     | 'msg'
@@ -470,6 +471,34 @@ export function wordingBody(
     supersedesId: null,
     createdAt: '2026-09-01T00:00:00Z',
     createdByUserId: hexId('usr', 1),
+    ...overrides,
+  }
+}
+
+/** A hosted consent form as core returns it: a draft by default, with no token or publish time. */
+export function consentFormBody(
+  n: number,
+  overrides: Partial<{
+    name: string
+    wordingId: string
+    channels: string[]
+    state: string
+    token: string | null
+    publishedAt: string | null
+    closedAt: string | null
+  }> = {}
+) {
+  return {
+    id: hexId('cfm', n),
+    wordingId: hexId('cwd', 1),
+    name: `Webinar sign-up ${n}`,
+    channels: ['phone', 'sms'],
+    state: 'draft',
+    token: null,
+    createdAt: '2026-09-02T00:00:00Z',
+    createdByUserId: hexId('usr', 1),
+    publishedAt: null,
+    closedAt: null,
     ...overrides,
   }
 }

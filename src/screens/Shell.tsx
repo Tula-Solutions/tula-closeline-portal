@@ -234,6 +234,9 @@ export function Shell() {
             {can.manageExports(role) ? <NavLink to='/export'>Data export</NavLink> : null}
             <NavLink to='/developers'>Developers</NavLink>
             <NavLink to='/consent-wordings'>Consent Wording</NavLink>
+            {can.manageConsentWording(role) ? (
+              <NavLink to='/consent-forms'>Consent forms</NavLink>
+            ) : null}
             {can.manageSuppression(role) ? <NavLink to='/suppression'>Suppression</NavLink> : null}
           </NavGroup>
           <NavGroup id='analytics' label='Analytics'>

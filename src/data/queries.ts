@@ -47,6 +47,7 @@ import type {
   SuppressionFilter,
   SuppressionPage,
 } from '~/api/consent'
+import type { ConsentFormsPage } from '~/api/consent-forms'
 import type { ProspectFilter } from '~/api/core'
 import type { ExportsPage } from '~/api/exports'
 import type { ConversationFilter, ConversationsPage, MessagesPage } from '~/api/inbox'
@@ -1486,6 +1487,28 @@ export function useConsentWordings(enabled: boolean) {
     initialPageParam: undefined,
     getNextPageParam: (last, pages) =>
       pages.length >= WORDING_PAGES ? undefined : (last.nextCursor ?? undefined),
+    enabled: enabled && organizationId !== '',
+    retry: false,
+  })
+  return pagedState(query)
+}
+
+/** The hosted consent forms of the Organization, newest first, a page at a time. `enabled` is false for a role that may not list them. */
+export function useConsentForms(enabled: boolean) {
+  const app = useApp()
+  const organizationId = useOrganizationId()
+  const query = useInfiniteQuery<
+    ConsentFormsPage,
+    Error,
+    InfiniteData<ConsentFormsPage, string | undefined>,
+    readonly unknown[],
+    string | undefined
+  >({
+    queryKey: [...KEYS.consent(organizationId), 'forms'],
+    queryFn: ({ pageParam, signal }) =>
+      app.consentForms.list({ cursor: pageParam, signal, limit: MAX_PAGE_SIZE }),
+    initialPageParam: undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: enabled && organizationId !== '',
     retry: false,
   })
