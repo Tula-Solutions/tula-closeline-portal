@@ -9,6 +9,7 @@ import { Button } from '~/components/ui/button'
 import { can } from '~/data/permissions'
 import { cn } from '~/lib/utils'
 import { Softphone } from '~/screens/softphone/Softphone'
+import { connectVoice } from '~/screens/softphone/voice-device'
 import type { Role } from '~/session/session'
 import { Logo } from '~/ui/Logo'
 import { DUR, reveal } from '~/ui/motion'
@@ -317,7 +318,7 @@ export function Shell() {
         </div>
       </main>
       <div inert={open}>
-        <Softphone />
+        <Softphone connect={connectVoice} />
       </div>
     </div>
   )

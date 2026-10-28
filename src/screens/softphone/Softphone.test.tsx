@@ -7,6 +7,7 @@ import { createApp } from '~/app'
 import { AppContext } from '~/app-context'
 import { createReporter } from '~/report/reporter'
 import { Softphone } from '~/screens/softphone/Softphone'
+import type { VoiceConnector, VoiceLeg } from '~/screens/softphone/voice-device'
 import { failure, fakeFetch, type Handler, json, route, TEST_ENV, tokens } from '~/testing/fixtures'
 
 const ID = `call_${'a'.repeat(32)}`
@@ -57,7 +58,11 @@ afterEach(() => {
   }
 })
 
-function mount(...handlers: Handler[]) {
+function mount(...handlers: Handler[]): ReturnType<typeof mountWith> {
+  return mountWith(undefined, ...handlers)
+}
+
+function mountWith(connect: VoiceConnector | undefined, ...handlers: Handler[]) {
   const double = fakeFetch(...handlers)
   const app = createApp({
     env: TEST_ENV,
@@ -73,7 +78,7 @@ function mount(...handlers: Handler[]) {
   render(
     <AppContext.Provider value={app}>
       <QueryClientProvider client={app.queryClient}>
-        <Softphone pollMs={5} />
+        <Softphone pollMs={5} {...(connect ? { connect } : {})} />
       </QueryClientProvider>
     </AppContext.Provider>
   )
@@ -127,6 +132,7 @@ describe('Softphone', () => {
     const { user } = mount(
       route('POST', '/v1/calls', json(201, { call: callBody() })),
       route('GET', `/v1/calls/${ID}`, json(200, callBody())),
+      route('POST', `/v1/calls/${ID}/hangup`, json(200, callBody({ state: 'ended' }))),
       noRinging
     )
     await user.click(screen.getByRole('button', { name: 'Open' }))
@@ -139,7 +145,7 @@ describe('Softphone', () => {
     await user.click(screen.getByRole('button', { name: 'Hold' }))
     expect(screen.getByRole('button', { name: 'Resume' })).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Hang up' }))
-    expect(status()).toContain('You hung up')
+    await waitFor(() => expect(status()).toContain('You hung up'))
     expect(screen.queryByRole('button', { name: 'Hang up' })).toBeNull()
   })
 
@@ -294,3 +300,90 @@ describe('Softphone', () => {
     expect(screen.getByRole('button', { name: 'Open' })).toBeTruthy()
   })
 })
+
+describe('Softphone audio', () => {
+  function fakeVoice() {
+    const log: string[] = []
+    let tokens = 0
+    let hand: ((leg: VoiceLeg | null) => void) | undefined
+    const connect: VoiceConnector = async ({ getToken, onLeg }) => {
+      await getToken()
+      tokens += 1
+      hand = onLeg
+      return { destroy: () => log.push('destroyed') }
+    }
+    const leg: VoiceLeg = {
+      mute: (on) => log.push(`mute:${on}`),
+      disconnect: () => log.push('disconnect'),
+    }
+    return { connect, log, leg, tokens: () => tokens, arrive: () => hand?.(leg) }
+  }
+  const tokenRoute = route(
+    'POST',
+    '/v1/softphone/token',
+    json(200, {
+      token: 'jwt',
+      identity: `mem_${'b'.repeat(32)}`,
+      ttlSeconds: 900,
+      expiresAt: '2026-10-28T11:00:00Z',
+    })
+  )
+
+  test('registers with a token from voice, mutes the leg, and hang up ends the Call and the leg', async () => {
+    const voice = fakeVoice()
+    const { user, calls } = mountWith(
+      voice.connect,
+      tokenRoute,
+      route('POST', '/v1/calls', json(201, { call: callBody() })),
+      route('GET', `/v1/calls/${ID}`, json(200, callBody())),
+      route('POST', `/v1/calls/${ID}/hangup`, json(200, callBody({ state: 'ended' }))),
+      noRinging
+    )
+    await waitFor(() => expect(voice.tokens()).toBe(1))
+    await user.click(screen.getByRole('button', { name: 'Open' }))
+    await user.type(screen.getByLabelText('Number to call'), '+15550100')
+    await user.click(screen.getByRole('button', { name: 'Call' }))
+    await screen.findByRole('button', { name: 'Mute' })
+    voice.arrive()
+    await user.click(screen.getByRole('button', { name: 'Mute' }))
+    expect(voice.log).toContain('mute:true')
+    await user.click(screen.getByRole('button', { name: 'Hold' }))
+    await user.click(screen.getByRole('button', { name: 'Unmute' }))
+    expect(voice.log.at(-1)).toBe('mute:true') // still on hold
+    await user.click(screen.getByRole('button', { name: 'Hang up' }))
+    await waitFor(() => expect(status()).toContain('You hung up'))
+    expect(calls.some((c) => c.method === 'POST' && c.url.endsWith(`/v1/calls/${ID}/hangup`))).toBe(
+      true
+    )
+    expect(voice.log).toContain('disconnect')
+  })
+
+  test('a hang-up the server refuses says so and keeps the Call', async () => {
+    const voice = fakeVoice()
+    const { user } = mountWith(
+      voice.connect,
+      tokenRoute,
+      route('POST', '/v1/calls', json(201, { call: callBody() })),
+      route('GET', `/v1/calls/${ID}`, json(200, callBody())),
+      route('POST', `/v1/calls/${ID}/hangup`, failure(503, 'server.unavailable')),
+      noRinging
+    )
+    await user.click(screen.getByRole('button', { name: 'Open' }))
+    await user.type(screen.getByLabelText('Number to call'), '+15550100')
+    await user.click(screen.getByRole('button', { name: 'Call' }))
+    await user.click(await screen.findByRole('button', { name: 'Hang up' }))
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Hang up' })).toBeTruthy()
+    expect(voice.log).not.toContain('disconnect')
+  })
+
+  test('an audio connection that fails is said plainly', async () => {
+    mountWith(async () => null, noRinging)
+    await user_open()
+    expect(await screen.findByText(/Call audio could not connect/)).toBeTruthy()
+  })
+})
+
+async function user_open() {
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Open' }))
+}

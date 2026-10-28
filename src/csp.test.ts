@@ -25,28 +25,35 @@ describe('buildCsp', () => {
     expect(directive(policy, 'default-src')).toBe("default-src 'none'")
   })
 
-  test('connections go to the page itself (auth and core are behind it) and to Sentry, and nowhere else', () => {
+  test('connections go to the page itself (auth and core are behind it), to Sentry and to the Twilio Voice hosts, and nowhere else', () => {
     const connect = directive(buildCsp(prod, { meta: true }), 'connect-src')
-    expect(connect).toBe("connect-src 'self' https://o1.ingest.sentry.io")
+    expect(connect).toBe(
+      "connect-src 'self' https://o1.ingest.sentry.io https://*.twilio.com wss://*.twilio.com"
+    )
   })
 
-  test("connect-src has no wildcard, scheme or foreign host, which is what limits an upload's redirect to the same origin (sendWithProgress relies on it)", () => {
+  test("connect-src has no bare wildcard, scheme or foreign host beyond Sentry and twilio.com, which is what limits an upload's redirect to the same origin (sendWithProgress relies on it)", () => {
     const sources = directive(buildCsp(prod, { meta: true }), 'connect-src')
       .split(' ')
       .slice(1)
     expect(sources[0]).toBe("'self'")
-    for (const source of sources.slice(1)) {
-      expect(source).toBe('https://o1.ingest.sentry.io')
-    }
+    // The only wildcards are subdomains of twilio.com, which the Voice SDK needs (its region hosts vary).
+    expect(sources.slice(1)).toEqual([
+      'https://o1.ingest.sentry.io',
+      'https://*.twilio.com',
+      'wss://*.twilio.com',
+    ])
     expect(sources).not.toContain('*')
     expect(sources.some((source) => /^[a-z]+:$/.test(source))).toBe(false)
   })
 
-  test('with no DSN there is no Sentry origin', () => {
+  test('with no DSN there is no Sentry origin, only the Twilio hosts', () => {
     const local = parseEnv({
       VITE_ENVIRONMENT: 'local',
     })
-    expect(directive(buildCsp(local, { meta: true }), 'connect-src')).toBe("connect-src 'self'")
+    expect(directive(buildCsp(local, { meta: true }), 'connect-src')).toBe(
+      "connect-src 'self' https://*.twilio.com wss://*.twilio.com"
+    )
     expect(buildCsp(local, { meta: true })).not.toContain('upgrade-insecure-requests')
   })
 
@@ -74,7 +81,7 @@ describe('buildCsp', () => {
       "style-src 'self'",
       "img-src 'self'",
       "font-src 'self'",
-      "connect-src 'self' https://o1.ingest.sentry.io",
+      "connect-src 'self' https://o1.ingest.sentry.io https://*.twilio.com wss://*.twilio.com",
       "manifest-src 'self'",
       "base-uri 'none'",
       "form-action 'self'",

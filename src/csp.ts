@@ -7,6 +7,8 @@ export function buildCsp(env: Env, options: { readonly meta: boolean }): string 
   if (env.sentryDsn !== undefined) {
     connect.push(originOf(env.sentryDsn))
   }
+  // The Twilio Voice SDK signals over wss and fetches its region list over https.
+  connect.push('https://*.twilio.com', 'wss://*.twilio.com')
   const directives: string[] = [
     "default-src 'none'",
     "script-src 'self'",
