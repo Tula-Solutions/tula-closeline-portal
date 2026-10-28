@@ -63,7 +63,6 @@ export function HandoffCard(props: { readonly pollMs?: number }) {
   }, [app, busy, pollMs])
 
   // A new offer replaces the last answer's message.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the offer changes
   useEffect(() => {
     if (offerId !== null) {
       setMessage(null)
