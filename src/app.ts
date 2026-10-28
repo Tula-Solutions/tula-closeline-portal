@@ -25,6 +25,7 @@ import { createHttpClient, type Fetch } from '~/api/http'
 import { createKeyHolder, type KeyHolder } from '~/api/idempotency'
 import { createInboxApi, type InboxApi } from '~/api/inbox'
 import { createMarketingApi, type MarketingApi } from '~/api/marketing'
+import { createOutboundApi, type OutboundApi } from '~/api/outbound'
 import { createPlaybookApi, type PlaybookApi } from '~/api/playbook'
 import { createPublicBookingApi, type PublicBookingApi } from '~/api/public-booking'
 import { createRoutingApi, type RoutingApi } from '~/api/routing'
@@ -44,6 +45,7 @@ export type App = {
   readonly core: CoreApi
   readonly playbook: PlaybookApi
   readonly voice: VoiceApi
+  readonly outbound: OutboundApi
   readonly calls: CallsApi
   readonly apiKeys: ApiKeysApi
   readonly inbox: InboxApi
@@ -189,6 +191,7 @@ export function createApp(init: AppInit): App {
     core: createCoreApi(coreHttp),
     playbook: createPlaybookApi(coreHttp),
     voice: createVoiceApi(coreHttp),
+    outbound: createOutboundApi(coreHttp),
     calls: createCallsApi(coreHttp),
     apiKeys: createApiKeysApi(coreHttp),
     inbox: createInboxApi(coreHttp),

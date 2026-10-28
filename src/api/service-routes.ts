@@ -7,7 +7,7 @@
  */
 
 /** A service the browser reaches through the portal's origin. */
-export type Service = 'auth' | 'core' | 'playbook' | 'voice'
+export type Service = 'auth' | 'core' | 'playbook' | 'voice' | 'outbound'
 
 /** One path prefix and the service that serves everything under it (the prefix itself, or `prefix/...`). */
 export type ServiceRoute = { readonly prefix: string; readonly service: Service }
@@ -57,6 +57,8 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/agent', service: 'voice' },
   { prefix: '/v1/calls', service: 'voice' },
   { prefix: '/v1/softphone', service: 'voice' },
+  { prefix: '/v1/mailboxes', service: 'outbound' },
+  { prefix: '/v1/mail', service: 'outbound' },
 ]
 
 /**
@@ -98,6 +100,7 @@ export type ProxyTargets = {
   readonly core: string
   readonly playbook: string
   readonly voice: string
+  readonly outbound: string
 }
 
 const DEFAULT_TARGETS: ProxyTargets = {
@@ -105,6 +108,7 @@ const DEFAULT_TARGETS: ProxyTargets = {
   core: 'http://127.0.0.1:3002',
   playbook: 'http://127.0.0.1:3003',
   voice: 'http://127.0.0.1:3004',
+  outbound: 'http://127.0.0.1:3005',
 }
 
 function originOnly(name: string, value: string): string {
@@ -127,7 +131,7 @@ function originOnly(name: string, value: string): string {
   return url.origin
 }
 
-/** Reads `AUTH_PROXY_TARGET`, `CORE_PROXY_TARGET`, `PLAYBOOK_PROXY_TARGET` and `VOICE_PROXY_TARGET` (dev server settings, not `VITE_*`), or throws naming the bad one. */
+/** Reads `AUTH_PROXY_TARGET`, `CORE_PROXY_TARGET`, `PLAYBOOK_PROXY_TARGET`, `VOICE_PROXY_TARGET` and `OUTBOUND_PROXY_TARGET` (dev server settings, not `VITE_*`), or throws naming the bad one. */
 export function parseProxyTargets(raw: Readonly<Record<string, string | undefined>>): ProxyTargets {
   const read = (name: string, fallback: string) => {
     const value = raw[name]?.trim()
@@ -138,6 +142,7 @@ export function parseProxyTargets(raw: Readonly<Record<string, string | undefine
     core: read('CORE_PROXY_TARGET', DEFAULT_TARGETS.core),
     playbook: read('PLAYBOOK_PROXY_TARGET', DEFAULT_TARGETS.playbook),
     voice: read('VOICE_PROXY_TARGET', DEFAULT_TARGETS.voice),
+    outbound: read('OUTBOUND_PROXY_TARGET', DEFAULT_TARGETS.outbound),
   }
 }
 

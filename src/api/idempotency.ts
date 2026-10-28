@@ -61,6 +61,15 @@ export const fingerprint = {
     JSON.stringify(['call', name, size, modified, dealId, rep]),
   /** Adding a Line with this request body (as JSON): the same body is the same intent. */
   line: (body: string) => JSON.stringify(['line', body]),
+  /** Connecting a Mailbox with this provider and kind; a retry of the same press reuses the key. */
+  mailboxStart: (provider: string, kind: string) =>
+    JSON.stringify(['mailbox-start', provider, kind]),
+  /** Finishing a Mailbox connection with this `state`. */
+  mailboxComplete: (state: string) => JSON.stringify(['mailbox-complete', state]),
+  /** Disconnecting one Mailbox. */
+  mailboxDisconnect: (mailboxId: string) => JSON.stringify(['mailbox-disconnect', mailboxId]),
+  /** Checking one Mailbox's domain now. */
+  domainCheck: (mailboxId: string) => JSON.stringify(['domain-check', mailboxId]),
   /** Creating an API key with this request body (as JSON): the same name, scopes, ceiling and expiry are the same intent. */
   apiKey: (body: string) => JSON.stringify(['api-key', body]),
   /** Asking for an export with this body (as JSON): the same options are the same intent. */
