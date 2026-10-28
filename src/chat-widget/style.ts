@@ -7,7 +7,14 @@ export const CSS = `
   position: fixed; right: 16px; bottom: 16px; z-index: 2147483000;
   font: 15px/1.45 ui-sans-serif, system-ui, sans-serif; color: var(--ink);
 }
-button, textarea { font: inherit; color: inherit; }
+button, textarea, input { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+.ask { margin: 0 14px 8px; min-height: 44px; border: 1px solid var(--ink); border-radius: 4px; background: transparent; cursor: pointer; }
+.cb { flex-direction: column; overflow-y: auto; }
+.cb input[type='text'], .cb input[type='tel'] { min-height: 44px; padding: 8px 10px; border: 1px solid var(--ink); border-radius: 4px; background: transparent; font-size: 16px; }
+.cb label { display: flex; gap: 8px; align-items: flex-start; }
+.cb input[type='checkbox'] { flex: none; width: 24px; height: 24px; margin: 0; }
+.wording { margin: 0; font-size: 13px; }
 .launch {
   min-height: 44px; padding: 0 18px; border: 1px solid var(--ink); border-radius: 4px;
   background: var(--ink); color: var(--paper); cursor: pointer;

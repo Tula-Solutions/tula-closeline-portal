@@ -48,18 +48,25 @@ function retryAfterSeconds(res: Response): number {
 }
 
 /**
- * POSTs one Idempotency-Key until it is answered: waits out a 429 by `Retry-After`, backs off a 409
+ * POSTs one Idempotency-Key (or GETs, with no key) until it is answered: waits out a 429 by `Retry-After`, backs off a 409
  * (the first try is still in flight) and a dropped connection, always resending the same key.
  */
-async function post(config: ChatConfig, deps: ChatDeps, path: string, key: string, body: Json) {
+async function post(
+  config: ChatConfig,
+  deps: ChatDeps,
+  path: string,
+  key: string | undefined,
+  body?: Json
+) {
   let busy = 0
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     let res: Response
     try {
       res = await deps.fetch(`${config.api}/v1/public/chat/${path}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'idempotency-key': key },
-        body: JSON.stringify(body),
+        method: key === undefined ? 'GET' : 'POST',
+        headers:
+          key === undefined ? {} : { 'content-type': 'application/json', 'idempotency-key': key },
+        body: body === undefined ? undefined : JSON.stringify(body),
         referrerPolicy: 'no-referrer',
         credentials: 'omit',
         signal: AbortSignal.timeout(CALL_TIMEOUT_MS),
@@ -132,4 +139,37 @@ export async function sendMessage(
     throw new ChatError(RESPONSE_INVALID)
   }
   return out.reply.text
+}
+
+/** The Consent Wording id and version the callback box must show now. */
+export async function getConsentWording(config: ChatConfig, deps: ChatDeps) {
+  const out = await post(config, deps, `${config.key}/consent-wording`, undefined)
+  if (
+    typeof out.consentWordingId !== 'string' ||
+    typeof out.consentWordingVersion !== 'number' ||
+    !Number.isInteger(out.consentWordingVersion)
+  ) {
+    throw new ChatError(RESPONSE_INVALID)
+  }
+  return { id: out.consentWordingId, version: out.consentWordingVersion }
+}
+
+/** Asks for a callback, sending the wording id and version the visitor was shown; one key per attempt. */
+export async function requestCallback(
+  config: ChatConfig,
+  deps: ChatDeps,
+  token: string,
+  key: string,
+  body: {
+    name: string
+    phone: string
+    consentWordingId: string
+    consentWordingVersion: number
+    sourceUrl: string
+  }
+): Promise<void> {
+  await post(config, deps, `sessions/${token}/callback-consent`, key, {
+    ...body,
+    callbackConsent: true,
+  })
 }
