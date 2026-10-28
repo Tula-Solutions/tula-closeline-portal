@@ -7,6 +7,7 @@ import { renderPortal } from '~/testing/render'
 const TOKEN = 'Tk-booking_0123456789abcdef0123456789abcdef'
 const SLOTS = `/v1/public/booking-types/${TOKEN}/slots`
 const BOOK = `/v1/public/booking-types/${TOKEN}/bookings`
+const MANAGE = 'Zq7_manage-token0123456789abcdefghijklmnopq'
 const TYPE = { name: 'Intro call', lengthMinutes: 30, mode: 'video' }
 // 21:00 UTC on 3 Nov is 10:00 on 4 Nov in Auckland (UTC+13).
 const FIRST = '2026-11-03T21:00:00Z'
@@ -23,6 +24,7 @@ const CONFIRMATION = {
   endsAt: '2026-11-03T21:30:00Z',
   mode: 'video',
   joinUrl: 'https://meet.example/join/xyz',
+  manageToken: MANAGE,
 }
 
 let zone: ReturnType<typeof spyOn>
@@ -86,7 +88,11 @@ describe('the public booking page', () => {
     expect(screen.getByText(/calendar invitation comes from the calendar/)).toBeTruthy()
     expect(document.body.textContent).not.toContain(CONFIRMATION.id)
     expect(document.body.textContent).not.toContain(TOKEN)
-    expect(screen.queryByRole('button', { name: /cancel|reschedule/i })).toBeNull()
+    const manage = screen.getByRole('link', { name: 'Manage this Booking' })
+    expect(manage.getAttribute('href')).toBe(`/book/manage/${MANAGE}`)
+    expect(screen.getByText(/only way back/)).toBeTruthy()
+    expect(document.body.textContent).not.toContain(MANAGE)
+    expect(document.title).not.toContain(MANAGE)
   })
 
   test('a retry after a network failure reuses the same Idempotency-Key', async () => {

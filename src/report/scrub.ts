@@ -23,7 +23,7 @@ const USERINFO = /^([a-z][a-z0-9+.-]*:\/\/)[^/?#]*@/i
 const KEYED_QUERY_OR_FRAGMENT = /[?#][A-Za-z0-9_.-]+=[^\s'"<>)\]]*/g
 const TOKEN_SHAPED = /[A-Za-z0-9_-]{32,}/g
 /** The public booking link carries its secret token as the last path segment. */
-const BOOKING_LINK = /\/book\/[^/?#\s'"<>)\]]+/g
+const BOOKING_LINK = /\/book\/(?:manage\/)?[^/?#\s'"<>)\]]+/g
 const BOOKING_LINK_MASK = '/book/[redacted]'
 
 function redactUrl(match: string): string {
