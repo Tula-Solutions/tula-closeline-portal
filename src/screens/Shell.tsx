@@ -218,6 +218,7 @@ export function Shell() {
               <NavLink to='/inbox/escalation'>Escalation rules</NavLink>
             ) : null}
             {can.viewAgent(role) ? <NavLink to='/agent'>Agent</NavLink> : null}
+            <NavLink to='/copilot-settings'>Copilot</NavLink>
             <NavLink to='/calendar'>Calendar</NavLink>
             <NavLink to='/bookings'>Bookings</NavLink>
             <NavLink to='/calls'>Call history</NavLink>

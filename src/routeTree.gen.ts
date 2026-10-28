@@ -22,6 +22,7 @@ import { Route as AppBookingsRouteImport } from './routes/_app/bookings'
 import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppConsentFormsRouteImport } from './routes/_app/consent-forms'
 import { Route as AppConsentWordingsRouteImport } from './routes/_app/consent-wordings'
+import { Route as AppCopilotSettingsRouteImport } from './routes/_app/copilot-settings'
 import { Route as AppDevelopersRouteImport } from './routes/_app/developers'
 import { Route as AppEnrichmentRouteImport } from './routes/_app/enrichment'
 import { Route as AppExportRouteImport } from './routes/_app/export'
@@ -138,6 +139,11 @@ const AppConsentFormsRoute = AppConsentFormsRouteImport.update({
 const AppConsentWordingsRoute = AppConsentWordingsRouteImport.update({
   id: '/consent-wordings',
   path: '/consent-wordings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCopilotSettingsRoute = AppCopilotSettingsRouteImport.update({
+  id: '/copilot-settings',
+  path: '/copilot-settings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDevelopersRoute = AppDevelopersRouteImport.update({
@@ -436,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/calendar': typeof AppCalendarRoute
   '/consent-forms': typeof AppConsentFormsRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
+  '/copilot-settings': typeof AppCopilotSettingsRoute
   '/developers': typeof AppDevelopersRoute
   '/enrichment': typeof AppEnrichmentRoute
   '/export': typeof AppExportRoute
@@ -503,6 +510,7 @@ export interface FileRoutesByTo {
   '/calendar': typeof AppCalendarRoute
   '/consent-forms': typeof AppConsentFormsRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
+  '/copilot-settings': typeof AppCopilotSettingsRoute
   '/developers': typeof AppDevelopersRoute
   '/enrichment': typeof AppEnrichmentRoute
   '/export': typeof AppExportRoute
@@ -570,6 +578,7 @@ export interface FileRoutesById {
   '/_app/calendar': typeof AppCalendarRoute
   '/_app/consent-forms': typeof AppConsentFormsRoute
   '/_app/consent-wordings': typeof AppConsentWordingsRoute
+  '/_app/copilot-settings': typeof AppCopilotSettingsRoute
   '/_app/developers': typeof AppDevelopersRoute
   '/_app/enrichment': typeof AppEnrichmentRoute
   '/_app/export': typeof AppExportRoute
@@ -640,6 +649,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/consent-forms'
     | '/consent-wordings'
+    | '/copilot-settings'
     | '/developers'
     | '/enrichment'
     | '/export'
@@ -707,6 +717,7 @@ export interface FileRouteTypes {
     | '/calendar'
     | '/consent-forms'
     | '/consent-wordings'
+    | '/copilot-settings'
     | '/developers'
     | '/enrichment'
     | '/export'
@@ -773,6 +784,7 @@ export interface FileRouteTypes {
     | '/_app/calendar'
     | '/_app/consent-forms'
     | '/_app/consent-wordings'
+    | '/_app/copilot-settings'
     | '/_app/developers'
     | '/_app/enrichment'
     | '/_app/export'
@@ -930,6 +942,13 @@ declare module '@tanstack/react-router' {
       path: '/consent-wordings'
       fullPath: '/consent-wordings'
       preLoaderRoute: typeof AppConsentWordingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/copilot-settings': {
+      id: '/_app/copilot-settings'
+      path: '/copilot-settings'
+      fullPath: '/copilot-settings'
+      preLoaderRoute: typeof AppCopilotSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/developers': {
@@ -1385,6 +1404,7 @@ interface AppRouteChildren {
   AppCalendarRoute: typeof AppCalendarRoute
   AppConsentFormsRoute: typeof AppConsentFormsRoute
   AppConsentWordingsRoute: typeof AppConsentWordingsRoute
+  AppCopilotSettingsRoute: typeof AppCopilotSettingsRoute
   AppDevelopersRoute: typeof AppDevelopersRoute
   AppEnrichmentRoute: typeof AppEnrichmentRoute
   AppExportRoute: typeof AppExportRoute
@@ -1427,6 +1447,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCalendarRoute: AppCalendarRoute,
   AppConsentFormsRoute: AppConsentFormsRoute,
   AppConsentWordingsRoute: AppConsentWordingsRoute,
+  AppCopilotSettingsRoute: AppCopilotSettingsRoute,
   AppDevelopersRoute: AppDevelopersRoute,
   AppEnrichmentRoute: AppEnrichmentRoute,
   AppExportRoute: AppExportRoute,

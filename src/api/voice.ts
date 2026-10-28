@@ -4,7 +4,9 @@ import {
   type AgentTurn,
   type AssignLineRequest,
   agentSettingsSchema,
+  type CopilotSettings,
   type CreateQualificationQuestionRequest,
+  copilotSettingsSchema,
   IDEMPOTENCY_KEY_HEADER,
   type Line,
   linePageSchema,
@@ -14,8 +16,10 @@ import {
   qualificationQuestionSchema,
   reorderQualificationQuestionsRequestSchema,
   type SetAgentSettingsRequest,
+  type SetCopilotSettingsRequest,
   sendTryMessageRequestSchema,
   setAgentSettingsRequestSchema,
+  setCopilotSettingsRequestSchema,
   startTrySessionRequestSchema,
   type TrySession,
   tryReplySchema,
@@ -42,6 +46,10 @@ export type VoiceApi = {
   getSettings(signal?: AbortSignal): Promise<AgentSettings>
   /** Replaces the Inbound Agent settings; the key makes a repeat change nothing (Owner, Admin). */
   setSettings(body: SetAgentSettingsRequest, idempotencyKey: string): Promise<AgentSettings>
+  /** The Copilot settings: every role reads them. */
+  getCopilotSettings(signal?: AbortSignal): Promise<CopilotSettings>
+  /** Replaces the Copilot settings; a repeat of the same body changes nothing, so no key (Owner, Admin). */
+  setCopilotSettings(body: SetCopilotSettingsRequest): Promise<CopilotSettings>
   /** The Qualification questions in the order the Agent asks them: one page of at most 100, which holds all 50 an Organization may keep. */
   listQuestions(signal?: AbortSignal): Promise<readonly QualificationQuestion[]>
   /** Adds a question, last unless the body says otherwise; the key makes a repeat add one (Owner, Admin). */
@@ -119,6 +127,21 @@ export function createVoiceApi(http: HttpClient): VoiceApi {
         headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
         auth: true,
         parse: (json) => agentSettingsSchema.parse(json),
+      }),
+    getCopilotSettings: (signal) =>
+      http.request({
+        path: '/v1/copilot/settings',
+        auth: true,
+        signal,
+        parse: (json) => copilotSettingsSchema.parse(json),
+      }),
+    setCopilotSettings: (body) =>
+      http.request({
+        method: 'PUT',
+        path: '/v1/copilot/settings',
+        body: setCopilotSettingsRequestSchema.parse(body),
+        auth: true,
+        parse: (json) => copilotSettingsSchema.parse(json),
       }),
     listQuestions: (signal) =>
       http.request({

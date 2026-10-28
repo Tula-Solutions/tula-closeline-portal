@@ -56,6 +56,7 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/lines', service: 'voice' },
   { prefix: '/v1/agent', service: 'voice' },
   { prefix: '/v1/calls', service: 'voice' },
+  { prefix: '/v1/copilot', service: 'voice' },
   { prefix: '/v1/softphone', service: 'voice' },
   { prefix: '/v1/handoffs', service: 'voice' },
   { prefix: '/v1/enrichment', service: 'outbound' },
