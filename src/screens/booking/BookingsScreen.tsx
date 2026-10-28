@@ -55,6 +55,11 @@ export function BookingsScreen() {
   const past = useBookings('past', boundary)
   const types = useBookingTypes(true)
   const typeNames = new Map(types.items.map((type) => [type.id, type.name]))
+  // One lookup for every Rep on the pages read, not one per row.
+  const reps = useMembersByIds(
+    [...upcoming.items, ...past.items].map((booking) => booking.repMembershipId),
+    role !== null && can.viewMembers(role)
+  )
   if (role === null) {
     return null
   }
@@ -64,6 +69,7 @@ export function BookingsScreen() {
       booking={booking}
       role={role}
       typeName={typeNames.get(booking.bookingTypeId)}
+      reps={reps}
       actions={actions}
       onDone={feedback.done}
       onFail={feedback.failed}
@@ -113,7 +119,7 @@ export function BookingsScreen() {
   )
 }
 
-/** The Prospect's name, read from core; one call per visible row. */
+/** The Prospect's name, read from core; core has no batch Prospect lookup, so one call per distinct Prospect, shared through the query cache. */
 function ProspectName(props: { readonly prospectId: string }) {
   const prospect = useProspect(props.prospectId)
   if (prospect.data === undefined) {
@@ -122,13 +128,15 @@ function ProspectName(props: { readonly prospectId: string }) {
   return <Untrusted value={prospectName(prospect.data)} />
 }
 
-function RepName(props: { readonly role: Role; readonly membershipId: string }) {
-  const seeMembers = can.viewMembers(props.role)
-  const members = useMembersByIds([props.membershipId], seeMembers)
+function RepName(props: {
+  readonly role: Role
+  readonly membershipId: string
+  readonly reps: ReadonlyMap<string, { readonly name: string | null; readonly email: string }>
+}) {
   if (props.role === 'rep') {
     return <>You</>
   }
-  const member = members.get(props.membershipId)
+  const member = props.reps.get(props.membershipId)
   return member === undefined ? <>a Rep</> : <Untrusted value={member.name ?? member.email} />
 }
 
@@ -136,6 +144,7 @@ function BookingItem(props: {
   readonly booking: Booking
   readonly role: Role
   readonly typeName: string | undefined
+  readonly reps: ReadonlyMap<string, { readonly name: string | null; readonly email: string }>
   readonly actions: boolean
   readonly onDone: (notice: string) => void
   readonly onFail: () => void
@@ -185,7 +194,7 @@ function BookingItem(props: {
           </span>
           <span className='hint'>
             With <ProspectName prospectId={booking.prospectId} />, for{' '}
-            <RepName role={props.role} membershipId={booking.repMembershipId} />
+            <RepName role={props.role} membershipId={booking.repMembershipId} reps={props.reps} />
           </span>
         </div>
         {open ? (

@@ -10,6 +10,7 @@ import {
   type Deal,
   type DealAttribution,
   type DocumentState,
+  ERRORS,
   type GetSeriesResponse,
   type ListDealImportRowsResponse,
   type ListDealImportsResponse,
@@ -48,6 +49,7 @@ import type {
   SuppressionPage,
 } from '~/api/consent'
 import type { ProspectFilter } from '~/api/core'
+import { ApiError } from '~/api/errors'
 import type { ExportsPage } from '~/api/exports'
 import type { ConversationFilter, ConversationsPage, MessagesPage } from '~/api/inbox'
 import type { SuggestionsPage } from '~/api/playbook'
@@ -324,7 +326,9 @@ export function useBookingTypes(enabled: boolean) {
 export function useBookings(window: 'upcoming' | 'past', boundary: string) {
   const app = useApp()
   const organizationId = useOrganizationId()
-  const range = window === 'upcoming' ? { from: boundary } : { to: boundary }
+  // Upcoming reads soonest first; a cursor belongs to its order, so the order is part of the key.
+  const order = window === 'upcoming' ? ('asc' as const) : ('desc' as const)
+  const range = window === 'upcoming' ? { from: boundary, order } : { to: boundary, order }
   const query = useInfiniteQuery<
     BookingsPage,
     Error,
@@ -332,12 +336,24 @@ export function useBookings(window: 'upcoming' | 'past', boundary: string) {
     readonly string[],
     string | undefined
   >({
-    queryKey: [...KEYS.bookings(organizationId), 'list', window, boundary],
+    queryKey: [...KEYS.bookings(organizationId), 'list', window, order, boundary],
     queryFn: ({ pageParam, signal }) => app.bookings.list(range, { cursor: pageParam, signal }),
     initialPageParam: undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     enabled: organizationId !== '',
   })
+  // Core refuses a cursor it did not issue for this order (request.invalid): start over from page one.
+  const refused =
+    query.data !== undefined &&
+    query.error instanceof ApiError &&
+    query.error.code === ERRORS['request.invalid'].code
+  useEffect(() => {
+    if (refused) {
+      void app.queryClient.resetQueries({
+        queryKey: [...KEYS.bookings(organizationId), 'list', window, order, boundary],
+      })
+    }
+  }, [refused, app.queryClient, organizationId, window, order, boundary])
   return pagedState(query)
 }
 

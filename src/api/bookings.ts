@@ -10,14 +10,19 @@ import type { z } from 'zod'
 import { PAGE_SIZE, type PageRequest } from '~/api/core'
 import type { HttpClient } from '~/api/http'
 
-/** One page of Bookings, latest start first. */
+/** One page of Bookings, in the order asked (latest start first by default). */
 export type BookingsPage = z.infer<typeof bookingPageSchema>
 
 /** One page of free times, earliest first. */
 export type SlotsPage = z.infer<typeof slotPageSchema>
 
 /** Which Bookings to list: those starting from a moment on, or those starting up to one. Core decides whose they are. */
-export type BookingsRange = { readonly from?: string; readonly to?: string }
+export type BookingsRange = {
+  readonly from?: string
+  readonly to?: string
+  /** `asc` soonest start first, `desc` (core's default) latest first; a cursor is good for the order that issued it only. */
+  readonly order?: 'asc' | 'desc'
+}
 
 /** What a request for free times names: the Booking Type, the Prospect and the range (14 days at most). */
 export type SlotsRequest = {
@@ -29,7 +34,7 @@ export type SlotsRequest = {
 
 /** The core routes of Bookings, scoped by core to the caller's role. */
 export type BookingsApi = {
-  /** One page of Bookings in a range, latest start first. */
+  /** One page of Bookings in a range, in the order asked. */
   list(range: BookingsRange, page: PageRequest): Promise<BookingsPage>
   /** Cancels a Booking; idempotent by end state, so cancelling a cancelled Booking answers it again. */
   cancel(id: string): Promise<Booking>
@@ -51,6 +56,7 @@ export function createBookingsApi(http: HttpClient): BookingsApi {
         query: {
           from: range.from,
           to: range.to,
+          order: range.order,
           cursor: page.cursor,
           limit: page.limit ?? PAGE_SIZE,
         },
