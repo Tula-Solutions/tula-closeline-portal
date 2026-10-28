@@ -21,8 +21,9 @@ export type VoiceConnectorInit = {
 const ATTEMPTS = 3
 const BASE_MS = 500
 const CAP_MS = 30_000
-// Twilio codes that mean the token is bad or expired; any other registration error leaves it valid.
-const TOKEN_ERRORS = new Set([20101, 20104, 31202, 31204, 31205])
+// Voice SDK codes for a bad or expired token (31202 signature, 31204 invalid, 31205 expired), from
+// https://www.twilio.com/docs/voice/sdks/error-codes; any other registration error (31009 transport) leaves it valid.
+const TOKEN_ERRORS = new Set([31202, 31204, 31205])
 
 /** A jittered exponential wait for the nth failure, capped so a storm backs off to one try per ~30s. */
 function backoff(failures: number): number {
