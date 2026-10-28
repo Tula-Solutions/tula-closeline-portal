@@ -111,7 +111,8 @@ describe('Softphone', () => {
     await waitFor(() => expect(status()).toContain('Ended, +15550100'))
     const place = calls.find((c) => c.method === 'POST')
     expect(place?.headers.get('idempotency-key')?.length).toBeGreaterThanOrEqual(16)
-    expect(stopped).toBeGreaterThan(0)
+    // The microphone is released after the ended state renders, not with it.
+    await waitFor(() => expect(stopped).toBeGreaterThan(0))
   })
 
   test('the dial pad fills the number field', async () => {
