@@ -7,12 +7,12 @@ export function buildCsp(env: Env, options: { readonly meta: boolean }): string 
   if (env.sentryDsn !== undefined) {
     connect.push(originOf(env.sentryDsn))
   }
-  // The Voice SDK's default (roaming) edge: signalling over wss, event reporting over https.
-  // Pinned in voice-device.ts; choosing another edge needs its own hosts here.
+  // The Voice SDK starts on the roaming edge, then moves to the edge and region the server reports:
+  // signalling is wss://voice-js.<edge>.twilio.com, event reporting https://eventgw.<region>.twilio.com.
   connect.push(
     'https://eventgw.twilio.com',
-    'https://eventgw.roaming.twilio.com',
-    'wss://voice-js.roaming.twilio.com'
+    'https://eventgw.*.twilio.com',
+    'wss://voice-js.*.twilio.com'
   )
   const directives: string[] = [
     "default-src 'none'",
