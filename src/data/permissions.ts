@@ -53,6 +53,12 @@ export const can = {
   deleteRecording: (role: Role) => roleAtLeast(role, 'admin'),
   /** The Rep who took a Call, an Owner and an Admin wrap it up; a Manager only reads. */
   wrapUpCalls: (role: Role) => role !== 'manager',
+  /**
+   * Rate, dismiss and pin a Call's Copilot cards: only the Rep who took the Call (the service refuses anyone else).
+   * The session holds no member id to compare with the Call's Rep, and a Rep sees only their own Calls, so the Rep
+   * role stands for it; an Owner, Admin or Manager reads the cards.
+   */
+  markCopilotCards: (role: Role) => role === 'rep',
   /** Owner and Admin define, change and retire Booking Types. */
   manageBookingTypes: (role: Role) => BOOKING_ADMIN_ROLES.some((allowed) => allowed === role),
   /** Owner, Admin and Manager (the contract's routing roles) list and try Routing Rules; a Manager changes only those sending to their own Team, which core enforces. */

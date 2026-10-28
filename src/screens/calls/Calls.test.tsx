@@ -325,3 +325,126 @@ describe('Call detail: the Recording', () => {
     expect((await screen.findAllByRole('alert')).length).toBeGreaterThan(0)
   })
 })
+
+describe('Call detail: Copilot cards', () => {
+  const CARDS = `${one(1)}/copilot/cards`
+  const card = (n: number, extra: Record<string, unknown> = {}) => ({
+    id: hexId('ccard', n),
+    callId: hexId('call', 1),
+    sequence: n,
+    evidence: { moments: 4, deals: 3 },
+    citedMoments: [{ callId: hexId('call', 9), dealRecordId: hexId('deal', 1) }],
+    quotes: [],
+    shownAt: '2026-10-01T10:01:00Z',
+    rating: null,
+    dismissed: false,
+    pinned: false,
+    kind: 'next_step',
+    nextStep: `Send the pricing sheet ${n}`,
+    ...extra,
+  })
+  const cardPage = (items: unknown[], nextCursor: string | null = null) =>
+    json(200, { items, nextCursor })
+  const call = route('GET', one(1), json(200, callBody(1)))
+  const turns = route(
+    'GET',
+    `${one(1)}/transcript`,
+    json(200, { callId: hexId('call', 1), state: 'ready', items: [], nextCursor: null })
+  )
+  const open = (role: 'owner' | 'admin' | 'manager' | 'rep', ...handlers: Handler[]) =>
+    visit(role, `/calls/${hexId('call', 1)}`, call, turns, ...handlers)
+
+  test('lists the cards and loads more by cursor', async () => {
+    const portal = open(
+      'rep',
+      route('GET', CARDS, (request) =>
+        param(request.url, 'cursor') === 'c2' ? cardPage([card(2)]) : cardPage([card(1)], 'c2')
+      )
+    )
+    expect(await screen.findByText('Send the pricing sheet 1')).toBeTruthy()
+    await portal.user.click(screen.getByRole('button', { name: 'Load more cards' }))
+    expect(await screen.findByText('Send the pricing sheet 2')).toBeTruthy()
+    expect(portal.calls.filter((c) => c.path === CARDS)[1]?.url).toContain('cursor=c2')
+  })
+
+  test('the kind filter goes to the service', async () => {
+    const portal = open('rep', route('GET', CARDS, cardPage([card(1)])))
+    await screen.findByText('Send the pricing sheet 1')
+    await choose(portal.user, screen.getByRole('combobox', { name: 'Kind' }), 'objection')
+    await waitFor(() => {
+      const last = portal.calls.filter((c) => c.path === CARDS).at(-1)
+      expect(param(last?.url ?? '', 'kind')).toBe('objection')
+    })
+  })
+
+  test('a Rep rates a card at once and the PATCH carries the rating', async () => {
+    const portal = open(
+      'rep',
+      route('GET', CARDS, cardPage([card(1)])),
+      route('PATCH', `${CARDS}/${hexId('ccard', 1)}`, json(200, card(1, { rating: 'useful' })))
+    )
+    await screen.findByText('Send the pricing sheet 1')
+    const useful = screen.getByRole('button', { name: 'Useful' })
+    await portal.user.click(useful)
+    await waitFor(() => expect(useful.getAttribute('aria-pressed')).toBe('true'))
+    const patch = portal.calls.find((c) => c.method === 'PATCH')
+    expect(patch?.body).toEqual({ rating: 'useful' })
+  })
+
+  test('a refused rating is rolled back and shows the words for its code', async () => {
+    const portal = open(
+      'rep',
+      route('GET', CARDS, cardPage([card(1)])),
+      route('PATCH', `${CARDS}/${hexId('ccard', 1)}`, failure(404, 'card.not_found'))
+    )
+    await screen.findByText('Send the pricing sheet 1')
+    const pin = screen.getByRole('button', { name: 'Pin' })
+    await portal.user.click(pin)
+    expect(
+      await screen.findByText('That card is no longer available. Reload the cards.')
+    ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Pin' }).getAttribute('aria-pressed')).toBe('false')
+  })
+
+  test.each(['owner', 'admin', 'manager'] as const)(
+    'a %s reads the cards with no controls',
+    async (role) => {
+      open(role, route('GET', CARDS, cardPage([card(1, { rating: 'useful' })])))
+      expect(await screen.findByText('Send the pricing sheet 1')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Useful' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Dismiss' })).toBeNull()
+      expect(screen.getByText('Rated useful by the Rep.')).toBeTruthy()
+    }
+  )
+
+  test('an earlier failed mark rolls back only its own card and still shows its error', async () => {
+    let release: () => void = () => {}
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const portal = open(
+      'rep',
+      route('GET', CARDS, cardPage([card(1), card(2)])),
+      route('PATCH', `${CARDS}/${hexId('ccard', 1)}`, async () => {
+        await gate
+        return failure(404, 'card.not_found')
+      }),
+      route('PATCH', `${CARDS}/${hexId('ccard', 2)}`, () => new Promise<Response>(() => {}))
+    )
+    await screen.findByText('Send the pricing sheet 1')
+    const pins = screen.getAllByRole('button', { name: 'Pin' })
+    await portal.user.click(pins[0] as HTMLElement)
+    await portal.user.click(pins[1] as HTMLElement)
+    release()
+    expect(
+      await screen.findByText('That card is no longer available. Reload the cards.')
+    ).toBeTruthy()
+    const after = screen.getAllByRole('button', { name: /Pin|Unpin/ })
+    expect(after.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'true'])
+  })
+
+  test('says so when the Copilot showed no cards', async () => {
+    open('rep', route('GET', CARDS, cardPage([])))
+    expect(await screen.findByText('The Copilot showed no cards on this Call.')).toBeTruthy()
+  })
+})

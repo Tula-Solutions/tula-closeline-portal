@@ -28,7 +28,12 @@ export const SERVICE_ROUTES: readonly ServiceRoute[] = [
   { prefix: '/v1/contact-checks', service: 'core' },
   { prefix: '/v1/consent-wordings', service: 'core' },
   { prefix: '/v1/consent-forms', service: 'core' },
-  { prefix: '/v1/public', service: 'core' },
+  { prefix: '/v1/public/consent-forms', service: 'core' },
+  { prefix: '/v1/public/booking-types', service: 'core' },
+  { prefix: '/v1/public/bookings', service: 'core' },
+  { prefix: '/v1/public/unsubscribe', service: 'core' },
+  { prefix: '/v1/public/export-downloads', service: 'core' },
+  { prefix: '/v1/public/chat', service: 'voice' },
   { prefix: '/v1/crm', service: 'core' },
   { prefix: '/v1/api-keys', service: 'core' },
   { prefix: '/v1/conversations', service: 'core' },
@@ -78,8 +83,8 @@ export const OUTBOUND_PROSPECT_PATH = /^\/v1\/prospects\/[^/]+\/(?:enrichment|si
 /**
  * Paths no browser needs and the table leaves out. `/healthz` and `/readyz` are served by every
  * service (a collision, so a probe must address a service directly). `/.well-known/jwks.json` is
- * auth's key set, fetched service to service. `/webhooks/twilio/*` (recording, status, inbound) is
- * called by Twilio on voice directly. `/v1/routing/route` is the call path voice uses to pick a
+ * auth's key set, fetched service to service. `/webhooks/twilio/*` (recording, status, inbound, detection) is
+ * called by Twilio on voice directly. `/v1/agent-calls` is the Agent runtime's. `/v1/routing/route` is the call path voice uses to pick a
  * Rep. Anything under `/internal` is never routed.
  */
 export const NOT_ROUTED_FROM_BROWSER: readonly string[] = [
@@ -89,6 +94,8 @@ export const NOT_ROUTED_FROM_BROWSER: readonly string[] = [
   '/webhooks/twilio/recording',
   '/webhooks/twilio/status',
   '/webhooks/twilio/inbound',
+  '/webhooks/twilio/detection',
+  '/v1/agent-calls',
   '/v1/routing/route',
 ]
 
