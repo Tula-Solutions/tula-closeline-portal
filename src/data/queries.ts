@@ -138,7 +138,8 @@ export async function refreshCalendar(app: App): Promise<void> {
 
 type Page<T> = { readonly items: readonly T[]; readonly nextCursor: string | null }
 
-function pagedState<T extends { readonly id: string }>(query: PagedQuery<T>) {
+/** Flattens an infinite query into the list state the screens use. */
+export function pagedState<T extends { readonly id: string }>(query: PagedQuery<T>) {
   return pagedStateBy(query, (item) => item.id)
 }
 
@@ -153,7 +154,8 @@ type PagedQuery<T> = {
   refetch: () => unknown
 }
 
-function pagedStateBy<T>(
+/** Like `pagedState` for rows without an `id`: `keyOf` names the row, so one that comes twice shows once. */
+export function pagedStateBy<T>(
   query: PagedQuery<T>,
   keyOf: (item: T) => string
 ): { state: PagedState; items: readonly T[] } {

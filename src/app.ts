@@ -10,6 +10,7 @@ import { type AuthApi, CLIENT_TYPE_HEADER, createAuthApi } from '~/api/auth'
 import { type BookingTypesApi, createBookingTypesApi } from '~/api/booking-types'
 import { type BookingsApi, createBookingsApi } from '~/api/bookings'
 import { type CalendarApi, createCalendarApi } from '~/api/calendar'
+import { type CallHistoryApi, createCallHistoryApi } from '~/api/call-history'
 import { type CallsApi, createCallsApi } from '~/api/calls'
 import { type ConsentApi, createConsentApi } from '~/api/consent'
 import {
@@ -46,6 +47,7 @@ export type App = {
   readonly playbook: PlaybookApi
   readonly voice: VoiceApi
   readonly calls: CallsApi
+  readonly callHistory: CallHistoryApi
   readonly apiKeys: ApiKeysApi
   readonly inbox: InboxApi
   readonly approvals: ApprovalsApi
@@ -193,6 +195,7 @@ export function createApp(init: AppInit): App {
     playbook: createPlaybookApi(coreHttp),
     voice: createVoiceApi(coreHttp),
     calls: createCallsApi(coreHttp),
+    callHistory: createCallHistoryApi(coreHttp),
     apiKeys: createApiKeysApi(coreHttp),
     inbox: createInboxApi(coreHttp),
     approvals: createApprovalsApi(coreHttp),

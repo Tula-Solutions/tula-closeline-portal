@@ -66,6 +66,7 @@ describe('the routing table', () => {
       '/v1/agent -> voice',
       '/v1/calls -> voice',
       '/v1/softphone -> voice',
+      '/v1/handoffs -> voice',
       '/v1/enrichment -> outbound',
       '/v1/enrichment-runs -> outbound',
       '/v1/enrichment-run-sets -> outbound',
