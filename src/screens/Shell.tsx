@@ -8,6 +8,7 @@ import { ThemeMenu } from '~/components/app/theme-menu'
 import { Button } from '~/components/ui/button'
 import { can } from '~/data/permissions'
 import { cn } from '~/lib/utils'
+import { Softphone } from '~/screens/softphone/Softphone'
 import type { Role } from '~/session/session'
 import { Logo } from '~/ui/Logo'
 import { DUR, reveal } from '~/ui/motion'
@@ -303,7 +304,7 @@ export function Shell() {
         inert={open}
         id='main'
         tabIndex={-1}
-        className='relative min-w-0 px-4 py-8 outline-hidden [view-transition-name:page] md:px-12 md:py-12 xl:px-16'
+        className='relative min-w-0 px-4 py-8 outline-hidden [view-transition-name:page] md:px-12 md:py-12 xl:px-16 pb-24 md:pb-28'
       >
         <div className='w-full max-w-[72rem]'>
           {/* Keyed by Organization: another Organization starts every screen fresh, with no state of the last. */}
@@ -312,6 +313,9 @@ export function Shell() {
           </Fragment>
         </div>
       </main>
+      <div inert={open}>
+        <Softphone />
+      </div>
     </div>
   )
 }
