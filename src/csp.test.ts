@@ -28,7 +28,7 @@ describe('buildCsp', () => {
   test('connections go to the page itself (auth and core are behind it), to Sentry and to the Voice SDK default edge hosts, and nowhere else', () => {
     const connect = directive(buildCsp(prod, { meta: true }), 'connect-src')
     expect(connect).toBe(
-      "connect-src 'self' https://o1.ingest.sentry.io https://eventgw.twilio.com https://eventgw.*.twilio.com wss://voice-js.*.twilio.com"
+      "connect-src 'self' https://o1.ingest.sentry.io https://*.twilio.com wss://*.twilio.com"
     )
   })
 
@@ -40,9 +40,8 @@ describe('buildCsp', () => {
     // Only the Voice SDK's own hosts: signalling per edge (it moves to the edge the server reports) and event reporting per region.
     expect(sources.slice(1)).toEqual([
       'https://o1.ingest.sentry.io',
-      'https://eventgw.twilio.com',
-      'https://eventgw.*.twilio.com',
-      'wss://voice-js.*.twilio.com',
+      'https://*.twilio.com',
+      'wss://*.twilio.com',
     ])
     expect(sources).not.toContain('*')
     expect(sources.some((source) => /^[a-z]+:$/.test(source))).toBe(false)
@@ -53,7 +52,7 @@ describe('buildCsp', () => {
       VITE_ENVIRONMENT: 'local',
     })
     expect(directive(buildCsp(local, { meta: true }), 'connect-src')).toBe(
-      "connect-src 'self' https://eventgw.twilio.com https://eventgw.*.twilio.com wss://voice-js.*.twilio.com"
+      "connect-src 'self' https://*.twilio.com wss://*.twilio.com"
     )
     expect(buildCsp(local, { meta: true })).not.toContain('upgrade-insecure-requests')
     expect(directive(buildCsp(local, { meta: true }), 'media-src')).toBe(
@@ -87,7 +86,7 @@ describe('buildCsp', () => {
       "img-src 'self'",
       "media-src 'self' https:",
       "font-src 'self'",
-      "connect-src 'self' https://o1.ingest.sentry.io https://eventgw.twilio.com https://eventgw.*.twilio.com wss://voice-js.*.twilio.com",
+      "connect-src 'self' https://o1.ingest.sentry.io https://*.twilio.com wss://*.twilio.com",
       "manifest-src 'self'",
       "base-uri 'none'",
       "form-action 'self'",
