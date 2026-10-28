@@ -1,6 +1,12 @@
-import { IDEMPOTENCY_KEY_HEADER, softphoneTokenSchema } from 'tula-closeline-contract'
+import {
+  type CopilotStreamMessage,
+  copilotStreamMessageSchema,
+  IDEMPOTENCY_KEY_HEADER,
+  softphoneTokenSchema,
+} from 'tula-closeline-contract'
 import { z } from 'zod'
 import type { HttpClient } from '~/api/http'
+import { readFrames } from '~/api/sse'
 
 /** Calls are not in the contract yet, so the portal reads the fields it shows from voice's vendored spec; replace this when the contract adds them. */
 export const callSchema = z.object({
@@ -23,10 +29,28 @@ const callPageSchema = z.object({ items: z.array(callSchema) })
 /** Placing a Call plays the Disclosure before it answers, so allow longer than the usual 10 s. */
 const PLACE_TIMEOUT_MS = 30_000
 
+/** The server closes a stream after a few minutes; this is the ceiling for one read of it. */
+const STREAM_TIMEOUT_MS = 10 * 60_000
+
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return undefined
+  }
+}
+
 /** The voice routes the softphone uses. */
 export type CallsApi = {
-  /** Places a Call to `to`; the key makes a repeat of the same press place one Call. */
-  place(to: string, idempotencyKey: string): Promise<SoftphoneCall>
+  /** Places a Call to `to`, with the Copilot on or off; the key makes a repeat of the same press place one Call. */
+  place(to: string, copilot: boolean, idempotencyKey: string): Promise<SoftphoneCall>
+  /** Follows a Call's live Transcript, resuming after `lastEventId`; resolves when the server closes the stream. */
+  stream(
+    callId: string,
+    lastEventId: string | undefined,
+    onMessage: (message: CopilotStreamMessage) => void,
+    signal: AbortSignal
+  ): Promise<void>
   /** Reads one Call. */
   get(callId: string, signal?: AbortSignal): Promise<SoftphoneCall>
   /** Answers a ringing inbound Call; the Disclosure plays, then the Rep is bridged. */
@@ -43,15 +67,42 @@ export type CallsApi = {
 export function createCallsApi(http: HttpClient): CallsApi {
   const path = (id: string) => `/v1/calls/${encodeURIComponent(id)}`
   return {
-    place: (to, idempotencyKey) =>
+    place: (to, copilot, idempotencyKey) =>
       http.request({
         method: 'POST',
         path: '/v1/calls',
-        body: { to },
+        body: { to, copilot },
         headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
         timeoutMs: PLACE_TIMEOUT_MS,
         auth: true,
         parse: (json) => z.object({ call: callSchema }).parse(json).call,
+      }),
+    stream: (callId, lastEventId, onMessage, signal) =>
+      http.request({
+        path: `${path(callId)}/copilot/stream`,
+        auth: true,
+        signal,
+        timeoutMs: STREAM_TIMEOUT_MS,
+        headers: {
+          accept: 'text/event-stream',
+          ...(lastEventId === undefined ? {} : { 'last-event-id': lastEventId }),
+        },
+        read: async (response) => {
+          if (response.body === null) {
+            throw new Error('The stream has no body')
+          }
+          await readFrames(response.body, (frame) => {
+            // A frame that is not a known message (a newer event) is skipped, not fatal.
+            const parsed = copilotStreamMessageSchema.safeParse({
+              id: frame.id,
+              event: frame.event,
+              data: parseJson(frame.data),
+            })
+            if (parsed.success) {
+              onMessage(parsed.data)
+            }
+          })
+        },
       }),
     get: (callId, signal) =>
       http.request({ path: path(callId), auth: true, signal, parse: (j) => callSchema.parse(j) }),
