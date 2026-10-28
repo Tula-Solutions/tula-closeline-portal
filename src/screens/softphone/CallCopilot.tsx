@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import type {
   CopilotCard,
   CopilotStreamMessage,
@@ -59,14 +59,39 @@ export function CallCopilot(props: { readonly callId: string }) {
 
   const replace = (card: CopilotCard) =>
     setCards((now) => now.map((c) => (c.id === card.id ? card : c)))
-  // The service holds the end state, so a repeat of a press changes nothing; a refusal puts the old card back.
+  // The newest mark sent per card; an older answer must not overwrite what a newer press shows.
+  const latest = useRef(new Map<string, number>())
+  // The service holds the end state, so a repeat of a press changes nothing. A refusal undoes only
+  // the fields that press touched, on the card as it is now, so another press in flight stays.
   const mark = (card: CopilotCard, body: MarkCopilotCardRequest) => {
     setError(null)
+    const sent = (latest.current.get(card.id) ?? 0) + 1
+    latest.current.set(card.id, sent)
     replace(applied(card, body))
-    app.voice.markCopilotCard(props.callId, card.id, body).then(replace, (failure: unknown) => {
-      replace(card)
-      setError(presentCallHistory(failure).message)
-    })
+    app.voice.markCopilotCard(props.callId, card.id, body).then(
+      (stored) => {
+        if (latest.current.get(card.id) === sent) {
+          replace(stored)
+        }
+      },
+      (failure: unknown) => {
+        setCards((now) =>
+          now.map((c) =>
+            c.id === card.id
+              ? {
+                  ...c,
+                  ...(body.rating !== undefined ? { rating: card.rating } : {}),
+                  ...(body.dismissed !== undefined || body.pinned
+                    ? { dismissed: card.dismissed }
+                    : {}),
+                  ...(body.pinned !== undefined || body.dismissed ? { pinned: card.pinned } : {}),
+                }
+              : c
+          )
+        )
+        setError(presentCallHistory(failure).message)
+      }
+    )
   }
 
   const shown = order(cards)

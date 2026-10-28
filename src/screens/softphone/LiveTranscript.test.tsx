@@ -252,7 +252,7 @@ describe('Copilot cards in the Softphone', () => {
     )
   })
 
-  test('a rating goes out as a PATCH and a repeat of the same press sends the same end state', async () => {
+  test('a rating goes out as a PATCH naming the end state wanted', async () => {
     const { user, calls } = mount(
       route('GET', `/v1/calls/${ID}/copilot/stream`, sse(status('live', 's1'), shownCard('c1', 1))),
       route('PATCH', PATCH(1), json(200, card(1, { rating: 'useful' })))
@@ -284,6 +284,34 @@ describe('Copilot cards in the Softphone', () => {
     await user.click(await screen.findByRole('button', { name: 'Pin' }))
     await screen.findByText('That card is no longer available. Reload the cards.')
     expect(screen.getByRole('button', { name: 'Pin' }).getAttribute('aria-pressed')).toBe('false')
+  })
+
+  test('a refused pin does not undo a rating made while it was in flight', async () => {
+    let refuse: () => void = () => {}
+    const { user } = mount(
+      route('GET', `/v1/calls/${ID}/copilot/stream`, sse(status('live', 's1'), shownCard('c1', 1))),
+      route('PATCH', PATCH(1), async (call) => {
+        if ((call.body as { pinned?: boolean }).pinned !== undefined) {
+          await new Promise<void>((done) => {
+            refuse = done
+          })
+          return failure(404, 'card.not_found')
+        }
+        return json(200, card(1, { rating: 'useful' }))
+      })
+    )
+    await dial(user)
+    await user.click(await screen.findByRole('button', { name: 'Pin' }))
+    await user.click(screen.getByRole('button', { name: 'Useful' }))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Useful' }).getAttribute('aria-pressed')).toBe(
+        'true'
+      )
+    )
+    refuse()
+    await screen.findByText('That card is no longer available. Reload the cards.')
+    expect(screen.getByRole('button', { name: 'Pin' }).getAttribute('aria-pressed')).toBe('false')
+    expect(screen.getByRole('button', { name: 'Useful' }).getAttribute('aria-pressed')).toBe('true')
   })
 
   test('a pinned card stays on top when a newer card arrives', async () => {
