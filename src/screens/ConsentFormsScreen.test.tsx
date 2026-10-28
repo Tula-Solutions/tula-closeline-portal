@@ -169,6 +169,28 @@ describe('Consent forms: the list', () => {
     await waitFor(() => expect(calls.some((call) => call.path.endsWith('/closure'))).toBe(true))
   })
 
+  test('a link shown after a copy failure goes away once the form is closed', async () => {
+    const { user } = visit(
+      'admin',
+      route(
+        'POST',
+        `${FORMS}/${live.id}/closure`,
+        json(200, { ...live, state: 'closed', token: null, closedAt: '2026-09-04T00:00:00Z' })
+      ),
+      forms([live]),
+      wordings
+    )
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: () => Promise.reject(new Error('denied')) },
+    })
+    await user.click(await screen.findByRole('button', { name: /^Copy link/ }))
+    expect(await screen.findByLabelText('Link for Live form')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Close Live form' }))
+    await user.click(screen.getByRole('button', { name: 'Close form' }))
+    await waitFor(() => expect(screen.queryByLabelText('Link for Live form')).toBeNull())
+  })
+
   test('has no accessibility violations', async () => {
     visit('admin', forms([draft, live]), wordings)
     await screen.findByRole('list', { name: 'Consent forms' })

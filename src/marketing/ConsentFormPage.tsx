@@ -201,7 +201,10 @@ export function ConsentFormPage(props: { readonly token: string }) {
         <blockquote className='m-0 mt-3 max-w-[48ch] border-l-2 border-border-strong pl-4 leading-relaxed whitespace-pre-wrap break-words'>
           <bdi>{view.data.wordingText}</bdi>
         </blockquote>
-        <fieldset className='mt-8 border-0 p-0'>
+        <fieldset
+          className='mt-8 border-0 p-0'
+          aria-describedby={errors.choices ? 'consent-choices-error' : undefined}
+        >
           <legend className='label-mono mb-2'>{copy.channelsHeading}</legend>
           <p className='hint mt-0 mb-3'>{copy.channelsHint}</p>
           {offered.map((channel) => (
@@ -221,7 +224,7 @@ export function ConsentFormPage(props: { readonly token: string }) {
             </label>
           ))}
           {errors.choices ? (
-            <p className='text-sm text-danger'>
+            <p id='consent-choices-error' role='alert' className='text-sm text-danger'>
               <strong>{copy.errorLabel}</strong> {errors.choices}
             </p>
           ) : null}

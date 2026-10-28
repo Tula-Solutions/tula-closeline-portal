@@ -100,6 +100,31 @@ describe('the hosted consent page', () => {
     expect(document.body.textContent).not.toContain('+14155550123')
   })
 
+  test('claims only what ADR 0003 backs: no exclusivity over all contact, no stop link outside email', async () => {
+    const { user } = open(route('POST', SUBMIT_PATH, json(201, RECEIPT)))
+    expect(await screen.findByText('Email follows the unsubscribe rules.')).toBeTruthy()
+    expect(document.body.textContent).not.toContain('own link')
+    await user.click(screen.getByRole('checkbox', { name: 'Email' }))
+    await user.type(
+      screen.getByLabelText(copy.contact.email, { exact: false }),
+      'maya@northline.app'
+    )
+    await user.click(screen.getByRole('button', { name: copy.button }))
+    await screen.findByRole('heading', { name: copy.done.heading })
+    expect(document.body.textContent).not.toContain('only on the channels')
+    expect(document.body.textContent).toContain(
+      'call or text you only on the phone, SMS or WhatsApp'
+    )
+  })
+
+  test('the missing-channel error is read with the channels', async () => {
+    const { user } = open()
+    await user.click(await screen.findByRole('button', { name: copy.button }))
+    const group = await screen.findByRole('group', { name: copy.channelsHeading })
+    expect(group.getAttribute('aria-describedby')).toBeTruthy()
+    expect(screen.getByRole('alert').textContent).toContain(copy.errors.choices)
+  })
+
   test('a link that does not work gets one calm message and no form', async () => {
     renderPortal({
       url: `/consent/${TOKEN}`,

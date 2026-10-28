@@ -18,7 +18,7 @@ export const CONSENT_FORM_PAGE = {
     points: [
       'An AI Agent may call or text you on phone, SMS or WhatsApp only on a channel you agree to below.',
       'Every call it makes starts by saying that the caller is an AI and that the call is recorded.',
-      'Email follows the unsubscribe rules, and every message can be stopped from its own link.',
+      'Email follows the unsubscribe rules.',
     ],
   },
   wordingHeading: 'What you are agreeing to',
@@ -46,7 +46,7 @@ export const CONSENT_FORM_PAGE = {
   done: {
     heading: 'Your choices are saved',
     // Follows the Organization's name.
-    textTail: 'may reach you only on the channels below.',
+    textTail: 'may call or text you only on the phone, SMS or WhatsApp channels you agreed to.',
     at: 'Recorded',
     homeLink: 'Go to the Closeline site',
   },

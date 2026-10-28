@@ -68,6 +68,8 @@ export function ConsentFormsScreen() {
     )
   }
   const byId = new Map(wordings.items.map((wording) => [wording.id, wording]))
+  // shortcut: only loaded pages are checked for a superseding wording; core rejects a superseded
+  // one on create, so upgrade to draining the pages if that error shows up in practice.
   const replaced = new Set(wordings.items.map((wording) => wording.supersedesId))
   const usable = wordings.items.filter((wording) => !replaced.has(wording.id))
   return (
@@ -298,6 +300,7 @@ function FormItem(props: {
     useSubmit<void>(
       async () => {
         setError(null)
+        setFallback(null)
         await app.consentForms[action](form.id)
         await refresh(app, 'consent')
         props.onDone(done)
@@ -421,7 +424,7 @@ function FormItem(props: {
           {error}
         </p>
       ) : null}
-      {fallback ? (
+      {fallback && form.state === 'published' ? (
         <input readOnly aria-label={`Link for ${label}`} value={fallback} className='mt-2 w-full' />
       ) : null}
       {previewing && wording ? (
