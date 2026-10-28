@@ -41,6 +41,11 @@ export const fingerprint = {
   invitation: (email: string, role: string) => JSON.stringify(['invitation', email, role]),
   /** Placing a Call to `to`; a retry of the same press reuses the key. */
   softphoneCall: (to: string) => JSON.stringify(['softphone-call', to]),
+  /** Enriching these Prospects (their ids as JSON text); a retry of the same press reuses the key. */
+  enrichment: (ids: string) => JSON.stringify(['enrichment', ids]),
+  /** An enrichment settings write: its kind, target and body (a key is hashed by the caller); a retry reuses its key. */
+  enrichmentWrite: (kind: string, target: string, body: string) =>
+    JSON.stringify(['enrichment-write', kind, target, body]),
   /** Creating a Team called `name`. */
   team: (name: string) => JSON.stringify(['team', name]),
   /** Creating a Prospect from this body (as JSON text, so the same details are the same intent). */

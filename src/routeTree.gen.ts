@@ -23,6 +23,7 @@ import { Route as AppCalendarRouteImport } from './routes/_app/calendar'
 import { Route as AppConsentFormsRouteImport } from './routes/_app/consent-forms'
 import { Route as AppConsentWordingsRouteImport } from './routes/_app/consent-wordings'
 import { Route as AppDevelopersRouteImport } from './routes/_app/developers'
+import { Route as AppEnrichmentRouteImport } from './routes/_app/enrichment'
 import { Route as AppExportRouteImport } from './routes/_app/export'
 import { Route as AppInvitationsRouteImport } from './routes/_app/invitations'
 import { Route as AppLinesRouteImport } from './routes/_app/lines'
@@ -140,6 +141,11 @@ const AppConsentWordingsRoute = AppConsentWordingsRouteImport.update({
 const AppDevelopersRoute = AppDevelopersRouteImport.update({
   id: '/developers',
   path: '/developers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnrichmentRoute = AppEnrichmentRouteImport.update({
+  id: '/enrichment',
+  path: '/enrichment',
   getParentRoute: () => AppRoute,
 } as any)
 const AppExportRoute = AppExportRouteImport.update({
@@ -419,6 +425,7 @@ export interface FileRoutesByFullPath {
   '/consent-forms': typeof AppConsentFormsRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
+  '/enrichment': typeof AppEnrichmentRoute
   '/export': typeof AppExportRoute
   '/invitations': typeof AppInvitationsRoute
   '/lines': typeof AppLinesRoute
@@ -483,6 +490,7 @@ export interface FileRoutesByTo {
   '/consent-forms': typeof AppConsentFormsRoute
   '/consent-wordings': typeof AppConsentWordingsRoute
   '/developers': typeof AppDevelopersRoute
+  '/enrichment': typeof AppEnrichmentRoute
   '/export': typeof AppExportRoute
   '/invitations': typeof AppInvitationsRoute
   '/lines': typeof AppLinesRoute
@@ -547,6 +555,7 @@ export interface FileRoutesById {
   '/_app/consent-forms': typeof AppConsentFormsRoute
   '/_app/consent-wordings': typeof AppConsentWordingsRoute
   '/_app/developers': typeof AppDevelopersRoute
+  '/_app/enrichment': typeof AppEnrichmentRoute
   '/_app/export': typeof AppExportRoute
   '/_app/invitations': typeof AppInvitationsRoute
   '/_app/lines': typeof AppLinesRoute
@@ -614,6 +623,7 @@ export interface FileRouteTypes {
     | '/consent-forms'
     | '/consent-wordings'
     | '/developers'
+    | '/enrichment'
     | '/export'
     | '/invitations'
     | '/lines'
@@ -678,6 +688,7 @@ export interface FileRouteTypes {
     | '/consent-forms'
     | '/consent-wordings'
     | '/developers'
+    | '/enrichment'
     | '/export'
     | '/invitations'
     | '/lines'
@@ -741,6 +752,7 @@ export interface FileRouteTypes {
     | '/_app/consent-forms'
     | '/_app/consent-wordings'
     | '/_app/developers'
+    | '/_app/enrichment'
     | '/_app/export'
     | '/_app/invitations'
     | '/_app/lines'
@@ -901,6 +913,13 @@ declare module '@tanstack/react-router' {
       path: '/developers'
       fullPath: '/developers'
       preLoaderRoute: typeof AppDevelopersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/enrichment': {
+      id: '/_app/enrichment'
+      path: '/enrichment'
+      fullPath: '/enrichment'
+      preLoaderRoute: typeof AppEnrichmentRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/export': {
@@ -1329,6 +1348,7 @@ interface AppRouteChildren {
   AppConsentFormsRoute: typeof AppConsentFormsRoute
   AppConsentWordingsRoute: typeof AppConsentWordingsRoute
   AppDevelopersRoute: typeof AppDevelopersRoute
+  AppEnrichmentRoute: typeof AppEnrichmentRoute
   AppExportRoute: typeof AppExportRoute
   AppInvitationsRoute: typeof AppInvitationsRoute
   AppLinesRoute: typeof AppLinesRoute
@@ -1368,6 +1388,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConsentFormsRoute: AppConsentFormsRoute,
   AppConsentWordingsRoute: AppConsentWordingsRoute,
   AppDevelopersRoute: AppDevelopersRoute,
+  AppEnrichmentRoute: AppEnrichmentRoute,
   AppExportRoute: AppExportRoute,
   AppInvitationsRoute: AppInvitationsRoute,
   AppLinesRoute: AppLinesRoute,

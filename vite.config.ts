@@ -47,6 +47,7 @@ export default defineConfig(({ command, mode }) => {
               'CORE_PROXY_',
               'PLAYBOOK_PROXY_',
               'VOICE_PROXY_',
+              'OUTBOUND_PROXY_',
             ]),
             ...process.env,
           })

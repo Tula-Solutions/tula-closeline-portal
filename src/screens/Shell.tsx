@@ -238,6 +238,7 @@ export function Shell() {
             {can.manageConsentWording(role) ? (
               <NavLink to='/consent-forms'>Consent forms</NavLink>
             ) : null}
+            {can.manageEnrichment(role) ? <NavLink to='/enrichment'>Enrichment</NavLink> : null}
             {can.manageSuppression(role) ? <NavLink to='/suppression'>Suppression</NavLink> : null}
           </NavGroup>
           <NavGroup id='analytics' label='Analytics'>
