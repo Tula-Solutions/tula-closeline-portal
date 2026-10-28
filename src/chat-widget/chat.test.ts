@@ -4,6 +4,7 @@ import { boot } from './boot.ts'
 import { type ChatDeps, ChatError, sendMessage, startChat } from './client.ts'
 import { CODES } from './codes.ts'
 import { mountChatWidget } from './widget.ts'
+import { CONSENT_TEXT } from './words.ts'
 
 const config = { api: 'https://voice.example', key: 'k'.repeat(40) }
 const json = (status: number, body: unknown, headers: Record<string, string> = {}) =>
@@ -241,5 +242,146 @@ describe('boot', () => {
     expect(document.querySelectorAll('[data-closeline-chat]').length).toBe(0)
     document.dispatchEvent(new Event('DOMContentLoaded'))
     expect(document.querySelectorAll('[data-closeline-chat]').length).toBe(1)
+  })
+})
+
+describe('callback consent', () => {
+  afterEach(() => {
+    for (const host of document.querySelectorAll('[data-chat-test]')) {
+      host.remove()
+    }
+  })
+  const WORDING = { consentWordingId: `cwd_${'0'.repeat(31)}1`, consentWordingVersion: 1 }
+  const start = () =>
+    json(201, { sessionToken: 't'.repeat(40), expiresAt: 'x', messages: [disclosure] })
+  const receipt = () => json(201, { received: true, receivedAt: 'x' })
+
+  async function withCallback(answers: Response[]) {
+    const h = harness([start(), ...answers])
+    const host = document.createElement('div')
+    host.dataset.chatTest = ''
+    document.body.append(host)
+    mountChatWidget(host, config, h.deps).open()
+    await Bun.sleep(5)
+    const root = host.shadowRoot as ShadowRoot
+    const q = <T extends Element>(selector: string) => root.querySelector(selector) as T
+    const fill = (name: string, phone: string) => {
+      q<HTMLInputElement>('input[name=name]').value = name
+      q<HTMLInputElement>('input[name=phone]').value = phone
+    }
+    const tick = () => {
+      const box = q<HTMLInputElement>('input[type=checkbox]')
+      box.checked = true
+      box.dispatchEvent(new Event('change'))
+    }
+    const submit = async () => {
+      q<HTMLFormElement>('form.cb').requestSubmit()
+      await Bun.sleep(5)
+    }
+    const ask = async () => {
+      q<HTMLButtonElement>('.ask').click()
+      await Bun.sleep(5)
+    }
+    return { h, q, fill, tick, submit, ask }
+  }
+
+  test('shows the wording the version names, verbatim and as text', async () => {
+    const t = await withCallback([json(200, WORDING)])
+    await t.ask()
+    expect(t.h.calls[1]?.url).toBe(
+      `https://voice.example/v1/public/chat/${config.key}/consent-wording`
+    )
+    expect(t.q('.wording').textContent).toBe(CONSENT_TEXT[1] as string)
+    expect(t.q<HTMLFormElement>('form.cb').hidden).toBe(false)
+    expect(t.q<HTMLInputElement>('input[type=checkbox]').checked).toBe(false)
+  })
+
+  test('cannot be submitted until the box is ticked', async () => {
+    const t = await withCallback([json(200, WORDING), receipt()])
+    await t.ask()
+    t.fill('Ada', '+14155550100')
+    expect(t.q<HTMLButtonElement>('form.cb .send').disabled).toBe(true)
+    await t.submit()
+    expect(t.h.calls).toHaveLength(2)
+    t.tick()
+    expect(t.q<HTMLButtonElement>('form.cb .send').disabled).toBe(false)
+  })
+
+  test('sends the id, version, key and consent that were shown', async () => {
+    const t = await withCallback([json(200, WORDING), receipt()])
+    await t.ask()
+    t.fill('Ada', '+14155550100')
+    t.tick()
+    await t.submit()
+    const call = t.h.calls[2]
+    expect(call?.url).toBe(
+      `https://voice.example/v1/public/chat/sessions/${'t'.repeat(40)}/callback-consent`
+    )
+    expect(call?.key).toBeTruthy()
+    expect(JSON.parse(call?.body ?? '{}')).toMatchObject({
+      name: 'Ada',
+      phone: '+14155550100',
+      ...WORDING,
+      callbackConsent: true,
+    })
+    expect(t.q('.note').textContent).toContain('call you')
+  })
+
+  test('a 429 waits and resends the same key', async () => {
+    const t = await withCallback([
+      json(200, WORDING),
+      json(429, err('rate.limited'), { 'retry-after': '3' }),
+      receipt(),
+    ])
+    await t.ask()
+    t.fill('Ada', '+14155550100')
+    t.tick()
+    await t.submit()
+    expect(t.h.waits).toEqual([3000])
+    expect(t.h.calls[2]?.key).toBe(t.h.calls[3]?.key as string)
+    expect(t.q('.note').textContent).toContain('call you')
+  })
+
+  test('a wording fetch failure shows an error and no form', async () => {
+    const t = await withCallback([json(503, err('server.unavailable'))])
+    await t.ask()
+    expect(t.q('.note').textContent).toBe('Chat could not be reached. Try again in a moment.')
+    expect(t.q<HTMLFormElement>('form.cb').hidden).toBe(true)
+  })
+
+  test('a version the widget has no text for shows no form', async () => {
+    const t = await withCallback([json(200, { ...WORDING, consentWordingVersion: 999 })])
+    await t.ask()
+    expect(t.q<HTMLFormElement>('form.cb').hidden).toBe(true)
+  })
+
+  test('a changed wording is fetched again and unticked', async () => {
+    const t = await withCallback([
+      json(200, WORDING),
+      json(422, err('chat.consent_wording_missing')),
+      json(200, WORDING),
+    ])
+    await t.ask()
+    t.fill('Ada', '+14155550100')
+    t.tick()
+    await t.submit()
+    expect(t.q<HTMLInputElement>('input[type=checkbox]').checked).toBe(false)
+    expect(t.q('.note').textContent).toContain('wording changed')
+  })
+
+  test('a failed refetch after a changed wording leaves no ticked box to resend', async () => {
+    const t = await withCallback([
+      json(200, WORDING),
+      json(422, err('chat.consent_wording_missing')),
+      json(503, err('server.unavailable')),
+    ])
+    await t.ask()
+    t.fill('Ada', '+14155550100')
+    t.tick()
+    await t.submit()
+    expect(t.q<HTMLInputElement>('input[type=checkbox]').checked).toBe(false)
+    expect(t.q<HTMLButtonElement>('form.cb .send').disabled).toBe(true)
+    await t.submit()
+    expect(t.h.calls).toHaveLength(4)
   })
 })

@@ -9,6 +9,7 @@ export const CODES = {
   keyInvalid: 'chat.key_invalid',
   sessionClosed: 'chat.session_closed',
   sessionNotFound: 'chat.session_not_found',
+  wordingMissing: 'chat.consent_wording_missing',
   invalid: 'request.invalid',
   rateLimited: 'rate.limited',
   inProgress: 'request.idempotency_in_progress',
