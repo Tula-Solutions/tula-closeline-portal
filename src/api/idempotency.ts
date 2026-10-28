@@ -83,6 +83,9 @@ export const fingerprint = {
   routingRuleCreate: (body: string) => JSON.stringify(['routing-rule-create', body]),
   /** A Prospect booking a time through the link `token` with this body (as JSON): the same details are the same intent. */
   publicBooking: (token: string, body: string) => JSON.stringify(['public-booking', token, body]),
+  /** A Prospect moving the Booking of this manage token to `startsAt`: the same move is the same intent. */
+  publicReschedule: (token: string, startsAt: string) =>
+    JSON.stringify(['public-reschedule', token, startsAt]),
   /** Defining a Booking Type with this body (as JSON). */
   bookingTypeCreate: (body: string) => JSON.stringify(['booking-type-create', body]),
   /** Publishing version `number` of the `kind` Agent's instructions (a rollback when it is an earlier one). */

@@ -61,6 +61,7 @@ import { Route as AppSalesHistoryRightsRouteImport } from './routes/_app/sales-h
 import { Route as AppSalesHistorySearchRouteImport } from './routes/_app/sales-history/search'
 import { Route as PublicSignUpGoogleRouteImport } from './routes/_public/sign-up_.google'
 import { Route as SiteUnsubscribeTokenRouteImport } from './routes/_site/unsubscribe.$token'
+import { Route as BookManageTokenRouteImport } from './routes/book.manage.$token'
 import { Route as AppAnalyticsDealsDealRecordIdRouteImport } from './routes/_app/analytics/deals/$dealRecordId'
 import { Route as AppInboxApprovalsIndexRouteImport } from './routes/_app/inbox/approvals.index'
 import { Route as AppInboxApprovalsDraftIdRouteImport } from './routes/_app/inbox/approvals.$draftId'
@@ -329,6 +330,11 @@ const SiteUnsubscribeTokenRoute = SiteUnsubscribeTokenRouteImport.update({
   path: '/unsubscribe/$token',
   getParentRoute: () => SiteRoute,
 } as any)
+const BookManageTokenRoute = BookManageTokenRouteImport.update({
+  id: '/book/manage/$token',
+  path: '/book/manage/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppAnalyticsDealsDealRecordIdRoute =
   AppAnalyticsDealsDealRecordIdRouteImport.update({
     id: '/analytics/deals/$dealRecordId',
@@ -434,6 +440,7 @@ export interface FileRoutesByFullPath {
   '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sign-up/google': typeof PublicSignUpGoogleRoute
   '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
+  '/book/manage/$token': typeof BookManageTokenRoute
   '/analytics/': typeof AppAnalyticsIndexRoute
   '/inbox/': typeof AppInboxIndexRoute
   '/playbook/': typeof AppPlaybookIndexRoute
@@ -492,6 +499,7 @@ export interface FileRoutesByTo {
   '/sales-history/search': typeof AppSalesHistorySearchRoute
   '/sign-up/google': typeof PublicSignUpGoogleRoute
   '/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
+  '/book/manage/$token': typeof BookManageTokenRoute
   '/analytics': typeof AppAnalyticsIndexRoute
   '/inbox': typeof AppInboxIndexRoute
   '/playbook': typeof AppPlaybookIndexRoute
@@ -557,6 +565,7 @@ export interface FileRoutesById {
   '/_app/sales-history/search': typeof AppSalesHistorySearchRoute
   '/_public/sign-up_/google': typeof PublicSignUpGoogleRoute
   '/_site/unsubscribe/$token': typeof SiteUnsubscribeTokenRoute
+  '/book/manage/$token': typeof BookManageTokenRoute
   '/_app/analytics/': typeof AppAnalyticsIndexRoute
   '/_app/inbox/': typeof AppInboxIndexRoute
   '/_app/playbook/': typeof AppPlaybookIndexRoute
@@ -620,6 +629,7 @@ export interface FileRouteTypes {
     | '/sales-history/search'
     | '/sign-up/google'
     | '/unsubscribe/$token'
+    | '/book/manage/$token'
     | '/analytics/'
     | '/inbox/'
     | '/playbook/'
@@ -678,6 +688,7 @@ export interface FileRouteTypes {
     | '/sales-history/search'
     | '/sign-up/google'
     | '/unsubscribe/$token'
+    | '/book/manage/$token'
     | '/analytics'
     | '/inbox'
     | '/playbook'
@@ -742,6 +753,7 @@ export interface FileRouteTypes {
     | '/_app/sales-history/search'
     | '/_public/sign-up_/google'
     | '/_site/unsubscribe/$token'
+    | '/book/manage/$token'
     | '/_app/analytics/'
     | '/_app/inbox/'
     | '/_app/playbook/'
@@ -764,6 +776,7 @@ export interface RootRouteChildren {
   PublicRoute: typeof PublicRouteWithChildren
   SiteRoute: typeof SiteRouteWithChildren
   BookTokenRoute: typeof BookTokenRoute
+  BookManageTokenRoute: typeof BookManageTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1132,6 +1145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SiteUnsubscribeTokenRouteImport
       parentRoute: typeof SiteRoute
     }
+    '/book/manage/$token': {
+      id: '/book/manage/$token'
+      path: '/book/manage/$token'
+      fullPath: '/book/manage/$token'
+      preLoaderRoute: typeof BookManageTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/analytics/deals/$dealRecordId': {
       id: '/_app/analytics/deals/$dealRecordId'
       path: '/analytics/deals/$dealRecordId'
@@ -1380,6 +1400,7 @@ const rootRouteChildren: RootRouteChildren = {
   PublicRoute: PublicRouteWithChildren,
   SiteRoute: SiteRouteWithChildren,
   BookTokenRoute: BookTokenRoute,
+  BookManageTokenRoute: BookManageTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

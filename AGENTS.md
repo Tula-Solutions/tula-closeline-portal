@@ -120,7 +120,13 @@ style: Radix, `class-variance-authority` for variants, `cn()` from `src/lib/util
   `src/api/public-booking.ts`): no sign-in and no app frame. The token is a secret: registered with
   `app.reporter.redact`, masked by `/book/` in `src/report/scrub.ts`, never in the title. Times show
   in the browser's zone; the booking sends `timeZone`, the honeypot `website` (a filled one is still
-  sent; the server decides) and an Idempotency-Key kept on retry. Cancel and reschedule are not here.
+  sent; the server decides) and an Idempotency-Key kept on retry. The confirmation links to the manage page and tells the Prospect to keep it.
+- Manage page (`/book/manage/$token`, `src/screens/booking/ManageBookingPage.tsx`, `src/api/public-booking.ts`): the
+  token in the address is a bearer secret for one Booking, handled like the Booking Type token (redacted,
+  masked by `/book/` in `scrub.ts`, never in the title). Cancel asks first; reschedule shares the slot picker
+  (`slot-picker.tsx`), sends one Idempotency-Key per chosen time and, on `request.idempotency_in_progress`, asks
+  again after `Retry-After` with the same key. A cancelled or started Booking shows its state and no actions;
+  `booking.not_found` is one calm "this link no longer works" state.
 - Developers (`src/screens/DevelopersScreen.tsx`): renders the vendored public OpenAPI document
   (`openapi/public.openapi.json`, refreshed with `bun run vendor:public -- --from <hub clone>`) and
   calls no private route. Visible to every role.

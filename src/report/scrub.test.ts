@@ -287,6 +287,12 @@ describe('scrubEvent bounds its work on long strings', () => {
 
 describe('a public booking link keeps its token out of reports', () => {
   const token = 'Tk-booking_0123456789abcdef0123456789abcdef'
+  test('stripUrl masks a manage token whole, not just the word manage', () => {
+    expect(stripUrl('https://app.example/book/manage/short-secret?x=1')).toBe(
+      'https://app.example/book/[redacted]'
+    )
+  })
+
   test('stripUrl masks the last path segment of /book/', () => {
     expect(stripUrl(`https://app.example/book/${token}?x=1`)).toBe(
       'https://app.example/book/[redacted]'
