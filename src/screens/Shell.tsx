@@ -8,6 +8,7 @@ import { ThemeMenu } from '~/components/app/theme-menu'
 import { Button } from '~/components/ui/button'
 import { can } from '~/data/permissions'
 import { cn } from '~/lib/utils'
+import { HandoffCard } from '~/screens/handoff/HandoffCard'
 import { Softphone } from '~/screens/softphone/Softphone'
 import { connectVoice } from '~/screens/softphone/voice-device'
 import type { Role } from '~/session/session'
@@ -320,6 +321,7 @@ export function Shell() {
         </div>
       </main>
       <div inert={open}>
+        <HandoffCard />
         <Softphone connect={connectVoice} />
       </div>
     </div>

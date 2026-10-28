@@ -1,4 +1,4 @@
-import { ERRORS, VOICE_ERRORS } from 'tula-closeline-contract'
+import { AGENT_ERRORS, ERRORS, VOICE_ERRORS } from 'tula-closeline-contract'
 import { ApiError } from '~/api/errors'
 import { presentManage, type ShownFailure } from '~/api/manage-messages'
 import { waitPhrase } from '~/api/messages'
@@ -61,6 +61,21 @@ export function presentCall(error: unknown): ShownFailure {
         return { message: 'Someone else answered, or the Call was missed.' }
       case ERRORS['server.unavailable'].code:
         return { message: 'The phone service is not available right now. Try again shortly.' }
+      default:
+        break
+    }
+  }
+  return presentManage(error)
+}
+
+/** Turns a failure of reading or answering a Handoff into plain words, branching on the contract's code. */
+export function presentHandoff(error: unknown): ShownFailure {
+  if (error instanceof ApiError) {
+    switch (error.code) {
+      case AGENT_ERRORS['handoff.not_found'].code:
+        return { message: 'That Handoff is no longer offered to you.' }
+      case AGENT_ERRORS['handoff.not_pending'].code:
+        return { message: 'Someone else took it, or it ran out of time.' }
       default:
         break
     }
