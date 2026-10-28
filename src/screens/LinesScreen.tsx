@@ -5,13 +5,14 @@ import {
   addLineRequestSchema,
   assignLineRequestSchema,
   type Line,
+  type Role,
 } from 'tula-closeline-contract'
 import { fingerprint } from '~/api/idempotency'
 import { presentLine } from '~/api/voice-messages'
 import { useApp } from '~/app-context'
 import { PageHeader } from '~/components/app/page-header'
 import { Section } from '~/components/app/section'
-import { can } from '~/data/permissions'
+import { can, ROLE_LABEL } from '~/data/permissions'
 import { refresh, useLines, useMembersByIds, useTeamOptions } from '~/data/queries'
 import { useRole } from '~/data/session-role'
 import { Banner } from '~/ui/Banner'
@@ -57,7 +58,7 @@ export function LinesScreen() {
 function LinesAdmin() {
   const lines = useLines(true)
   const teams = useTeamOptions(true)
-  // Names of the Reps the Lines on screen ring, by id; choosing a Rep searches the server (OwnerCombobox).
+  // Names of the people the Lines on screen ring, by id; choosing a person searches the server (OwnerCombobox).
   const repIds = lines.items.flatMap((line) =>
     line.assignment.kind === 'rep' ? [line.assignment.membershipId] : []
   )
@@ -69,7 +70,7 @@ function LinesAdmin() {
       <PageHeader
         eyebrow='Organization'
         title='Lines'
-        description='The phone numbers your Organization uses for Calls. Assign each Line to a Team or a Rep so inbound Calls reach them.'
+        description='The phone numbers your Organization uses for Calls. Assign each Line to a person, a Team or a role so inbound Calls reach them.'
         headingRef={headingRef}
         headingProps={{ tabIndex: -1 }}
       />
@@ -287,6 +288,8 @@ function AddLineForm(props: {
   )
 }
 
+const ASSIGNABLE_ROLES: readonly Role[] = ['owner', 'admin', 'manager', 'rep']
+
 type Named = { readonly id: string; readonly name: string | null; readonly email?: string }
 
 function assignmentValue(line: Line): string {
@@ -294,10 +297,16 @@ function assignmentValue(line: Line): string {
   if (assignment.kind === 'team') {
     return `team:${assignment.teamId}`
   }
+  if (assignment.kind === 'role') {
+    return 'role'
+  }
   return assignment.kind === 'rep' ? `rep:${assignment.membershipId}` : 'unassigned'
 }
 
-function toRequest(value: string): AssignLineRequest {
+function toRequest(value: string, role: Role): AssignLineRequest {
+  if (value === 'role') {
+    return assignLineRequestSchema.parse({ kind: 'role', role })
+  }
   if (value.startsWith('team:')) {
     return assignLineRequestSchema.parse({ kind: 'team', teamId: value.slice('team:'.length) })
   }
@@ -310,7 +319,10 @@ function toRequest(value: string): AssignLineRequest {
 function LineItem(props: {
   readonly line: Line
   readonly teams: readonly Named[]
-  readonly reps: ReadonlyMap<string, { readonly name: string | null; readonly email: string }>
+  readonly reps: ReadonlyMap<
+    string,
+    { readonly name: string | null; readonly email: string; readonly role: Role }
+  >
   readonly onDone: (notice: string) => void
   readonly onFail: () => void
   readonly serial: number
@@ -353,20 +365,23 @@ function LineItem(props: {
       const team = props.teams.find((candidate) => candidate.id === assignment.teamId)
       return team ? (
         <>
-          Rings the Team <Untrusted value={team.name ?? ''} />
+          Team: <Untrusted value={team.name ?? ''} />
         </>
       ) : (
-        'Rings a Team'
+        'A Team'
       )
     }
+    if (assignment.kind === 'role') {
+      return `Everyone with role ${ROLE_LABEL[assignment.role]}`
+    }
     if (assignment.kind === 'rep') {
-      const rep = props.reps.get(assignment.membershipId)
-      return rep ? (
+      const person = props.reps.get(assignment.membershipId)
+      return person ? (
         <>
-          Rings the Rep <Untrusted value={rep.name ?? rep.email ?? ''} />
+          <Untrusted value={person.name ?? person.email ?? ''} /> ({ROLE_LABEL[person.role]})
         </>
       ) : (
-        'Rings a Rep'
+        'A person'
       )
     }
     return 'Nobody answers yet'
@@ -449,7 +464,10 @@ function AssignForm(props: {
   readonly onClose: () => void
 }) {
   const app = useApp()
-  const [value, setValue] = useState(assignmentValue(props.line).replace(/^rep:.*/, 'rep'))
+  const [value, setValue] = useState(assignmentValue(props.line).replace(/^rep:.*/, 'person'))
+  const [role, setRole] = useState<Role>(
+    props.line.assignment.kind === 'role' ? props.line.assignment.role : 'rep'
+  )
   const [rep, setRep] = useState({
     id: props.line.assignment.kind === 'rep' ? props.line.assignment.membershipId : '',
     name: '',
@@ -459,7 +477,7 @@ function AssignForm(props: {
   const { formRef, bannerRef, focusFirstError } = useFocusOnError()
   const assign = useSubmit<string>(
     async (chosen) => {
-      await app.voice.assignLine(props.line.id, toRequest(chosen))
+      await app.voice.assignLine(props.line.id, toRequest(chosen, role))
       await refresh(app, 'lines')
       props.onDone('Line assigned.')
       props.onClose()
@@ -483,7 +501,8 @@ function AssignForm(props: {
       value: `team:${team.id}`,
       text: `Team: ${isolate(team.name ?? '')}`,
     })),
-    { value: 'rep', text: 'A Rep' },
+    { value: 'person', text: 'A person' },
+    { value: 'role', text: 'Everyone with a role' },
   ]
   return (
     <form
@@ -498,11 +517,11 @@ function AssignForm(props: {
           props.onFail()
           setError(null)
           setRepError(undefined)
-          if (value === 'rep' && rep.id === '') {
-            setRepError('Choose a Rep.')
+          if (value === 'person' && rep.id === '') {
+            setRepError('Choose a person.')
             return
           }
-          assign.submit(value === 'rep' ? `rep:${rep.id}` : value)
+          assign.submit(value === 'person' ? `rep:${rep.id}` : value)
         }
       }}
       onKeyDown={(event) => {
@@ -523,16 +542,25 @@ function AssignForm(props: {
         options={options}
         onChange={(event) => setValue(event.target.value)}
       />
-      {value === 'rep' ? (
+      {value === 'person' ? (
         <OwnerCombobox
-          label='Rep'
-          anyText='Choose a Rep'
+          label='Person'
+          anyText='Choose a person'
           enabled
           value={rep.id}
           valueName={rep.name}
           error={repError}
-          memberRole='rep'
+          showRole
           onChange={(id, name) => setRep({ id, name })}
+        />
+      ) : null}
+      {value === 'role' ? (
+        <SelectField
+          label='Role'
+          name='role'
+          value={role}
+          options={ASSIGNABLE_ROLES.map((r) => ({ value: r, text: ROLE_LABEL[r] }))}
+          onChange={(event) => setRole(event.target.value as Role)}
         />
       ) : null}
       <div className='row-actions'>
