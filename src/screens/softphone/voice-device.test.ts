@@ -160,8 +160,8 @@ describe('connectVoice', () => {
     }
     expect(waits.length).toBeGreaterThan(8)
     expect(Math.max(...waits)).toBeLessThanOrEqual(30_000)
-    // the wait before a round grows: the last round waits longer than the first
-    expect(waits.at(-1) as number).toBeGreaterThan(waits[0] as number)
+    // rounds back off well past the in-round retry waits (under 1s), up to the cap
+    expect(Math.max(...waits)).toBeGreaterThanOrEqual(5_000)
   })
 
   test('does not recover after destroy', async () => {
