@@ -25,10 +25,10 @@ describe('buildCsp', () => {
     expect(directive(policy, 'default-src')).toBe("default-src 'none'")
   })
 
-  test('connections go to the page itself (auth and core are behind it), to Sentry and to the Twilio Voice hosts, and nowhere else', () => {
+  test('connections go to the page itself (auth and core are behind it), to Sentry and to the Voice SDK default edge hosts, and nowhere else', () => {
     const connect = directive(buildCsp(prod, { meta: true }), 'connect-src')
     expect(connect).toBe(
-      "connect-src 'self' https://o1.ingest.sentry.io https://*.twilio.com wss://*.twilio.com"
+      "connect-src 'self' https://o1.ingest.sentry.io https://eventgw.twilio.com https://eventgw.roaming.twilio.com wss://voice-js.roaming.twilio.com"
     )
   })
 
@@ -37,11 +37,12 @@ describe('buildCsp', () => {
       .split(' ')
       .slice(1)
     expect(sources[0]).toBe("'self'")
-    // The only wildcards are subdomains of twilio.com, which the Voice SDK needs (its region hosts vary).
+    // Only the Voice SDK's default (roaming) edge hosts: another edge needs its own entries.
     expect(sources.slice(1)).toEqual([
       'https://o1.ingest.sentry.io',
-      'https://*.twilio.com',
-      'wss://*.twilio.com',
+      'https://eventgw.twilio.com',
+      'https://eventgw.roaming.twilio.com',
+      'wss://voice-js.roaming.twilio.com',
     ])
     expect(sources).not.toContain('*')
     expect(sources.some((source) => /^[a-z]+:$/.test(source))).toBe(false)
@@ -52,7 +53,7 @@ describe('buildCsp', () => {
       VITE_ENVIRONMENT: 'local',
     })
     expect(directive(buildCsp(local, { meta: true }), 'connect-src')).toBe(
-      "connect-src 'self' https://*.twilio.com wss://*.twilio.com"
+      "connect-src 'self' https://eventgw.twilio.com https://eventgw.roaming.twilio.com wss://voice-js.roaming.twilio.com"
     )
     expect(buildCsp(local, { meta: true })).not.toContain('upgrade-insecure-requests')
   })
@@ -63,6 +64,7 @@ describe('buildCsp', () => {
     ['style-src', "style-src 'self'"],
     ['img-src', "img-src 'self'"],
     ['font-src', "font-src 'self'"],
+    ['media-src', 'media-src https://sdk.twilio.com'],
     ['manifest-src', "manifest-src 'self'"],
     ['base-uri', "base-uri 'none'"],
     ['form-action', "form-action 'self'"],
@@ -81,7 +83,8 @@ describe('buildCsp', () => {
       "style-src 'self'",
       "img-src 'self'",
       "font-src 'self'",
-      "connect-src 'self' https://o1.ingest.sentry.io https://*.twilio.com wss://*.twilio.com",
+      "connect-src 'self' https://o1.ingest.sentry.io https://eventgw.twilio.com https://eventgw.roaming.twilio.com wss://voice-js.roaming.twilio.com",
+      'media-src https://sdk.twilio.com',
       "manifest-src 'self'",
       "base-uri 'none'",
       "form-action 'self'",

@@ -7,8 +7,13 @@ export function buildCsp(env: Env, options: { readonly meta: boolean }): string 
   if (env.sentryDsn !== undefined) {
     connect.push(originOf(env.sentryDsn))
   }
-  // The Twilio Voice SDK signals over wss and fetches its region list over https.
-  connect.push('https://*.twilio.com', 'wss://*.twilio.com')
+  // The Voice SDK's default (roaming) edge: signalling over wss, event reporting over https.
+  // Pinned in voice-device.ts; choosing another edge needs its own hosts here.
+  connect.push(
+    'https://eventgw.twilio.com',
+    'https://eventgw.roaming.twilio.com',
+    'wss://voice-js.roaming.twilio.com'
+  )
   const directives: string[] = [
     "default-src 'none'",
     "script-src 'self'",
@@ -16,6 +21,8 @@ export function buildCsp(env: Env, options: { readonly meta: boolean }): string 
     "img-src 'self'",
     "font-src 'self'",
     `connect-src ${[...new Set(connect)].join(' ')}`,
+    // The SDK's ring and tone files.
+    'media-src https://sdk.twilio.com',
     "manifest-src 'self'",
     "base-uri 'none'",
     "form-action 'self'",

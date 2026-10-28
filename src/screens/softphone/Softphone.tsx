@@ -98,7 +98,9 @@ export function Softphone(props: {
   useEffect(() => release, [release])
 
   // The Rep's microphone is silent while muted or on hold; the SDK leg carries the audio.
+  const silent = useRef(false)
   useEffect(() => {
+    silent.current = muted || held
     leg.current?.mute(muted || held)
     for (const track of stream.current?.getAudioTracks() ?? []) {
       track.enabled = !(muted || held)
@@ -117,8 +119,10 @@ export function Softphone(props: {
       getToken: () => app.calls.token(),
       onLeg: (next) => {
         leg.current = next
-        next?.mute(false)
+        // The Rep may have muted before the leg arrived.
+        next?.mute(silent.current)
       },
+      onReady: (ready) => setAudio(ready ? 'ready' : 'failed'),
     }).then(
       (made) => {
         if (gone) {

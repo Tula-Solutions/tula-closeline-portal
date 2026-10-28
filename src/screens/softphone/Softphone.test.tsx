@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { VOICE_ERRORS } from 'tula-closeline-contract'
 import { createApp } from '~/app'
@@ -375,6 +375,35 @@ describe('Softphone audio', () => {
     expect(await screen.findByRole('alert')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Hang up' })).toBeTruthy()
     expect(voice.log).not.toContain('disconnect')
+  })
+
+  test('a Rep who muted before the leg arrived is muted on arrival', async () => {
+    const voice = fakeVoice()
+    const { user } = mountWith(
+      voice.connect,
+      tokenRoute,
+      route('POST', '/v1/calls', json(201, { call: callBody() })),
+      route('GET', `/v1/calls/${ID}`, json(200, callBody())),
+      noRinging
+    )
+    await user.click(screen.getByRole('button', { name: 'Open' }))
+    await user.type(screen.getByLabelText('Number to call'), '+15550100')
+    await user.click(screen.getByRole('button', { name: 'Call' }))
+    await user.click(await screen.findByRole('button', { name: 'Mute' }))
+    voice.arrive()
+    expect(voice.log).toEqual(['mute:true'])
+  })
+
+  test('audio that is lost after connecting is said plainly', async () => {
+    let lose: ((ready: boolean) => void) | undefined
+    mountWith(async ({ onReady }) => {
+      lose = onReady
+      return { destroy: () => undefined }
+    }, noRinging)
+    await user_open()
+    await waitFor(() => expect(lose).toBeDefined())
+    act(() => lose?.(false))
+    expect(await screen.findByText(/Call audio could not connect/)).toBeTruthy()
   })
 
   test('an audio connection that fails is said plainly', async () => {
