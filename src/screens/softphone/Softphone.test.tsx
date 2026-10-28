@@ -86,7 +86,8 @@ const status = () =>
 
 describe('Softphone', () => {
   test('a dialled Call shows the Disclosure, then live, then ended', async () => {
-    let reads = 0
+    // The Call ends only once the test has seen it live, so a slow runner cannot miss that state.
+    let hungUp = false
     const { user, calls } = mount(
       route(
         'POST',
@@ -98,10 +99,7 @@ describe('Softphone', () => {
           }),
         })
       ),
-      route('GET', `/v1/calls/${ID}`, () => {
-        reads += 1
-        return json(200, callBody(reads < 2 ? {} : { state: 'ended' }))
-      }),
+      route('GET', `/v1/calls/${ID}`, () => json(200, callBody(hungUp ? { state: 'ended' } : {}))),
       noRinging
     )
     await user.click(screen.getByRole('button', { name: 'Open' }))
@@ -109,6 +107,7 @@ describe('Softphone', () => {
     await user.click(screen.getByRole('button', { name: 'Call' }))
     await waitFor(() => expect(status()).toContain('Disclosure playing'))
     await waitFor(() => expect(status()).toContain('Live, +15550100. Disclosure played, v3.'))
+    hungUp = true
     await waitFor(() => expect(status()).toContain('Ended, +15550100'))
     const place = calls.find((c) => c.method === 'POST')
     expect(place?.headers.get('idempotency-key')?.length).toBeGreaterThanOrEqual(16)
