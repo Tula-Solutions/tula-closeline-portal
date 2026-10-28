@@ -7,7 +7,7 @@ export type ShownFailure = {
   readonly message: string
   readonly field?: 'email' | 'name'
   /** Where the person should go to put it right: the Conversation the call was about. */
-  readonly link?: 'conversation'
+  readonly link?: 'conversation' | 'lines'
 }
 
 function tryAgain(seconds: number | undefined): string {

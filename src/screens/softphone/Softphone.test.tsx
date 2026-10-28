@@ -86,7 +86,8 @@ const status = () =>
 
 describe('Softphone', () => {
   test('a dialled Call shows the Disclosure, then live, then ended', async () => {
-    let reads = 0
+    // The Call ends only once the test has seen it live, so a slow runner cannot miss that state.
+    let hungUp = false
     const { user, calls } = mount(
       route(
         'POST',
@@ -98,10 +99,7 @@ describe('Softphone', () => {
           }),
         })
       ),
-      route('GET', `/v1/calls/${ID}`, () => {
-        reads += 1
-        return json(200, callBody(reads < 2 ? {} : { state: 'ended' }))
-      }),
+      route('GET', `/v1/calls/${ID}`, () => json(200, callBody(hungUp ? { state: 'ended' } : {}))),
       noRinging
     )
     await user.click(screen.getByRole('button', { name: 'Open' }))
@@ -109,10 +107,12 @@ describe('Softphone', () => {
     await user.click(screen.getByRole('button', { name: 'Call' }))
     await waitFor(() => expect(status()).toContain('Disclosure playing'))
     await waitFor(() => expect(status()).toContain('Live, +15550100. Disclosure played, v3.'))
+    hungUp = true
     await waitFor(() => expect(status()).toContain('Ended, +15550100'))
     const place = calls.find((c) => c.method === 'POST')
     expect(place?.headers.get('idempotency-key')?.length).toBeGreaterThanOrEqual(16)
-    expect(stopped).toBeGreaterThan(0)
+    // The microphone is released after the ended state renders, not with it.
+    await waitFor(() => expect(stopped).toBeGreaterThan(0))
   })
 
   test('the dial pad fills the number field', async () => {
@@ -232,5 +232,65 @@ describe('Softphone', () => {
     await user.type(screen.getByLabelText('Number to call'), '12')
     await user.click(screen.getByRole('button', { name: 'Call' }))
     expect((await screen.findByRole('alert')).textContent).toContain('cannot be called')
+  })
+
+  test('the country starts on the United States and the Call goes out as +1 and the national number', async () => {
+    const { user, calls } = mount(
+      route('POST', '/v1/calls', json(201, { call: callBody() })),
+      route('GET', `/v1/calls/${ID}`, json(200, callBody())),
+      noRinging
+    )
+    await user.click(screen.getByRole('button', { name: 'Open' }))
+    expect(screen.getByLabelText('Country calling code').textContent).toContain('+1')
+    expect(screen.getByLabelText('Country calling code').textContent).toContain('United States')
+    await user.click(screen.getByRole('button', { name: '5' }))
+    await user.click(screen.getByRole('button', { name: '5' }))
+    await user.click(screen.getByRole('button', { name: '9' }))
+    await user.click(screen.getByRole('button', { name: 'Delete last digit' }))
+    expect((screen.getByLabelText('Number to call') as HTMLInputElement).value).toBe('55')
+    await user.click(screen.getByRole('button', { name: '0' }))
+    await user.click(screen.getByRole('button', { name: 'Call' }))
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST')).toBe(true))
+    expect(JSON.stringify(calls.find((c) => c.method === 'POST')?.body)).toContain('+1550')
+  })
+
+  test('another country changes the calling code that is sent', async () => {
+    const { user, calls } = mount(
+      route('POST', '/v1/calls', json(201, { call: callBody() })),
+      route('GET', `/v1/calls/${ID}`, json(200, callBody())),
+      noRinging
+    )
+    await user.click(screen.getByRole('button', { name: 'Open' }))
+    await user.click(screen.getByLabelText('Country calling code'))
+    await user.click(await screen.findByRole('option', { name: /United Kingdom \+44/ }))
+    await user.type(screen.getByLabelText('Number to call'), '2079460958')
+    await user.click(screen.getByRole('button', { name: 'Call' }))
+    await waitFor(() => expect(calls.some((c) => c.method === 'POST')).toBe(true))
+    expect(JSON.stringify(calls.find((c) => c.method === 'POST')?.body)).toContain('+442079460958')
+  })
+
+  test('a pasted +… number picks its country and leaves the national number', async () => {
+    const { user } = mount(noRinging)
+    await user.click(screen.getByRole('button', { name: 'Open' }))
+    await user.click(screen.getByLabelText('Number to call'))
+    await user.paste('+442079460958')
+    expect((screen.getByLabelText('Number to call') as HTMLInputElement).value).toBe('2079460958')
+    expect(screen.getByLabelText('Country calling code').textContent).toContain('+44')
+  })
+
+  test('no active Line points to the Lines page, and Close dismisses the panel', async () => {
+    const { user } = mount(
+      route('POST', '/v1/calls', failure(422, VOICE_ERRORS['call.line_unavailable'].code)),
+      noRinging
+    )
+    await user.click(screen.getByRole('button', { name: 'Open' }))
+    await user.type(screen.getByLabelText('Number to call'), '5550100')
+    await user.click(screen.getByRole('button', { name: 'Call' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('no active Line')
+    expect(screen.getByRole('link', { name: 'Open Lines' }).getAttribute('href')).toBe('/lines')
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByLabelText('Number to call')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Open' })).toBeTruthy()
   })
 })
