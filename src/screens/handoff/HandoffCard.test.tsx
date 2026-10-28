@@ -132,4 +132,37 @@ describe('HandoffCard', () => {
       expect(screen.getByText('Someone else took it, or it ran out of time.')).toBeTruthy()
     )
   })
+
+  test('a failed answer keeps the offer so the Rep can retry', async () => {
+    const { user } = mount(
+      route('POST', `/v1/handoffs/${ID}/accept`, failure(503, 'service.unavailable'))
+    )
+    await user.click(await screen.findByRole('button', { name: 'Accept' }))
+    await screen.findByText(/Close/)
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    expect(await screen.findByRole('button', { name: 'Accept' })).toBeTruthy()
+  })
+
+  test('a new offer shows at once after an answer', async () => {
+    const ID2 = `hof_${'b'.repeat(32)}`
+    let answered = false
+    const { user } = mount((call) => {
+      if (call.method === 'POST') {
+        answered = true
+        return json(200, handoff('accepted'))
+      }
+      if (call.path === '/v1/handoffs') {
+        return json(200, {
+          items: [answered ? { ...handoff(), id: ID2 } : handoff()],
+          nextCursor: null,
+        })
+      }
+      if (call.path === `/v1/handoffs/${ID2}`) {
+        return json(200, { ...context, handoffId: ID2 })
+      }
+      return null
+    })
+    await user.click(await screen.findByRole('button', { name: 'Accept' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Accept' })).toBeTruthy())
+  })
 })

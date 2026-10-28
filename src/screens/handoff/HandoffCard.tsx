@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { Handoff, HandoffContext } from 'tula-closeline-contract'
+import { AGENT_ERRORS, type Handoff, type HandoffContext } from 'tula-closeline-contract'
+import { ApiError } from '~/api/errors'
 import { presentHandoff } from '~/api/voice-messages'
 import { useApp } from '~/app-context'
 import { Button } from '~/components/ui/button'
@@ -48,7 +49,7 @@ export function HandoffCard(props: { readonly pollMs?: number }) {
       try {
         setOffers(await app.voice.listPendingHandoffs(control.signal))
       } catch {
-        next = pollMs * 10 // shortcut: a failed read waits longer and says nothing; the card shows only what it knows
+        next = pollMs * 2 // shortcut: a failed read says nothing and retries soon; the card shows only what it knows
       }
       if (!control.signal.aborted) {
         timer = setTimeout(tick, next)
@@ -60,6 +61,14 @@ export function HandoffCard(props: { readonly pollMs?: number }) {
       clearTimeout(timer)
     }
   }, [app, busy, pollMs])
+
+  // A new offer replaces the last answer's message.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the offer changes
+  useEffect(() => {
+    if (offerId !== null) {
+      setMessage(null)
+    }
+  }, [offerId])
 
   // The context is read once per offer.
   useEffect(() => {
@@ -96,7 +105,14 @@ export function HandoffCard(props: { readonly pollMs?: number }) {
         error: false,
       })
     } catch (caught) {
-      setDone((now) => [...now, handoff.id])
+      // Only these two codes mean the offer is gone; any other failure leaves it to retry.
+      if (
+        caught instanceof ApiError &&
+        (caught.code === AGENT_ERRORS['handoff.not_found'].code ||
+          caught.code === AGENT_ERRORS['handoff.not_pending'].code)
+      ) {
+        setDone((now) => [...now, handoff.id])
+      }
       setMessage({ text: presentHandoff(caught).message, error: true })
     } finally {
       setBusy(false)
